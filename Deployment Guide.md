@@ -21,7 +21,7 @@
 ### 2.2 后端文件
 
 ```text
-后端文件集中在 `ecology/src/classbaearn/com/customization/oaones/appsyn` 下，使用ssm架构，通过mybatis的xml进行数据库交互。
+后端文件集中在 `ecology/src or classbean/com/customization/oaones/appsyn` 下，使用ssm架构，通过mybatis的xml进行数据库交互。
 ```
 
 ### 2.3 其他文件
