@@ -1,0 +1,10 @@
+ALTER TABLE uf_oaones_login_config ADD (login_box_left NUMBER(10));
+ALTER TABLE uf_oaones_login_config ADD (login_box_top NUMBER(10));
+ALTER TABLE uf_oaones_login_config ADD (login_box_width NUMBER(10));
+ALTER TABLE uf_oaones_login_config ADD (login_box_height NUMBER(10));
+ALTER TABLE uf_oaones_login_config ADD (gopage_seconds NUMBER(10));
+COMMENT ON COLUMN uf_oaones_login_config.login_box_left IS '登录框左上角 X（CSS 像素，相对可视区域左上角）；空 = 默认布局';
+COMMENT ON COLUMN uf_oaones_login_config.login_box_top IS '登录框左上角 Y（CSS 像素）；空 = 默认布局';
+COMMENT ON COLUMN uf_oaones_login_config.login_box_width IS '登录框宽度（px）；空 = 默认宽度';
+COMMENT ON COLUMN uf_oaones_login_config.login_box_height IS '登录框高度（px，内容超出时卡片内滚动）；空 = 高度随内容';
+COMMENT ON COLUMN uf_oaones_login_config.gopage_seconds IS '桌面启动台自动跳转秒数（0 = 不自动跳；空 = properties 默认 5 秒）';

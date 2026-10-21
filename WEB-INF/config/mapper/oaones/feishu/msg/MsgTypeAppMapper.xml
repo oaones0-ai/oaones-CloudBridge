@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 统一消息中心：消息类型「推送目标应用」明细（一行 = 一个消息类型 + 一个租户 + 一个应用）
+  消息类型由 std_config_id（泛微标准「消息类型」ID，字符串）/ std_type（未归类的独立来源编号）定位，
+  口径与 MsgTypeMapper 的 uf_oaones_msg_type 一致；唯一键 (type, std_config_id, std_type, cfg_id)
+  保证“同一个消息类型每个租户只能设置一个应用”。
+  平台：飞书（type = 2）
+-->
+<mapper namespace="com.customization.oaones.appsyn.msg.feishu.dao.MsgTypeAppMapper">
+
+    <sql id="cols">
+        id, type, std_config_id, std_type, cfg_id, app_id,
+        modedatacreater, modedatacreatedate, modedatacreatetime,
+        modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <select id="list" resultType="com.customization.oaones.appsyn.msg.feishu.entity.MsgTypeApp">
+        select <include refid="cols"/> from ${table} where type = 2 order by std_config_id, std_type, cfg_id
+    </select>
+
+    <select id="listByKey" resultType="com.customization.oaones.appsyn.msg.feishu.entity.MsgTypeApp">
+        select <include refid="cols"/> from ${table}
+        where type = 2 and std_config_id = #{stdConfigId} and std_type = #{stdType}
+        order by cfg_id
+    </select>
+
+    <select id="getByKeyAndCfg" resultType="com.customization.oaones.appsyn.msg.feishu.entity.MsgTypeApp">
+        select top 1 <include refid="cols"/> from ${table}
+        where type = 2 and std_config_id = #{stdConfigId} and std_type = #{stdType} and cfg_id = #{cfgId}
+        order by id
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (type, std_config_id, std_type, cfg_id, app_id,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (2, #{e.stdConfigId}, #{e.stdType}, #{e.cfgId}, #{e.appId},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set app_id = #{e.appId},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <delete id="deleteById">
+        delete from ${table} where id = #{id}
+    </delete>
+
+    <delete id="deleteByKeyAndCfg">
+        delete from ${table}
+        where type = 2 and std_config_id = #{stdConfigId} and std_type = #{stdType} and cfg_id = #{cfgId}
+    </delete>
+
+    <delete id="deleteByKey">
+        delete from ${table}
+        where type = 2 and std_config_id = #{stdConfigId} and std_type = #{stdType}
+    </delete>
+</mapper>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 飞书租户配置（uf_oaones_qywx_config）
+  表名按 oaones.properties#oaones_qywx_config_modeid 反查建模表（OaonesProps.cfgTable()），
+  通过 ${table} 传入，不在 properties 里另配表名。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.feishu.FeishuConfigMapper">
+
+    <sql id="cols">
+        id, corp_name, corp_id, corp_secret, agent_id, root_dept_key as root_dept_id,
+        qy, remark, maintainer_ids, type,
+        modedatacreater, modedatacreatedate, modedatacreatetime,
+        modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <select id="list" resultType="com.customization.oaones.appsyn.entity.feishu.FeishuConfig">
+        select <include refid="cols"/> from ${table} order by id
+    </select>
+
+    <!-- 本连接器只取飞书租户（type=2）：与企微、钉钉共用同一张租户表 -->
+    <select id="listByType" resultType="com.customization.oaones.appsyn.entity.feishu.FeishuConfig">
+        select <include refid="cols"/> from ${table} where type = #{type} order by id
+    </select>
+
+    <select id="getById" resultType="com.customization.oaones.appsyn.entity.feishu.FeishuConfig">
+        select <include refid="cols"/> from ${table} where id = #{id}
+    </select>
+
+    <select id="getIdByCorpId" resultType="java.lang.Integer">
+        select id from ${table} where corp_id = #{corpId} and type = #{type}
+    </select>
+
+    <select id="getIdByCorpIdExcept" resultType="java.lang.Integer">
+        select id from ${table} where corp_id = #{corpId} and id &lt;&gt; #{id} and type = #{type}
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (corp_name, corp_id, corp_secret, agent_id, root_dept_key, qy, remark, maintainer_ids, type,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.corpName}, #{e.corpId}, #{e.corpSecret}, #{e.agentId}, #{e.rootDeptId}, #{e.qy},
+             #{e.remark}, #{e.maintainerIds}, #{e.type}, #{e.modedatacreater},
+             #{e.modedatacreatedate},
+             #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set corp_name = #{e.corpName},
+            corp_id = #{e.corpId},
+            corp_secret = #{e.corpSecret},
+            agent_id = #{e.agentId},
+            root_dept_key = #{e.rootDeptId},
+            qy = #{e.qy},
+            remark = #{e.remark},
+            maintainer_ids = #{e.maintainerIds},
+            type = #{e.type},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <delete id="deleteById">
+        delete from ${table} where id = #{id}
+    </delete>
+
+    <!-- “消息设置 → 租户开关”：只改消息通知开关与修改人/修改时间，不动其它字段 -->
+    <update id="updateMsgEnable">
+        update ${table}
+        set msg_enable = #{msgEnable},
+            modedatamodifier = #{modifier},
+            modedatamodifydatetime = #{now}
+        where id = #{id}
+    </update>
+
+    <select id="getMsgEnable" resultType="java.lang.Integer">
+        select msg_enable from ${table} where id = #{id}
+    </select>
+
+    <!-- 一次性取全部租户的通知开关（供“消息设置 → 租户开关”合并展示；
+         列还没建时该语句会报错，调用方 MsgTenantService 会捕获并按“全部开启”处理） -->
+    <select id="listMsgEnable" resultType="java.util.LinkedHashMap">
+        select id, msg_enable from ${table}
+    </select>
+</mapper>

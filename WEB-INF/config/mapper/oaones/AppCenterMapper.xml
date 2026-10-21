@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 应用中心（uf_oaones_app）
+  表名由 OaonesParam 统一放入入参 Map（${appTable}）。
+
+  一行 = 桌面启动台（macOS 风格）上的一个应用：
+    app_name   应用名称（唯一，图标下方的名字）
+    app_url    应用默认访问地址（没有配单点登录实现类时直接打开它）
+    sso_class  单点登录实现类全限定名（实现 AppSsoHandler，类里做对方身份认证；留空 = 不做单点登录）
+    sso_method 对方身份认证方法说明（选填，纯展示）
+    icon       上传的图标地址（留空 = 用默认文字图标）
+    icon_seed  默认文字图标的取字/取色基准（首次以默认图标保存时固化为当时的应用名，
+               之后改名不跟随；icon 非空时该列不参与显示）
+    open_mode  打开方式：0 默认（当前页面/框架内打开，外层 OA 框架不动）/ 1 新标签页 /
+               2 原标签页（整个页面 reload）；NULL 或非法值按 0 默认处理
+    maintainer_ids 维护人（OA 人员ID，逗号分隔，可多选；空 = 没有额外维护人）：
+               应用由“创建人（modedatacreater）+ 维护人”维护；系统管理员（user.id=1）看全部
+    vis_role_ids / vis_sub_ids / vis_dept_ids / vis_user_ids
+               可见范围（角色 / 分部 / 部门 / 人员四类各自多选，存 OA 侧ID，逗号分隔）：
+               四类满足其一即可在工作台（桌面启动台）看到；四类都为空 = **无权限**（除创建人/维护人/系统管理员外都看不到）；
+               分部 / 部门只按当前归属判定、不含下级组织；角色按登录人的角色成员归属判定（见 AppCenterServiceImpl#visibleTo）
+    vis_all    可见范围·全员可见：1 = 不控制权限（工作台上所有登录人都能看到，四类不再参与判定）/ 0 = 按上面四类判定；
+               NULL（老库补列前的历史行）按 0 处理
+  物理列 qy：1 启用（桌面可见、可跳转）/ 0 停用（桌面不出现，直接访问也被拒绝）。
+   （列名用 qy 而不是 enable：ENABLE 是 Oracle 的保留字，三库同名脚本要求列名一致。）
+
+  注意：本表与“应用绑定”表 uf_oaones_app_bind 是两张不同的表
+  （那边是“企微工作台应用 → OA 页面”的免登录绑定，带 cfg_id；这边是无租户维度的应用清单）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.AppCenterMapper">
+
+    <select id="listRows" resultType="com.customization.oaones.appsyn.dto.AppInfoRow">
+        select a.id, a.app_name, a.app_url, a.sso_class, a.sso_method, a.icon, a.icon_seed,
+               a.open_mode, a.maintainer_ids,
+               a.vis_all, a.vis_role_ids, a.vis_sub_ids, a.vis_dept_ids, a.vis_user_ids,
+               a.sort_no, a.qy as enable, a.remark,
+               a.modedatacreater, a.modedatacreatedate, a.modedatacreatetime,
+               a.modedatamodifier, a.modedatamodifydatetime,
+               r.lastname as creator_name, m.lastname as modifier_name
+        from ${appTable} a
+        left join hrmresource r on r.id = a.modedatacreater
+        left join hrmresource m on m.id = a.modedatamodifier
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (a.app_name like #{keyword} or a.app_url like #{keyword}
+                     or a.sso_class like #{keyword} or a.sso_method like #{keyword}
+                     or a.remark like #{keyword} or a.maintainer_ids like #{keyword})
+            </if>
+            <if test="enable != null">
+                and a.qy = #{enable}
+            </if>
+        </where>
+        order by a.sort_no, a.id
+    </select>
+
+    <select id="findById" resultType="com.customization.oaones.appsyn.entity.AppInfo">
+        select id, app_name, app_url, sso_class, sso_method, icon, icon_seed, open_mode,
+               maintainer_ids, vis_all, vis_role_ids, vis_sub_ids, vis_dept_ids, vis_user_ids,
+               sort_no, qy as enable, remark,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table} where id = #{id}
+    </select>
+
+    <!-- 同名应用（唯一性校验；excludeId 用于“编辑时排除自己”） -->
+    <select id="findIdByName" resultType="java.lang.Integer">
+        select id from ${table}
+        where app_name = #{appName}
+        <if test="excludeId > 0">
+            and id &lt;&gt; #{excludeId}
+        </if>
+    </select>
+
+    <!-- 还引用同一图标地址的记录数：换图标 / 删应用时判断旧图标文件能不能删（excludeId 排除当前记录） -->
+    <select id="countByIcon" resultType="java.lang.Integer">
+        select count(1) from ${table}
+        where icon = #{icon}
+        <if test="excludeId > 0">
+            and id &lt;&gt; #{excludeId}
+        </if>
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (app_name, app_url, sso_class, sso_method, icon, icon_seed, open_mode, maintainer_ids,
+             vis_all, vis_role_ids, vis_sub_ids, vis_dept_ids, vis_user_ids,
+             sort_no, qy, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.appName}, #{e.appUrl}, #{e.ssoClass}, #{e.ssoMethod}, #{e.icon},
+            #{e.iconSeed}, #{e.openMode}, #{e.maintainerIds},
+             #{e.visAll}, #{e.visRoleIds}, #{e.visSubIds}, #{e.visDeptIds}, #{e.visUserIds},
+            #{e.sortNo}, #{e.enable}, #{e.remark},
+             #{e.modedatacreater}, #{e.modedatacreatedate},
+             #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set app_name = #{e.appName},
+            app_url = #{e.appUrl},
+            sso_class = #{e.ssoClass},
+            sso_method = #{e.ssoMethod},
+            icon = #{e.icon},
+            icon_seed = #{e.iconSeed},
+            open_mode = #{e.openMode},
+            maintainer_ids = #{e.maintainerIds},
+            vis_all = #{e.visAll},
+            vis_role_ids = #{e.visRoleIds},
+            vis_sub_ids = #{e.visSubIds},
+            vis_dept_ids = #{e.visDeptIds},
+            vis_user_ids = #{e.visUserIds},
+            sort_no = #{e.sortNo},
+            qy = #{e.enable},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <!-- 启用/停用只改状态与修改信息，不动地址与实现类 -->
+    <update id="updateState">
+        update ${table}
+        set qy = #{enable},
+            modedatamodifier = #{modifier},
+            modedatamodifydatetime = #{modifyTime}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from ${table} where id = #{id}
+    </delete>
+</mapper>

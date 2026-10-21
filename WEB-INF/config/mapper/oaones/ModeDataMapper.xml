@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 建模数据审计字段（重建数据共享权限时读取原创建人与模块ID）
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.ModeDataMapper">
+
+    <select id="selectModeAudit" resultType="com.customization.oaones.appsyn.dto.ModeAudit">
+        select modedatacreater from ${table} where id = #{id}
+    </select>
+</mapper>

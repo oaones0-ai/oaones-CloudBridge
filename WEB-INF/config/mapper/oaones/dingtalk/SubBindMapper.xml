@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 分部绑定（uf_oaones_sub_bind）
+  表名均由 OaonesParam 统一放入入参 Map。
+  分部绑定只登记 OA 分部归属的钉钉租户（cfg_id），钉钉部门取租户配置
+  （uf_oaones_qywx_config.root_dept_id）中维护的根部门，本表不再存储钉钉部门ID。
+  分部 → 钉钉租户为“一对一”：同一 OA 分部只保留一条绑定，
+  同一钉钉租户也只允许被一个 OA 分部绑定。
+  绑定状态 yx：0 有效 / 1 无效（与部门绑定表的 1 有效 / 0 失效相反）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.dingtalk.SubBindMapper">
+
+    <select id="listRows" resultType="com.customization.oaones.appsyn.dto.dingtalk.SubBindRow">
+        select b.id, b.cfg_id, b.oa_sub_id, b.wx_dept_id,
+               b.yx as bind_state, b.remark,
+               b.modedatacreatedate, b.modedatacreatetime, b.modedatamodifydatetime,
+               s.subcompanyname as oa_sub_name,
+               s.supsubcomid as oa_sub_parent,
+               s.canceled as oa_sub_canceled,
+               c.corp_name as cfg_name,
+               c.corp_id as cfg_corp_id,
+               c.root_dept_id as cfg_root_dept_id,
+               c.qy as cfg_sync_enable
+        from ${subBindTable} b
+        left join hrmsubcompany s on s.id = b.oa_sub_id
+        left join ${cfgTable} c on c.id = b.cfg_id
+        <where>
+            and b.type = 1
+            <if test="cfgId != null">
+                and b.cfg_id = #{cfgId}
+            </if>
+            <!-- 页面按“当前登录人可维护的租户”过滤（维护人分权）；集合为空时由 Service 直接返回空，不下发 SQL -->
+            <if test="cfgIds != null and cfgIds.size() > 0">
+                and b.cfg_id in
+                <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (s.subcompanyname like #{keyword} or c.corp_name like #{keyword}
+                     or c.corp_id like #{keyword})
+            </if>
+        </where>
+        order by b.cfg_id, b.oa_sub_id
+    </select>
+
+    <select id="listEnabled" resultType="com.customization.oaones.appsyn.entity.dingtalk.SubBind">
+        select id, cfg_id, oa_sub_id, wx_dept_id, yx
+        from ${table}
+        where yx = 0 and type = 1 and cfg_id = #{cfgId}
+        order by oa_sub_id
+    </select>
+
+    <select id="findById" resultType="com.customization.oaones.appsyn.entity.dingtalk.SubBind">
+        select id, cfg_id, oa_sub_id, yx, remark,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table} where id = #{id} and type = 1
+    </select>
+
+    <!-- 该 OA 分部现有的有效绑定（一对一时只会有一条，用于“更换绑定的租户”） -->
+    <select id="findIdByOaSub" resultType="java.lang.Integer">
+        select id from ${table}
+        where type = 1 and oa_sub_id = #{oaSubId} and yx = 0
+    </select>
+
+    <!-- 指定租户下该 OA 分部是否已有有效绑定（部门自动绑定的前置校验） -->
+    <select id="findIdByCfgAndOaSub" resultType="java.lang.Integer">
+        select id from ${table}
+        where type = 1 and cfg_id = #{cfgId} and oa_sub_id = #{oaSubId} and yx = 0
+    </select>
+
+    <select id="findActiveIdByCfg" resultType="java.lang.Integer">
+        select id from ${table}
+        where type = 1 and cfg_id = #{cfgId} and yx = 0
+    </select>
+
+    <select id="countByCfgId" resultType="java.lang.Integer">
+        select count(1) from ${table} where type = 1 and cfg_id = #{cfgId}
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (type, cfg_id, oa_sub_id, yx, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (1, #{e.cfgId}, #{e.oaSubId}, #{e.yx}, #{e.remark},
+             #{e.modedatacreater}, #{e.modedatacreatedate},
+             #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set cfg_id = #{e.cfgId},
+            yx = #{e.yx},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <!--
+      记录“该分部在钉钉侧对应的部门”：钉钉里只有部门概念、没有分部，
+      OA 分部同步到钉钉时落成一个部门，这里把该部门ID回写到分部绑定上
+      （老的分部绑定页不写该列，留空即按租户根部门口径）。
+    -->
+    <update id="updateWxDeptId">
+        update ${table}
+        set wx_dept_id = #{wxDeptId},
+            modedatamodifier = #{modifier},
+            modedatamodifydatetime = #{now}
+        where type = 1 and cfg_id = #{cfgId} and oa_sub_id = #{oaSubId}
+    </update>
+
+    <delete id="deleteById">
+        delete from ${table} where id = #{id} and type = 1
+    </delete>
+</mapper>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 统一消息中心：卡片任务（task_id 与业务/接收人绑定，供 update_taskcard 定位）
+-->
+<mapper namespace="com.customization.oaones.appsyn.msg.dingtalk.dao.MsgTaskMapper">
+
+    <sql id="cols">
+        id, type, task_id, type, biz_type, biz_id, biz_title, app_id, corp_id, agent_id, oa_user_id, wx_userid,
+        task_state, log_id, expire_time,
+        modedatacreatedate, modedatacreatetime, modedatamodifydatetime
+    </sql>
+
+    <select id="getByTaskId" resultType="com.customization.oaones.appsyn.msg.dingtalk.entity.MsgTask">
+        select top 1 <include refid="cols"/> from ${table} where type = 1 and task_id = #{taskId}
+    </select>
+
+    <select id="getByBizUser" resultType="com.customization.oaones.appsyn.msg.dingtalk.entity.MsgTask">
+        select top 1 <include refid="cols"/> from ${table}
+        where type = 1 and biz_type = #{bizType} and biz_id = #{bizId} and wx_userid = #{wxUserid}
+        order by id desc
+    </select>
+
+    <select id="listByBiz" resultType="com.customization.oaones.appsyn.msg.dingtalk.entity.MsgTask">
+        select <include refid="cols"/> from ${table}
+        where type = 1 and biz_type = #{bizType} and biz_id = #{bizId}
+        order by id desc
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (type, task_id, biz_type, biz_id, biz_title, app_id, corp_id, agent_id, oa_user_id, wx_userid,
+             task_state, log_id, expire_time,
+             modedatacreatedate, modedatacreatetime, modedatamodifydatetime)
+        values
+            (1, #{e.taskId}, #{e.bizType}, #{e.bizId}, #{e.bizTitle}, #{e.appId}, #{e.corpId}, #{e.agentId},
+             #{e.oaUserId}, #{e.wxUserid}, #{e.taskState}, #{e.logId}, #{e.expireTime},
+             #{e.modedatacreatedate}, #{e.modedatacreatetime}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="updateState">
+        update ${table}
+        set task_state = #{taskState},
+            modedatamodifydatetime = #{modifyDatetime}
+        where type = 1 and task_id = #{taskId}
+    </update>
+
+    <update id="updateTaskId">
+        update ${table}
+        set task_id = #{newTaskId},
+            modedatamodifydatetime = #{modifyDatetime}
+        where type = 1 and task_id = #{oldTaskId}
+    </update>
+
+    <delete id="deleteBefore">
+        delete from ${table}
+        where type = 1 and modedatacreatedate &lt; #{beforeDate}
+           or (modedatacreatedate = #{beforeDate} and modedatacreatetime &lt; #{beforeTime})
+    </delete>
+</mapper>

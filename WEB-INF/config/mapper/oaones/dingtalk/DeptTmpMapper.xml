@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 钉钉部门快照（uf_oaones_dep_tmp）
+  主键 corpid + wx_dept_id；type=0 钉钉 / 1 钉钉。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.dingtalk.DeptTmpMapper">
+
+    <update id="closeAll">
+        update ${table}
+        set status = #{status}, last_sync_time = #{syncTime}
+        where corpid = #{corpid} and type = #{type}
+    </update>
+
+    <select id="findWxDeptId" resultType="java.lang.Integer">
+        select wx_dept_id from ${table}
+        where corpid = #{corpid} and wx_dept_id = #{wxDeptId} and type = #{type}
+    </select>
+
+    <select id="findNormalWxDeptId" resultType="java.lang.Integer">
+        select wx_dept_id from ${table}
+        where corpid = #{corpid} and wx_dept_id = #{wxDeptId}
+          and type = #{type} and status = #{status}
+    </select>
+
+    <select id="listNormal" resultType="com.customization.oaones.appsyn.entity.dingtalk.DeptTmp">
+        select wx_dept_id, dept_name, parent_id, status, no_bind
+        from ${table}
+        where corpid = #{corpid} and type = #{type} and status = #{status}
+        order by parent_id, dept_name, wx_dept_id
+    </select>
+
+    <insert id="insertDept">
+        insert into ${table}
+            (corpid, wx_dept_id, dept_name, parent_id, status, last_sync_time, type)
+        values
+            (#{e.corpid}, #{e.wxDeptId}, #{e.deptName}, #{e.parentId}, #{e.status},
+             #{e.lastSyncTime}, #{e.type})
+    </insert>
+
+    <update id="updateDept">
+        update ${table}
+        set dept_name = #{e.deptName},
+            parent_id = #{e.parentId},
+            status = #{e.status},
+            last_sync_time = #{e.lastSyncTime}
+        where corpid = #{e.corpid} and wx_dept_id = #{e.wxDeptId} and type = #{e.type}
+    </update>
+
+    <!-- 免绑定标记：本表只用 0 表达“免绑定”，正常不写值（NULL） -->
+    <update id="updateNoBind">
+        update ${table}
+        set no_bind = #{noBind,jdbcType=INTEGER}
+        where corpid = #{corpid} and wx_dept_id = #{wxDeptId} and type = #{type}
+    </update>
+</mapper>

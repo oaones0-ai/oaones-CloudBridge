@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 默认人员绑定规则（uf_oaones_user_rule）
+  cfg_id 为空/0 表示默认配置，非空表示租户独立配置。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.feishu.UserRuleMapper">
+
+    <select id="list" resultType="com.customization.oaones.appsyn.entity.feishu.UserRule">
+        select id, cfg_id, rules, remark,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table}
+        order by (case when cfg_id is null or cfg_id = 0 then 0 else cfg_id end), id
+    </select>
+
+    <select id="findByCfgId" resultType="com.customization.oaones.appsyn.entity.feishu.UserRule">
+        select top 1 id, cfg_id, rules from ${table} where cfg_id = #{cfgId} order by id
+    </select>
+
+    <select id="findDefault" resultType="com.customization.oaones.appsyn.entity.feishu.UserRule">
+        select top 1 id, cfg_id, rules from ${table}
+        where cfg_id is null or cfg_id = 0
+        order by id
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (<if test="e.cfgId != null">cfg_id, </if>rules, modedatacreater,
+             modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (<if test="e.cfgId != null">#{e.cfgId}, </if>#{e.rules},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="updateRules">
+        update ${table}
+        set rules = #{rules},
+            modedatamodifier = #{modifier},
+            modedatamodifydatetime = #{modifyTime}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByCfgId">
+        delete from ${table} where cfg_id = #{cfgId}
+    </delete>
+</mapper>

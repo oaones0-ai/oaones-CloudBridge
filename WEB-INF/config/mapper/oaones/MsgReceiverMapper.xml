@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 统一消息中心：接收人映射（复用组织同步的 OA人员-企微成员绑定表，
+  只取 bind_state = 1 的绑定；免绑定/未绑定账号不推送）
+-->
+<mapper namespace="com.customization.oaones.appsyn.msg.dao.MsgReceiverMapper">
+
+    <select id="listByOaUsers" resultType="com.customization.oaones.appsyn.msg.dto.MsgReceiver">
+        select b.oa_user_id, b.cfg_id, b.x_user_id as wx_userid,
+               r.lastname as oa_name, r.loginid as oa_code,
+               r.systemlanguage as language
+        from ${userBindTable} b
+        left join hrmresource r on r.id = b.oa_user_id
+        where b.bind_state = 1
+          and b.cfg_id in (select cfg.id from ${cfgTable} cfg where cfg.type = 0)
+          and b.x_user_id is not null
+          and b.x_user_id &lt;&gt; ''
+        <if test="cfgId != null">
+            and b.cfg_id = #{cfgId}
+        </if>
+        and b.oa_user_id in
+        <foreach collection="oaUserIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        order by b.cfg_id, b.oa_user_id
+    </select>
+
+    <select id="listByWxUserids" resultType="com.customization.oaones.appsyn.msg.dto.MsgReceiver">
+        select b.oa_user_id, b.cfg_id, b.x_user_id as wx_userid,
+               r.lastname as oa_name, r.loginid as oa_code,
+               r.systemlanguage as language
+        from ${userBindTable} b
+        left join hrmresource r on r.id = b.oa_user_id
+        where b.bind_state = 1
+          and b.cfg_id in (select cfg.id from ${cfgTable} cfg where cfg.type = 0)
+          and b.x_user_id in
+        <foreach collection="wxUserids" item="wxid" open="(" separator="," close=")">
+            #{wxid}
+        </foreach>
+        order by b.cfg_id
+    </select>
+
+    <select id="findOaUserIdsByAccounts" resultType="java.lang.Integer">
+        select id from hrmresource
+        where loginid in
+        <foreach collection="accounts" item="account" open="(" separator="," close=")">
+            #{account}
+        </foreach>
+        or workcode in
+        <foreach collection="accounts" item="account" open="(" separator="," close=")">
+            #{account}
+        </foreach>
+        order by id
+    </select>
+
+    <select id="listOaUsers" resultType="com.customization.oaones.appsyn.msg.dto.MsgReceiver">
+        select id as oa_user_id, lastname as oa_name, loginid as oa_code,
+               systemlanguage as language
+        from hrmresource
+        where id in
+        <foreach collection="oaUserIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>
