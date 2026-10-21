@@ -1,0 +1,302 @@
+/*
+  统一登录页（/oaones/login/login.jsp）专用样式。
+
+  注意：style.css 是“后台管理页”的样式（含 .page/.card/table.grid 等），
+  登录页与它共用配色与按钮口径（主色 var(--oa-primary)、成功 var(--oa-success)、失败 var(--oa-danger)），
+  但版式（左右两栏、页签、二维码框）是登录页独有的，所以单独放一个文件，
+  避免把登录页的版式规则混进后台页面样式里互相影响。
+*/
+/*
+  登录页底色 / 整页背景图：
+  - 没设背景图时就是底色 --oa-g-50；
+  - 「登录设置 → 登录页背景图」上传后，body 上会带 --oa-login-bg（值形如 url('/oaones/img/loginbg_xxx.png')，
+    见 login.jsp），这里按**铺满窗口等比缩放**渲染：cover = 短边对齐、超出部分裁掉，窗口拉大拉小时
+    自动跟着缩放（前端自适应），不会把图拉伸变形；居中显示、不重复平铺。
+  - 图片地址只由服务端在校验后写进这个变量，页面/脚本里没有第二处置；
+  - 弹框模式（?popup=1，超时后的“重新登录”）里不显示背景图：父页自己带卡片与遮罩，
+    本页只留登录卡片（见下面的 .login-page-popup）。
+*/
+.login-page { min-height:100vh; background-color:var(--oa-g-50);
+  background-image:var(--oa-login-bg, none);
+  background-position:center center; background-repeat:no-repeat; background-size:cover; }
+.login-wrap { max-width:1000px; margin:0 auto; padding:64px 24px 40px; display:flex;
+  gap:48px; align-items:flex-start; }
+
+/* 左侧品牌 / 说明区 */
+.login-brand { flex:1 1 auto; min-width:0; padding-top:18px; }
+/* 品牌标题：登录页的门面，按规范属于“高亮”，保留主色（后台页面标题一律用深色 var(--oa-g-900)） */
+.login-brand h1 { font-size:28px; line-height:1.4; margin:0 0 12px; color:var(--oa-primary); }
+.login-brand-text { font-size:14px; color:var(--oa-g-600); line-height:1.9; margin:0 0 20px; }
+.login-brand-list { list-style:none; margin:0; padding:0; }
+.login-brand-list li { font-size:13px; color:var(--oa-g-600); line-height:1.9; margin-bottom:10px;
+  padding-left:14px; position:relative; }
+.login-brand-list li::before { content:""; position:absolute; left:0; top:9px; width:6px; height:6px;
+  border-radius:50%; background:var(--oa-primary); }
+.login-brand-list b { color:var(--oa-g-900); }
+/*
+  左侧富文本（「登录设置 → 登录页左侧文字」，见 login.jsp）：
+  内容由管理员在设置页用富文本编辑器写入，登录页**原样输出**（设置什么显示什么），
+  因此这里只给一段基础版式（标题 / 段落 / 列表 / 链接 / 图片的默认观感），
+  用户写了什么标签就按什么渲染，不做二次加工。
+*/
+.login-brand-html { font-size:14px; color:var(--oa-g-600); line-height:1.9; }
+.login-brand-html h1 { font-size:28px; line-height:1.4; margin:0 0 12px; color:var(--oa-primary); }
+.login-brand-html h2 { font-size:22px; line-height:1.5; margin:10px 0 10px; color:var(--oa-g-900); }
+.login-brand-html h3,.login-brand-html h4 { font-size:16px; line-height:1.6; margin:10px 0 8px;
+  color:var(--oa-g-900); }
+.login-brand-html p { margin:0 0 12px; }
+.login-brand-html ul,.login-brand-html ol { margin:0 0 12px; padding-left:22px; }
+.login-brand-html li { margin-bottom:6px; }
+.login-brand-html b,.login-brand-html strong { color:var(--oa-g-900); }
+.login-brand-html a { color:var(--oa-primary); }
+.login-brand-html img { max-width:100%; height:auto; border-radius:var(--oa-r-sm); }
+.login-brand-html table { border-collapse:collapse; }
+.login-brand-html td,.login-brand-html th { border:1px solid var(--oa-g-200); padding:4px 8px; }
+
+/*
+  登录设置页的整页效果预览（iframe 内容 = /oaones/loginConfig/preview.jsp）：
+  只复用上面的真实登录页版式，不出现滚动条；二维码只是版式占位，不生成真实票据。
+*/
+html.login-preview-root, body.login-preview-frame { overflow:hidden; }
+body.login-preview-frame { margin:0; }
+.login-preview-pane-empty { padding:18px 0; color:var(--oa-g-500);
+  font-size:13px; line-height:1.9; text-align:center; }
+.login-preview-qr { width:220px; height:220px; margin:0 auto; border-radius:8px;
+  border:1px solid var(--oa-g-200); background:
+    linear-gradient(90deg,rgba(35,39,47,.08) 1px,transparent 1px) 0 0/18px 18px,
+    linear-gradient(rgba(35,39,47,.08) 1px,transparent 1px) 0 0/18px 18px,
+    #fff; display:flex; align-items:center; justify-content:center;
+  color:var(--oa-g-500); font-size:12px; }
+
+/* 右侧登录卡片 */
+/*
+  登录框背景透明度（「登录设置 → 登录框透明度」）：
+  - 只改白色底色，文字 / 输入框 / 按钮始终不透明，避免整块内容一起变淡；
+  - login.jsp 只在透明度 > 0 时写 --oa-login-card-alpha（1 = 不透明，0 = 全透明），
+    默认 / 弹框模式不写变量，走 1；
+  - 背景图本身仍由 body 的 --oa-login-bg cover 渲染，透出来的是整页背景图。
+*/
+.login-card { flex:0 0 400px; width:400px; background-color:#fff;
+  background-color:rgba(255,255,255,var(--oa-login-card-alpha,1)); border:0;
+  border-radius:var(--oa-r-lg); padding:22px 24px 26px; box-shadow:var(--oa-sh-sm); }
+/*
+  自定义登录框位置与尺寸（「登录设置 → 登录框位置与尺寸」）：
+  - 四个值由 login.jsp 写成 --oa-login-card-left/top/width/height，单位都是 CSS 像素；
+  - 坐标以**浏览器视口左上角**为基准（position:absolute 的包含块是铺满视口的 .login-wrap），
+    不是以居中的内容区为基准，所以管理员按屏幕点位填的数就是页面上的实际像素；
+  - 高度固定时内容超出会在登录框内部滚动，不会把卡片撑高；
+  - 只在桌面宽度（≥861px）生效：窄屏继续走下面的移动端默认布局，避免固定坐标把登录框挤出屏幕。
+*/
+@media (min-width: 861px) {
+  /* 默认布局（未勾选“自定义位置与尺寸”）：登录框在视口水平、垂直居中，左侧说明区留在它左边。
+     旧版是“左侧说明 + 登录框”整组居中，看起来登录框偏右；这里按用户口径让登录框本身居中。 */
+  .login-page-default .login-wrap { position:relative; display:block; width:100%; max-width:none;
+    min-height:100vh; margin:0; padding:0; }
+  .login-page-default .login-card { position:absolute; z-index:1; left:50%; top:50%;
+    width:400px; max-width:calc(100% - 48px); max-height:calc(100vh - 48px);
+    overflow:auto; transform:translate(-50%,-50%); }
+  .login-page-default .login-brand { position:absolute; left:24px; top:50%; padding:0;
+    transform:translateY(-50%);
+    width:min(504px, calc(50% - 248px)); margin:0; }
+
+  /* 说明区起点保持与默认版式一致：居中 1000px 内容区的左内边距（窄屏时退回 24px）。 */
+  .login-page-custom { --oa-login-brand-left: max(24px, calc(50% - 476px)); }
+  .login-page-custom .login-wrap { position:relative; display:block; width:100%; max-width:none;
+    min-height:100vh; margin:0; padding:0; }
+  /* 登录框绝对定位后，左侧说明区只占“登录框左侧还剩下的宽度”，
+     避免说明文字跑到登录框下面；但**至少保留 200px**——登录框靠左时宁可让说明区
+     被上层的登录框盖住一部分，也不能把整段左侧文字直接隐藏（表现为“左侧文字不见了”）。 */
+  .login-page-custom .login-brand { position:absolute; left:var(--oa-login-brand-left); top:64px; max-width:none;
+    width:clamp(200px, calc(var(--oa-login-card-left) - var(--oa-login-brand-left) - 48px), 504px);
+    margin:0; padding:0; overflow:hidden; }
+  .login-page-custom .login-card { position:absolute; z-index:1;
+    left:var(--oa-login-card-left); top:var(--oa-login-card-top);
+    width:var(--oa-login-card-width); height:var(--oa-login-card-height);
+    max-height:none; flex:none; overflow:auto; overscroll-behavior:contain; }
+
+  /*
+    自定义左侧文字位置与尺寸（「登录设置 → 文字说明位置与尺寸」）：
+    - 四个值由 login.jsp 写成 --oa-login-brand-left/top/width/height，单位都是 CSS 像素；
+    - 坐标同样以浏览器视口左上角为 0,0（.login-wrap 铺满视口）；
+    - 高度固定时内容超出在文字区内滚动；与登录框各自独立，可只设置其中一个；
+    - 放在默认 / 登录框自定义两条规则之后，保证三种组合下都覆盖默认版式。
+  */
+  .login-page-brand-custom .login-brand { position:absolute; z-index:0;
+    left:var(--oa-login-brand-left); top:var(--oa-login-brand-top);
+    width:var(--oa-login-brand-width); height:var(--oa-login-brand-height);
+    max-width:none; max-height:none; margin:0; padding:0; transform:none;
+    overflow:auto; overscroll-behavior:contain; }
+}
+/*
+  左侧文字背景透明度（「登录设置 → 左侧文字背景透明度」）：
+  - 只给左侧文字区加半透明白色底板，文字本身保持不透明；
+  - login.jsp 仅在透明度 < 100 时写 --oa-login-brand-alpha 并加 .login-page-brand-surface，
+    默认 100 完全没有这类与内边距，保持历史登录页尺寸和观感；
+  - 规则放在桌面布局媒体查询之后，使三套默认 / 自定义版式都能获得一致的内边距。
+*/
+.login-page-brand-surface .login-brand {
+  background-color:rgba(255,255,255,var(--oa-login-brand-alpha,0));
+  border-radius:var(--oa-r-lg); padding:18px 20px 20px;
+}
+/*
+  登录框内部上方的 logo（“登录设置 → 登录页 Logo”上传的图片，见 login.jsp）：
+   按比例缩放——只限宽（不超过登录框内容宽度）与限高，宽高都给 auto，图片不会被拉伸变形；
+   图片本身是谁传的就按谁的原始比例显示，超宽 / 超高的图自动缩到限制内并居中。
+   弹框模式（超时后的“重新登录”）里不显示：服务端就不渲染，这里再兜一层 CSS。
+*/
+.login-logo { margin:0 0 16px; text-align:center; }
+.login-logo img { display:block; margin:0 auto; max-width:100%; max-height:96px;
+  width:auto; height:auto; }
+.login-page-popup .login-logo { display:none; }
+
+.login-tabs { display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--oa-g-100);
+  margin:0 0 18px; }
+.login-tab { border:none; background:none; padding:10px 6px; margin-bottom:-1px; font-size:14px;
+  color:var(--oa-g-600); cursor:pointer; border-bottom:2px solid transparent; font-family:inherit;
+  transition:color .16s var(--oa-ease),background .16s var(--oa-ease); }
+.login-tab:hover { color:var(--oa-primary); background:var(--oa-primary-tint); }
+.login-tab.active { color:var(--oa-primary); font-weight:600; border-bottom-color:var(--oa-primary); }
+
+.login-pane { min-height:250px; }
+.login-field { margin-bottom:14px; }
+.login-field > label { display:block; font-size:13px; color:var(--oa-g-600); margin-bottom:6px; }
+.login-field input[type=text],.login-field input[type=password],.login-field select {
+  width:100%; padding:9px 10px; font-size:14px; }
+.login-captcha { display:flex; align-items:center; gap:10px; }
+.login-captcha input[type=text] { flex:1 1 auto; min-width:0; }
+.login-captcha img { width:104px; height:38px; border:1px solid var(--oa-g-300);
+  border-radius:var(--oa-r-xs); cursor:pointer; background:#fff; display:block; }
+/* 验证登录页签里的“验证方式”（手机号 / 邮箱）：只在两种方式都开启时出现 */
+.login-methods { display:flex; align-items:center; gap:18px; }
+.login-method { display:inline-flex; align-items:center; gap:6px; font-size:13.5px;
+  color:var(--oa-g-900); cursor:pointer; }
+.login-method input[type=radio] { margin:0; accent-color:var(--oa-primary); cursor:pointer; }
+.login-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin:4px 0 16px; font-size:13px; color:var(--oa-g-600); }
+.login-remember { display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+.login-remember input[type=checkbox] { margin:0; accent-color:var(--oa-primary); cursor:pointer; }
+.login-link { color:var(--oa-primary); text-decoration:none; }
+.login-link:hover { text-decoration:underline; }
+.login-submit { display:block; width:100%; padding:10px 0; font-size:15px; }
+.login-msg { font-size:13px; line-height:1.9; color:var(--oa-g-600); margin:12px 0 0; min-height:20px;
+  word-break:break-all; }
+.login-msg.fail { color:var(--oa-danger); }
+.login-msg.ok { color:var(--oa-success); }
+.login-msg .rule { color:var(--oa-warning); }
+
+/* 扫码登录（企业微信 / 钉钉 / 飞书 扫的是同一张二维码） */
+.login-qr-box { text-align:center; }
+/* 自建二维码（本站渲染的 SVG 图片）：固定外框高度，码图按宽度自适应。
+   整块区域可点击 = 刷新二维码（重新生成 + 重新计时）——页面上没有“刷新二维码”按钮，点码图就是刷新 */
+.login-qr-img-box { position:relative; height:280px; display:flex; align-items:center;
+  justify-content:center; overflow:hidden; cursor:pointer; }
+.login-qr-img-box:hover .login-qr-img { outline:2px solid var(--oa-g-300); outline-offset:3px; }
+.login-qr-img { width:260px; height:260px; display:block; background:#fff; }
+/*
+  二维码上的状态提示（覆盖在码图上）：
+  - scanned  已扫码成功，请在手机上确认登录
+  - expired  已超时，点二维码重新生成
+  - confirmed 已确认登录，正在进入 OA…
+  半透明遮罩盖住码图，避免用户继续扫一张已经不新鲜的二维码。
+*/
+.login-qr-overlay { position:absolute; left:0; right:0; top:0; bottom:0; z-index:2;
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  padding:0 18px; font-size:14px; line-height:1.8; font-weight:600;
+  background:rgba(255,255,255,.92); color:var(--oa-primary); }
+.login-qr-overlay.scanned { color:var(--oa-success); }
+.login-qr-overlay.expired { color:var(--oa-danger); }
+.login-qr-overlay.confirmed { color:var(--oa-success); }
+.login-qr-loading { color:var(--oa-g-500); font-size:13px; line-height:1.9; padding:0 10px; }
+.login-qr-tip { font-size:13px; color:var(--oa-g-600); line-height:1.9; margin:8px 0 12px; }
+.login-qr-tip b { color:var(--oa-warning); }
+/* 手机号登录：验证码输入框与“获取验证码”按钮同一行 */
+.login-captcha .btn { white-space:nowrap; }
+
+/*
+  忘记密码弹层（登录页自己的弹层，不跳平台登录页）：
+  弹层里是本模块自己的页面 /oaones/login/forgotPassword.jsp（iframe 按需加载）。
+*/
+.oa-modal-mask { position:fixed; left:0; top:0; right:0; bottom:0; z-index:9998;
+  background:rgba(35,39,47,.28); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center;
+  padding:16px; box-sizing:border-box; }
+.oa-modal { width:520px; max-width:100%; max-height:92vh; background:#fff;
+  border-radius:var(--oa-r-xl); box-shadow:var(--oa-sh-lg); display:flex; flex-direction:column; overflow:hidden;
+  animation:oa-modal-in .2s var(--oa-ease); }
+.oa-modal-head { display:flex; align-items:center; justify-content:space-between;
+  padding:16px 22px 13px; border-bottom:1px solid var(--oa-g-100); font-size:15.5px; font-weight:600;
+  color:var(--oa-g-900); }
+.oa-modal-close { border:0; background:transparent; width:28px; height:28px; border-radius:var(--oa-r-sm);
+  padding:0; margin:0; font-size:15px; line-height:1; color:var(--oa-g-500); cursor:pointer; font-family:inherit;
+  transition:background .16s var(--oa-ease),color .16s var(--oa-ease); }
+.oa-modal-close:hover { background:var(--oa-g-100); color:var(--oa-g-900); }
+.oa-modal-frame { width:100%; height:440px; border:0; display:block; background:#fff; }
+
+/*
+  重新登录弹框模式（/oaones/login?popup=1）：
+  门户超时后（长时间未操作）门户会弹它自带的“重新登录”框，本模块用 ecode 前端代码
+  （oaones/ecode/relogin/init.js，覆盖 window.doLoginPop）把弹框内容换成**本页的同源 iframe**。
+  此模式下页面只留登录卡片本身：页头说明区、二维码说明、手机号说明、“说明问号”等
+  说明文字**都不出现**，只留一行“支持××扫码登录”这类简要说明，留白收紧——
+  弹框要的是“一眼就能登录”，不是再读一遍说明。
+  卡片的白底 / 18px 圆角 / 柔和大阴影由父页那层 iframe 提供（这里保持透明，免得叠两层）；
+  卡片高度由本页上报给父页（见 login.jsp 的 reportHeight）；**各页签的高度保持一致**：
+  量出各页签面板里最高的一份作为公共高度（--oa-popup-pane-h），切页签时弹框不跳高矮
+  （见 login.jsp 的 measurePopupPaneHeight）；
+  二维码按父页给的“弹框可用高度”自适应，窗口变矮时码图跟着缩小，弹框里不出现竖滚动条。
+  弹框**不给用户关**（没有关闭按钮，也不响应点空白处与 ESC），底部只放一个
+  “通过登录页登录”（在新窗口打开完整登录页）。
+*/
+.login-page-popup { background-color:transparent; background-image:none; min-height:0; }
+.login-page-popup .login-wrap { display:block; max-width:none; margin:0; padding:16px 20px 18px; }
+.login-page-popup .login-brand { display:none; }
+.login-page-popup .login-card { position:relative; width:100%; padding:0; background:transparent;
+  border-radius:0; box-shadow:none; }
+.login-page-popup .login-tabs { margin-bottom:14px; }
+/* 弹框里各页签的卡片高度**保持一致**：公共高度由 login.jsp 量出来后写到 --oa-popup-pane-h
+   （取各页签面板里最高的那一份），于是切页签时弹框不会一会儿高一会儿矮；
+   拿不到这个值时退回 0（与改动前的“按当前页签内容走”一致）。 */
+.login-page-popup .login-pane { min-height:var(--oa-popup-pane-h, 0px); }
+/* 二维码按父页给的“弹框可用高度”自适应（--oa-popup-avail，见 login.jsp 的 applyAvailHeight）：
+   窗口变矮时码图跟着缩小，弹框里不会出现竖滚动条；没拿到这个值时退回按视口高度算 */
+.login-page-popup .login-qr-img-box { height:min(250px, calc(var(--oa-popup-avail, 100vh) * .34)); }
+.login-page-popup .login-qr-img { width:min(230px, calc(var(--oa-popup-avail, 100vh) * .3));
+  height:min(230px, calc(var(--oa-popup-avail, 100vh) * .3)); }
+/* 扫码页签里的一行简要说明：支持哪些客户端扫码（平台名单由服务端按“登录设置”下发） */
+.login-popup-note { font-size:12.5px; line-height:1.9; color:var(--oa-g-600); margin:8px 0 0; }
+/* 二维码剩余时间：弹框里只留这一句实时状态 */
+.login-page-popup .login-qr-expire { font-size:12.5px; line-height:1.9; color:var(--oa-g-500);
+  margin:4px 0 0; }
+/* 没有提示内容时不占位（弹框要紧凑）；有失败/状态文案时照常出现 */
+.login-page-popup .login-msg:empty { display:none; }
+/* 卡片底部：通过登录页登录（弹框不给关，需要整页登录时在新窗口打开完整登录页） */
+.login-popup-foot { margin-top:14px; padding-top:12px; border-top:1px solid var(--oa-g-100); }
+.login-popup-foot .btn { display:block; width:100%; padding:9px 0; font-size:14px; }
+
+/*
+  找回密码弹层页（/oaones/login/forgotPassword.jsp）自己的版式：
+  步骤条 + 每步的输入项（输入框沿用上面的 .login-field / .login-captcha 口径）。
+*/
+.fp-page { background:#fff; }
+.fp-wrap { padding:16px 18px 10px; }
+.fp-step-tip { display:flex; gap:8px; margin:0 0 14px; font-size:12px; color:var(--oa-g-500); }
+.fp-step { flex:1 1 auto; text-align:center; padding:6px 0; background:var(--oa-g-100); border-radius:var(--oa-r-sm); }
+.fp-step.active { background:var(--oa-primary-soft); color:var(--oa-primary); font-weight:600; }
+.fp-step.done { color:var(--oa-success); }
+.fp-tip { font-size:12px; line-height:1.8; color:var(--oa-g-600); margin:0 0 12px; }
+.fp-tip.ok { color:var(--oa-success); }
+.fp-tip.fail { color:var(--oa-danger); }
+.fp-ops { display:flex; gap:10px; margin:6px 0 0; }
+.fp-ops .btn { min-width:96px; }
+.fp-wrap .login-msg { margin-top:10px; }
+
+/* 窄屏（手机/小窗口）：上下排布，二维码框收窄 */
+@media (max-width: 860px) {
+  .login-wrap { flex-direction:column; gap:24px; padding:28px 18px 32px; }
+  .login-card { flex:1 1 auto; width:100%; }
+  .login-brand { padding-top:0; }
+  .login-brand h1 { font-size:22px; }
+  .login-qr-img-box { height:250px; }
+  .login-qr-img { width:230px; height:230px; }
+  .oa-modal-frame { height:70vh; }
+}

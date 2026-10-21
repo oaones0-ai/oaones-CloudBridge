@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 使用的 E9 标准组织表语句（hrmdepartment / hrmsubcompany / hrmresource）
+  只做查询与人员基础信息回写，不修改 OA 标准表结构。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.HrmMapper">
+
+    <select id="listDepartments" resultType="com.customization.oaones.appsyn.entity.HrmDepartment">
+        select d.id, d.departmentname as name, d.supdepid as parent,
+               d.subcompanyid1, s.subcompanyname as subcompany_name,
+               d.canceled, d.showorder
+        from hrmdepartment d
+        left join hrmsubcompany s on s.id = d.subcompanyid1
+        where (d.canceled is null or d.canceled &lt;&gt; '1')
+        order by d.subcompanyid1, d.supdepid, d.showorder, d.id
+    </select>
+
+    <select id="getDepartment" resultType="com.customization.oaones.appsyn.entity.HrmDepartment">
+        select d.id, d.departmentname as name, d.supdepid as parent,
+               d.subcompanyid1, s.subcompanyname as subcompany_name,
+               d.allsupdepid as allSupDepId, d.tlevel as tlevel,
+               d.canceled
+        from hrmdepartment d
+        left join hrmsubcompany s on s.id = d.subcompanyid1
+        where d.id = #{deptId}
+    </select>
+
+    <update id="updateResourceBasic">
+        update hrmresource
+        <set>
+            <if test="e.lastname != null">lastname = #{e.lastname},</if>
+            <if test="e.mobile != null">mobile = #{e.mobile},</if>
+            <if test="e.email != null">email = #{e.email},</if>
+            <if test="e.departmentId != null">departmentid = #{e.departmentId},</if>
+            <if test="e.subcompanyId != null">subcompanyid1 = #{e.subcompanyId},</if>
+        </set>
+        where id = #{e.id}
+    </update>
+
+    <select id="findResourceIdByLoginId" resultType="java.lang.Integer">
+        select id from hrmresource where loginid = #{loginid}
+    </select>
+
+    <!--
+      手机号 → 有效 OA 人员ID（统一登录设置的“手机号登录”用）。
+      只取状态 0-3（未解聘/离职）且登录名非空的账号：没有登录名的“只挂组织架构”人员不能登录 OA。
+      同一手机号可能对应多人（含子账号共享手机号的情况），因此返回集合，由调用方按
+      “必须唯一”处理——不唯一时报错让管理员核对，绝不随便挑一个登录。
+    -->
+    <select id="listResourceIdsByMobile" resultType="java.lang.Integer">
+        select r.id
+        from hrmresource r
+        where r.status in (0, 1, 2, 3)
+          and r.loginid is not null and r.loginid &lt;&gt; ''
+          and r.mobile = #{mobile}
+        order by r.id
+    </select>
+
+    <!--
+      邮箱 → 有效 OA 人员ID（统一登录设置的“邮箱验证登录”用）。
+      与 listResourceIdsByMobile 同一口径（状态 0-3、登录名非空），只换匹配列。
+    -->
+    <select id="listResourceIdsByEmail" resultType="java.lang.Integer">
+        select r.id
+        from hrmresource r
+        where r.status in (0, 1, 2, 3)
+          and r.loginid is not null and r.loginid &lt;&gt; ''
+          and r.email = #{email}
+        order by r.id
+    </select>
+
+    <!--
+      个人账号中心：本人账号信息（含头像文件ID resourceimageid，页面据此输出
+      /weaver/weaver.file.FileDownload?fileid=xxx）。
+      不按 status / loginid 过滤：登录人看自己的账号中心必须能看到自己。
+    -->
+    <select id="getResourceAccount" resultType="com.customization.oaones.appsyn.dto.OaAccountRow">
+        select r.id, r.lastname, r.loginid, r.mobile, r.email, r.workcode,
+               r.departmentid as department_id, d.departmentname as department_name,
+               r.subcompanyid1 as subcompany_id, s.subcompanyname as subcompany_name,
+               r.status, r.resourceimageid as resource_image_id,
+               r.accounttype as account_type, r.belongto as belong_to
+        from hrmresource r
+        left join hrmdepartment d on d.id = r.departmentid
+        left join hrmsubcompany s on s.id = r.subcompanyid1
+        where r.id = #{id}
+    </select>
+
+    <!--
+      个人账号中心：“我的账户”（主账户 + 其全部子账户）。
+      E9 标准口径：hrmresource.accounttype 0 主账号（主账户）/ 1 次账号（子账户），
+      子账户的 belongto 指向其主账户的人员ID；主账户自身 belongto 为空。
+      传入主账户ID即可取全（主账户 accounttype 为 0/空，排序后自然排在子账户前面）；
+      不按 status 过滤——离职/解聘的子账户也要显示出来（状态由页面单独列示）。
+    -->
+    <select id="listAccountFamily" resultType="com.customization.oaones.appsyn.dto.OaAccountRow">
+        select r.id, r.lastname, r.loginid, r.mobile, r.workcode,
+               r.departmentid as department_id, d.departmentname as department_name,
+               r.status, r.accounttype as account_type, r.belongto as belong_to
+        from hrmresource r
+        left join hrmdepartment d on d.id = r.departmentid
+        where r.id = #{mainId} or r.belongto = #{mainId}
+        order by r.accounttype, r.id
+    </select>
+
+    <!--
+      新建 OA 账号：id 由 OaServiceImpl 通过平台过程 HrmResourceMaxId_Get 生成，
+      这里显式写入；可空字段用动态 SQL 跳过，避免向 SQL Server 传 null 参数。
+    -->
+    <insert id="insertResource">
+        insert into hrmresource
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            id, loginid,
+            <if test="e.password != null">password,</if>
+            <if test="e.lastname != null">lastname,</if>
+            <if test="e.mobile != null">mobile,</if>
+            <if test="e.email != null">email,</if>
+            <if test="e.departmentId != null">departmentid,</if>
+            <if test="e.subcompanyId != null">subcompanyid1,</if>
+            <if test="e.status != null">status,</if>
+            <if test="e.accountType != null">accounttype,</if>
+            <if test="e.systemLanguage != null">systemlanguage,</if>
+            <if test="e.createrId != null">createrid,</if>
+            <if test="e.createDate != null">createdate,</if>
+            <if test="e.lastModId != null">lastmodid,</if>
+            <if test="e.lastModDate != null">lastmoddate,</if>
+            <if test="e.lastLoginDate != null">lastlogindate,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            #{e.id}, #{e.loginid},
+            <if test="e.password != null">#{e.password},</if>
+            <if test="e.lastname != null">#{e.lastname},</if>
+            <if test="e.mobile != null">#{e.mobile},</if>
+            <if test="e.email != null">#{e.email},</if>
+            <if test="e.departmentId != null">#{e.departmentId},</if>
+            <if test="e.subcompanyId != null">#{e.subcompanyId},</if>
+            <if test="e.status != null">#{e.status},</if>
+            <if test="e.accountType != null">#{e.accountType},</if>
+            <if test="e.systemLanguage != null">#{e.systemLanguage},</if>
+            <if test="e.createrId != null">#{e.createrId},</if>
+            <if test="e.createDate != null">#{e.createDate},</if>
+            <if test="e.lastModId != null">#{e.lastModId},</if>
+            <if test="e.lastModDate != null">#{e.lastModDate},</if>
+            <if test="e.lastLoginDate != null">#{e.lastLoginDate},</if>
+        </trim>
+    </insert>
+
+    <!--
+      新建 OA 部门（同步中心“企微 → OA”按范围同步用）：
+      hrmdepartment.id 是自增列，这里不写 id；只写部门名称/简称/编号/上级部门/分部/层级，
+      与平台自己的部门导入口径一致，其余字段交给 E9 默认值。
+    -->
+    <insert id="insertDepartment">
+        insert into hrmdepartment
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            departmentname,
+            <if test="e.mark != null">departmentmark,</if>
+            <if test="e.code != null and e.code != ''">departmentcode,</if>
+            <if test="e.subCompanyId != null">subcompanyid1,</if>
+            <if test="e.supDepId != null">supdepid,</if>
+            <if test="e.allSupDepId != null and e.allSupDepId != ''">allsupdepid,</if>
+            <if test="e.tlevel != null">tlevel,</if>
+            <if test="e.showOrder != null">showorder,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            #{e.name},
+            <if test="e.mark != null">#{e.mark},</if>
+            <if test="e.code != null and e.code != ''">#{e.code},</if>
+            <if test="e.subCompanyId != null">#{e.subCompanyId},</if>
+            <if test="e.supDepId != null">#{e.supDepId},</if>
+            <if test="e.allSupDepId != null and e.allSupDepId != ''">#{e.allSupDepId},</if>
+            <if test="e.tlevel != null">#{e.tlevel},</if>
+            <if test="e.showOrder != null">#{e.showOrder},</if>
+        </trim>
+    </insert>
+
+    <!-- 取回本次新建部门的自增ID（同一上级、同一分部、同一名称下取最新一条）。 -->
+    <select id="findLatestDepartmentId" resultType="java.lang.Integer">
+        select top 1 id from hrmdepartment
+        where departmentname = #{name}
+          and supdepid = #{supDepId}
+          and (subcompanyid1 = #{subCompanyId} or (subcompanyid1 is null and #{subCompanyId} is null))
+        order by id desc
+    </select>
+
+    <!-- 更新 OA 部门名称（简称与名称保持同一口径，与本环境数据一致）。 -->
+    <update id="updateDepartmentName">
+        update hrmdepartment
+        set departmentname = #{name},
+            departmentmark = #{mark}
+        where id = #{deptId}
+    </update>
+
+    <!--
+      调整已有部门的挂靠（同步中心“企微 → OA”按范围同步用）：
+      只改上级部门 / 上级部门路径 / 所属分部，不动名称、简称、显示顺序等字段；
+      部门层级（tlevel）由平台 OrgOperationUtil#updateDepartmentLevel 统一重算。
+    -->
+    <update id="moveDepartment">
+        update hrmdepartment
+        set supdepid = #{supDepId},
+            subcompanyid1 = #{subCompanyId},
+            allsupdepid = #{allSupDepId}
+        where id = #{deptId}
+    </update>
+</mapper>

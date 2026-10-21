@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 统一消息中心：消息类型推送设置
+  （一行 = 泛微标准页「应用中心 → 消息类型」里的一个消息类型，
+    std_config_id = ecology_biz_mobile_config.id；
+    std_config_id = 0 的行是“未纳入任何标准消息类型”的独立来源，按 std_type（typecode）匹配）
+  平台：钉钉（type = 1）
+-->
+<mapper namespace="com.customization.oaones.appsyn.msg.dingtalk.dao.MsgTypeMapper">
+
+    <sql id="cols">
+        id, type, std_config_id, type_name, std_type, wx_msgtype, card_action, title_tpl, context_tpl, url_tpl,
+        mobile_url_tpl, cover_url, btn_json, app_id, yx, sort_no, remark,
+        modedatacreater, modedatacreatedate, modedatacreatetime,
+        modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <select id="list" resultType="com.customization.oaones.appsyn.msg.dingtalk.entity.MsgTypeDef">
+        select <include refid="cols"/> from ${table} where type = 1 order by sort_no, id
+    </select>
+
+    <select id="listEnabled" resultType="com.customization.oaones.appsyn.msg.dingtalk.entity.MsgTypeDef">
+        select <include refid="cols"/> from ${table} where yx = 0 and type = 1 order by sort_no, id
+    </select>
+
+    <select id="getById" resultType="com.customization.oaones.appsyn.msg.dingtalk.entity.MsgTypeDef">
+        select <include refid="cols"/> from ${table} where id = #{id}
+    </select>
+
+    <select id="getByStdType" resultType="com.customization.oaones.appsyn.msg.dingtalk.entity.MsgTypeDef">
+        select top 1 <include refid="cols"/> from ${table} where type = 1 and std_type = #{stdType} order by id
+    </select>
+
+    <select id="getByStdConfigId" resultType="com.customization.oaones.appsyn.msg.dingtalk.entity.MsgTypeDef">
+        select top 1 <include refid="cols"/> from ${table}
+        where type = 1 and std_config_id = #{stdConfigId} order by id
+    </select>
+
+    <select id="findIdByStdType" resultType="java.lang.Integer">
+        select top 1 id from ${table} where type = 1 and std_type = #{stdType} and id &lt;&gt; #{id}
+    </select>
+
+    <select id="findIdByStdConfigId" resultType="java.lang.Integer">
+        select top 1 id from ${table} where type = 1 and std_config_id = #{stdConfigId} and id &lt;&gt; #{id}
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (type, std_config_id, type_name, std_type, wx_msgtype, card_action, title_tpl, context_tpl, url_tpl,
+             mobile_url_tpl, cover_url, btn_json, app_id, yx, sort_no, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (1, #{e.stdConfigId}, #{e.typeName}, #{e.stdType}, #{e.wxMsgtype}, #{e.cardAction}, #{e.titleTpl}, #{e.contextTpl},
+             #{e.urlTpl}, #{e.mobileUrlTpl}, #{e.coverUrl}, #{e.btnJson}, #{e.appId}, #{e.yx},
+             #{e.sortNo}, #{e.remark}, #{e.modedatacreater}, #{e.modedatacreatedate},
+             #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set std_config_id = #{e.stdConfigId},
+            type_name = #{e.typeName},
+            std_type = #{e.stdType},
+            wx_msgtype = #{e.wxMsgtype},
+            card_action = #{e.cardAction},
+            title_tpl = #{e.titleTpl},
+            context_tpl = #{e.contextTpl},
+            url_tpl = #{e.urlTpl},
+            mobile_url_tpl = #{e.mobileUrlTpl},
+            cover_url = #{e.coverUrl},
+            btn_json = #{e.btnJson},
+            app_id = #{e.appId},
+            yx = #{e.yx},
+            sort_no = #{e.sortNo},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <delete id="deleteById">
+        delete from ${table} where id = #{id}
+    </delete>
+
+    <!--
+      泛微标准消息类型（只读）：口径与平台“消息类型”浏览按钮一致
+      （ECOLOGY_MESSAGE_TYPE + ECOLOGY_MESSAGE_GROUP + HtmlLabelInfo 多语言名称），
+      供“消息类型映射”页面下拉选择。
+    -->
+    <select id="listStandardTypes" resultType="java.util.LinkedHashMap">
+        select t.typecode as typecode,
+               isnull(nullif(l.labelname, ''), isnull(t.sourcename, '')) as typename,
+               isnull(lg.labelname, '') as groupname
+        from ECOLOGY_MESSAGE_TYPE t
+        left join ECOLOGY_MESSAGE_GROUP g on g.id = t.ecology_message_groupid
+        <!--
+          多语言名称按“标签索引”取：HtmlLabelInfo.indexid（int）对应的是 ECOLOGY_MESSAGE_TYPE.typename（int），
+          不是 sourcename —— sourcename 存的是“来源名”文本，多语言站点里还是
+          ~`~`7 中文`~`8 English`~`9 繁體`~`~ 这种编码串，用它去连 indexid 会让 SQL Server
+          把文本隐式转成 int 而报错（Conversion failed when converting the varchar value ... to data type int）。
+         分组名同理：ECOLOGY_MESSAGE_GROUP.groupname 也是标签索引（int），没有 labelname 列。
+        -->
+        left join HtmlLabelInfo l on l.indexid = t.typename and l.languageid = #{lang}
+        left join HtmlLabelInfo lg on lg.indexid = g.groupname and lg.languageid = #{lang}
+        <!-- typecode 是 varchar，排序时先按“纯数字”安全转 int，非数字的排在最后（避免隐式转换报错） -->
+        order by case when t.typecode not like '%[^0-9]%' and t.typecode &lt;&gt; ''
+                      then cast(t.typecode as int) else 2147483647 end, t.typecode
+    </select>
+</mapper>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 使用的 E9 **标准考勤表**只读查询（kq_group / kq_fixedschedulce / kq_HolidaySet）。
+
+  用途：会议 / 日程同步的「计划任务」要区分工作日 / 非工作日，口径直接取泛微标准考勤设置：
+    ① kq_group         考勤组（名称 + 老版本的“工作日”勾选 weekday）；
+    ② kq_fixedschedulce 固定排班：考勤组 + 星期几（0 = 周一 … 6 = 周日）→ 班次（-1 / 空 = 休息）；
+    ③ kq_HolidaySet     节假日 / 调休 / 调配工作日（changeType 1 公众假日 / 2 调配工作日 / 3 调配休息日）。
+  三张表都不改结构、不做写操作；表名用 E9 标准表名（与平台自己的 SQL 一致），不放到 properties 里配。
+  调用方一律走带缓存的 OaonesWorkday，不要在业务代码里逐日查这几张表。
+
+  说明：周末（未在 kq_fixedschedulce 排班、也没在 kq_group 勾工作日）本来就是“非工作日”，
+  再被 kq_HolidaySet 的「调配工作日」覆盖回来（例如国庆前的周六补班），与 E9 考勤报表口径一致。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.KqMapper">
+
+    <select id="listGroups" resultType="com.customization.oaones.appsyn.entity.KqGroup">
+        select id, groupname as name, weekday
+        from kq_group
+        where (isdelete is null or isdelete &lt;&gt; 1)
+        order by id
+    </select>
+
+    <select id="listFixedSchedule" resultType="com.customization.oaones.appsyn.entity.KqFixedSchedule">
+        select weekday, serialid
+        from kq_fixedschedulce
+        where groupid = #{groupId}
+          and (isdelete is null or isdelete &lt;&gt; 1)
+        order by weekday
+    </select>
+
+    <select id="listHolidays" resultType="com.customization.oaones.appsyn.entity.KqHoliday">
+        select holidayDate as holidayDate, changeType as changeType
+        from kq_HolidaySet
+        where groupId = #{groupId}
+          and holidayDate &gt;= #{from}
+          and holidayDate &lt;= #{to}
+        order by holidayDate
+    </select>
+</mapper>

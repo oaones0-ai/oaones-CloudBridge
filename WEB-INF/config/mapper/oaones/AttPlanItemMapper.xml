@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 考勤同步「计划任务」的时间段明细（uf_oaones_att_plan_item）
+
+  一行 = 一个时间段：适用日（day_type 0 每天 / 1 工作日 / 2 非工作日）+ 起止时间（HH:mm，
+  结束时间不大于开始时间 = 跨天）+ 轮询间隔（interval_min，分钟）；挂在某条同步设置上（cfg_id，
+  需求 Q2：计划任务**每条设置一份**）。
+  页面保存时**整表重写**：deleteByCfg 删掉该设置的全部行，再按页面顺序 insert。
+  表名由入参 ${table} 传入（取值见 OaonesProps#attPlanItemTable）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.AttPlanItemMapper">
+
+    <sql id="cols">
+        id, cfg_id, day_type, start_time, end_time, interval_min, showorder, remark,
+        modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <select id="listByCfg" resultType="com.customization.oaones.appsyn.entity.AttPlanItem">
+        select <include refid="cols"/> from ${table}
+        where cfg_id = #{cfgId}
+        order by showorder, id
+    </select>
+
+    <select id="listByCfgIds" resultType="com.customization.oaones.appsyn.entity.AttPlanItem">
+        select <include refid="cols"/> from ${table}
+        where cfg_id in
+        <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+        order by cfg_id, showorder, id
+    </select>
+
+    <delete id="deleteByCfg">
+        delete from ${table} where cfg_id = #{cfgId}
+    </delete>
+
+    <insert id="insert">
+        insert into ${table}
+            (cfg_id, day_type, start_time, end_time, interval_min, showorder, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.cfgId}, #{e.dayType}, #{e.startTime}, #{e.endTime}, #{e.intervalMin}, #{e.showorder}, #{e.remark},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+</mapper>

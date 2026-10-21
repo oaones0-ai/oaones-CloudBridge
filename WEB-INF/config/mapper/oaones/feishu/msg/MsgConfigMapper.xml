@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 统一消息中心：系统参数（单行）
+  表名由 oaones.properties#msgconfig.table 配置，通过 ${table} 传入。
+-->
+<mapper namespace="com.customization.oaones.appsyn.msg.feishu.dao.MsgConfigMapper">
+
+    <sql id="cols">
+        id, push_enable, default_app_id, retry_times, retry_interval, shard_size, timeout_ms,
+        token_advance_sec, dedup_window_sec, log_keep_days, task_keep_days, remark,
+        modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <select id="getOne" resultType="com.customization.oaones.appsyn.msg.feishu.entity.MsgConfig">
+        select top 1 <include refid="cols"/> from ${table} order by id
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (push_enable, default_app_id, retry_times, retry_interval, shard_size, timeout_ms,
+             token_advance_sec, dedup_window_sec, log_keep_days, task_keep_days, remark,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.pushEnable}, #{e.defaultAppId}, #{e.retryTimes}, #{e.retryInterval}, #{e.shardSize},
+             #{e.timeoutMs}, #{e.tokenAdvanceSec}, #{e.dedupWindowSec}, #{e.logKeepDays},
+             #{e.taskKeepDays}, #{e.remark}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set push_enable = #{e.pushEnable},
+            default_app_id = #{e.defaultAppId},
+            retry_times = #{e.retryTimes},
+            retry_interval = #{e.retryInterval},
+            shard_size = #{e.shardSize},
+            timeout_ms = #{e.timeoutMs},
+            token_advance_sec = #{e.tokenAdvanceSec},
+            dedup_window_sec = #{e.dedupWindowSec},
+            log_keep_days = #{e.logKeepDays},
+            task_keep_days = #{e.taskKeepDays},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+</mapper>

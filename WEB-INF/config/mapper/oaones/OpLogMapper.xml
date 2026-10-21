@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 操作监控日志（uf_oaones_op_log）
+
+  一行 = 一次“登录 / 退出 / 菜单访问”。时间字段沿用本模块统一的建模审计字段名：
+    modedatacreatedate  事件日期 yyyy-MM-dd
+    modedatacreatetime  事件时间 HH:mm:ss
+  区间比较拆成“先比日期、日期相同再比时间”两段（timeRange 片段）。
+  SQL Server 分页统一用 row_number()，兼容 2008 及以上版本（与 ApiLogMapper.xml 同口径）。
+
+  另带两条 E9 平台标准表的只读语句（不做改名，供采集与页面用）：
+    listMenus —— 菜单索引（LeftMenuInfo），“访问的页面 → 菜单名称”匹配用；
+    findUser  —— 人员登录名 / 姓名 / 主部门（hrmresource + hrmdepartment）快照。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.OpLogMapper">
+
+    <sql id="cols">
+        id, user_id, login_name, user_name, dept_name, op_type,
+        menu_id, menu_name, menu_path, page_url, client_ip, device, session_id,
+        modedatacreatedate, modedatacreatetime
+    </sql>
+
+    <sql id="timeRange">
+        <if test="fromDate != null and fromDate != ''">
+            and (modedatacreatedate &gt; #{fromDate}
+                 or (modedatacreatedate = #{fromDate} and modedatacreatetime &gt;= #{fromTime}))
+        </if>
+        <if test="toDate != null and toDate != ''">
+            and (modedatacreatedate &lt; #{toDate}
+                 or (modedatacreatedate = #{toDate} and modedatacreatetime &lt;= #{toTime}))
+        </if>
+    </sql>
+
+    <sql id="conditions">
+        <include refid="timeRange"/>
+        <if test="userId != null">
+            and user_id = #{userId}
+        </if>
+        <if test="opType != null and opType != ''">
+            and op_type = #{opType}
+        </if>
+        <if test="menuId != null and menuId != ''">
+            and menu_id = #{menuId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (menu_name like '%' + #{keyword} + '%'
+                 or page_url like '%' + #{keyword} + '%'
+                 or client_ip like '%' + #{keyword} + '%')
+        </if>
+        <!-- “人员”筛选：姓名 / 登录名，单独一个输入框，避免和“菜单 / 地址”关键字混在一起 -->
+        <if test="userKeyword != null and userKeyword != ''">
+            and (user_name like '%' + #{userKeyword} + '%'
+                 or login_name like '%' + #{userKeyword} + '%')
+        </if>
+    </sql>
+
+    <insert id="insert">
+        insert into ${table}
+            (user_id, login_name, user_name, dept_name, op_type,
+             menu_id, menu_name, menu_path, page_url, client_ip, device, session_id,
+             modedatacreatedate, modedatacreatetime)
+        values
+            (#{e.userId}, #{e.loginName}, #{e.userName}, #{e.deptName}, #{e.opType},
+             #{e.menuId}, #{e.menuName}, #{e.menuPath}, #{e.pageUrl}, #{e.clientIp},
+             #{e.device}, #{e.sessionId},
+             #{e.modedatacreatedate}, #{e.modedatacreatetime})
+    </insert>
+
+    <select id="getById" resultType="com.customization.oaones.appsyn.entity.OpLog">
+        select <include refid="cols"/> from ${table} where id = #{id}
+    </select>
+
+    <select id="page" resultType="com.customization.oaones.appsyn.entity.OpLog">
+        select * from (
+            select row_number() over (order by id desc) as rn, <include refid="cols"/>
+            from ${table}
+            <where>
+                <include refid="conditions"/>
+            </where>
+        ) t
+        where t.rn &gt; #{offset} and t.rn &lt;= #{offset} + #{limit}
+        order by t.rn
+    </select>
+
+    <select id="count" resultType="java.lang.Integer">
+        select count(1) from ${table}
+        <where>
+            <include refid="conditions"/>
+        </where>
+    </select>
+
+    <select id="groupByType" resultType="java.util.LinkedHashMap">
+        select op_type as opType, count(1) as totalCount
+        from ${table}
+        where 1 = 1
+        <include refid="timeRange"/>
+        <if test="userId != null">
+            and user_id = #{userId}
+        </if>
+        <if test="menuId != null and menuId != ''">
+            and menu_id = #{menuId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (menu_name like '%' + #{keyword} + '%'
+                 or page_url like '%' + #{keyword} + '%'
+                 or client_ip like '%' + #{keyword} + '%')
+        </if>
+        <if test="userKeyword != null and userKeyword != ''">
+            and (user_name like '%' + #{userKeyword} + '%'
+                 or login_name like '%' + #{userKeyword} + '%')
+        </if>
+        group by op_type
+    </select>
+
+    <delete id="deleteBefore">
+        delete from ${table}
+        where (modedatacreatedate &lt; #{beforeDate}
+               or (modedatacreatedate = #{beforeDate} and modedatacreatetime &lt; #{beforeTime}))
+    </delete>
+
+    <!-- ============ E9 平台标准表（只读，不做改名） ============ -->
+
+    <!--
+      E9 菜单索引：只取“配了地址”的菜单。
+        · linkAddress      旧版左侧菜单的页面地址（如 /workflow/search/CustomSearch.jsp）；
+        · routeurl         新版前端的路由（如 /spa/crm/index.html#/main/crm/birthday）；
+        · fullrouteurl     新版前端“整页地址”（点菜单直接落到的地址）；
+        · mobxrouteurl     基于原始协议的简化路由（如 /crm/birthday）。
+      地址里带 “#路由” 的，只取 # 之前的部分（浏览器不会把 # 之后发给服务端）。
+      useCustomName=1 且 customName 非空时用 customName，否则用标签ID（labelId）取平台文案。
+    -->
+    <select id="listMenus" resultType="java.util.LinkedHashMap">
+        select id, labelid, linkaddress, usecustomname, customname,
+               routeurl, fullrouteurl, mobxrouteurl
+        from LeftMenuInfo
+        where (linkaddress is not null and linkaddress &lt;&gt; '')
+           or (fullrouteurl is not null and fullrouteurl &lt;&gt; '')
+           or (routeurl is not null and routeurl &lt;&gt; '')
+           or (mobxrouteurl is not null and mobxrouteurl &lt;&gt; '')
+    </select>
+
+    <select id="findUser" resultType="java.util.LinkedHashMap">
+        select r.id as user_id, r.loginid as login_name, r.lastname as user_name,
+               d.departmentname as dept_name
+        from hrmresource r
+        left join hrmdepartment d on d.id = r.departmentid
+        where r.id = #{userId}
+    </select>
+
+</mapper>

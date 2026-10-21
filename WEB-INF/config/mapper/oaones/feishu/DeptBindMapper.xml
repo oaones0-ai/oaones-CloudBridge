@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 部门绑定（uf_oaones_dept_bind）
+  表名均由 OaonesParam 统一放入入参 Map。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.feishu.DeptBindMapper">
+
+    <select id="listRows" resultType="com.customization.oaones.appsyn.dto.feishu.DeptBindRow">
+        select b.id, b.cfg_id, b.oa_dept_id, b.wx_dept_key as wx_dept_id,
+               b.wx_parent_dept_key as wx_parent_dept_id,
+               b.yx as bind_state, b.remark,
+               b.modedatacreatedate, b.modedatacreatetime, b.modedatamodifydatetime,
+               d.departmentname as oa_dept_name,
+               d.supdepid as oa_dept_parent,
+               d.subcompanyid1 as oa_subcompany_id,
+               s.subcompanyname as oa_subcompany_name,
+               d.canceled as oa_canceled,
+               t.status as wx_tmp_status,
+               c.corp_name as cfg_name,
+               c.corp_id as cfg_corp_id
+        from ${deptBindTable} b
+        left join hrmdepartment d on d.id = b.oa_dept_id
+        left join hrmsubcompany s on s.id = d.subcompanyid1
+        left join ${cfgTable} c on c.id = b.cfg_id
+        left join ${deptTmpTable} t on t.corpid = c.corp_id and t.wx_dept_key = b.wx_dept_key
+        <where>
+            <if test="cfgId != null">
+                and b.cfg_id = #{cfgId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (d.departmentname like #{keyword} or c.corp_name like #{keyword}
+                     or b.wx_dept_key like #{keyword})
+            </if>
+        </where>
+        order by b.cfg_id, b.oa_dept_id
+    </select>
+
+    <select id="listEnabled" resultType="com.customization.oaones.appsyn.entity.feishu.DeptBind">
+        select id, cfg_id, oa_dept_id, wx_dept_key as wx_dept_id,
+               wx_parent_dept_key as wx_parent_dept_id, yx
+        from ${table}
+        where yx = 1 and cfg_id = #{cfgId}
+        order by oa_dept_id
+    </select>
+
+    <select id="findById" resultType="com.customization.oaones.appsyn.entity.feishu.DeptBind">
+        select id, cfg_id, oa_dept_id, wx_dept_key as wx_dept_id,
+               wx_parent_dept_key as wx_parent_dept_id, yx, remark,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table} where id = #{id}
+    </select>
+
+    <select id="findIdByOaDept" resultType="java.lang.Integer">
+        select id from ${table} where cfg_id = #{cfgId} and oa_dept_id = #{oaDeptId}
+    </select>
+
+    <select id="findActiveIdByWxDept" resultType="java.lang.Integer">
+        select id from ${table}
+        where cfg_id = #{cfgId} and wx_dept_key = #{wxDeptId} and yx = 1
+    </select>
+
+    <select id="countByCfgId" resultType="java.lang.Integer">
+        select count(1) from ${table} where cfg_id = #{cfgId}
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (cfg_id, oa_dept_id, wx_dept_key, wx_parent_dept_key, yx, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.cfgId}, #{e.oaDeptId}, #{e.wxDeptId}, #{e.wxParentDeptId}, #{e.yx}, #{e.remark},
+             #{e.modedatacreater}, #{e.modedatacreatedate},
+             #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set wx_dept_key = #{e.wxDeptId},
+            wx_parent_dept_key = #{e.wxParentDeptId},
+            yx = #{e.yx},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <delete id="deleteById">
+        delete from ${table} where id = #{id}
+    </delete>
+</mapper>

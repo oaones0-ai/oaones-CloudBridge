@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+	<!--referer xss detect white list：<ref> 是正则，按 find() 匹配 referer，大小写不敏感-->
+	<ref-list>
+		<!--企业微信 / 微信：扫码登录、网页授权、工作台、内置浏览器；
+		     微信开放平台的 open.weixin.qq.com 也走这一条（个人微信扫码绑定回调 /oaones/personalWx/PersonalWxCallback.jsp 的来源）-->
+		<ref>^https?://([a-z0-9-]+\.)*(work\.weixin\.qq\.com|weixin\.qq\.com)/</ref>
+		<!--钉钉：扫码登录、网页免登、开放平台、PC 工作台-->
+		<ref>^https?://([a-z0-9-]+\.)*dingtalk\.com/</ref>
+		<!--飞书国内版-->
+		<ref>^https?://([a-z0-9-]+\.)*feishu\.cn/</ref>
+		<!--飞书海外版 Lark-->
+		<ref>^https?://([a-z0-9-]+\.)*larksuite\.com/</ref>
+		<!--自有 SSO / CAS 域名：现网已有一条 oa.ghedu.com，保留即可，不用重复写-->
+
+		<!--可选：客户端内置浏览器有时给的是 app scheme 而不是网址，排查到再按实际值加-->
+		<ref>^android-app://com\.tencent\.wework</ref>
+		<ref>^android-app://com\.alibaba\.android\.rimet</ref>
+		<ref>^android-app://com\.ss\.android\.lark</ref>
+	</ref-list>
+	<!--
+		老 URL 检查（weaver.security.rules.SecurityRuleOldUrlCheck）：
+		/oaones/login 是平台 2023-12-13 基线之后新增的自有页面，会被判为
+		"old url warning, only log, 不是拦截" 并写 systemSecurity 日志。
+		白名单按 startsWith 前缀匹配，写 /oaones/login 可同时覆盖
+		/oaones/login、/oaones/login/、/oaones/login/login.jsp。
+	-->
+	<check-jsp-except-urls>
+		<url>/oaones</url>
+	</check-jsp-except-urls>
+	<!--
+		统一登录页不再走安全包的通用校验；URL 同样是 startsWith 前缀匹配，
+		不带结尾斜杠才能覆盖 /oaones/login 本身。
+	-->
+	<skip-any-check-list>
+		<url>/oaones/login</url>
+	</skip-any-check-list>
+</root>

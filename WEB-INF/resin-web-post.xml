@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Resin 侧的补充配置（**不是** E9 平台文件：平台出厂只有 WEB-INF/resin-web.xml 与
+  WEB-INF/resin-web_readme.xml，本文件由本定制新增，OA 升级不会覆盖）。
+
+  为什么放这里：Resin 的 conf/app-default.xml 会依次 import
+    WEB-INF/resin-web-pre.xml → WEB-INF/web.xml → WEB-INF/resin-web.xml → WEB-INF/resin-web-post.xml
+  （都带 optional="true"），所以本文件是“追加一段容器配置”的标准位置，
+  既不用改 E9 的 web.xml，也不用改平台的 resin-web.xml。
+
+  这里只做一件事：注册 OAones 的 URL 路由过滤器（对外地址 → 实际页面、
+  真实 .jsp 地址不许直接访问）。过滤器只按 ecology/WEB-INF/prop/oaones.properties 里
+  **route.* 明确写出**的地址处理，其它 URL 全部原样放行，映射可以放心写成 /*。
+
+  * 非 Resin 容器（Tomcat / 其它）：把下面 <filter> 与 <filter-mapping> 两段原样加到
+    WEB-INF/web.xml 的最后（在 </web-app> 之前）即可，类名不变。
+  * 写错路由配置不会影响应用：过滤器读不到/解析不了就按“不路由”处理，
+    处理过程中的异常也只记日志（ecology/log/mylog/mylog.log），请求继续走原来的流程。
+
+  注意：本文件故意不写 DOCTYPE——Resin 解析 web.xml 片段时不需要它，
+  省掉联网取 DTD 的可能。
+-->
+<web-app>
+    <filter>
+        <filter-name>OaonesRouteFilter</filter-name>
+        <filter-class>com.customization.oaones.appsyn.common.OaonesRouteFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>OaonesRouteFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <!--
+      操作监控采集（一级菜单「操作监控平台」/oaones/opMonitor/opMonitor.jsp 的数据来源）：
+      记录“谁、什么时间、登录 / 退出、访问了哪个菜单”。
+
+      与上面的路由过滤器同口径：映射写 /*，但只被动观察——
+      只处理“页面请求”（GET / POST + Accept: text/html + 非 XHR + 非静态资源），
+      并且只有地址命中 E9 菜单表 LeftMenuInfo 配置的菜单时才写库；
+      任何异常都在采集端吞掉，绝不影响业务请求。
+      整体开关见 oaones.properties#op.log.enable（0 = 关闭采集），改动最多 1 分钟生效。
+    -->
+    <filter>
+        <filter-name>OaonesOpLogFilter</filter-name>
+        <filter-class>com.customization.oaones.appsyn.common.OaonesOpLogFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>OaonesOpLogFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+</web-app>
