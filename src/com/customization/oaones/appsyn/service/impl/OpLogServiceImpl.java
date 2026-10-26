@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.customization.oaones.appsyn.common.OaonesConst;
 import com.customization.oaones.appsyn.common.OaonesAdmin;
+import com.customization.oaones.appsyn.common.LogRetentionCatalog;
 import com.customization.oaones.appsyn.common.OaonesLog;
 import com.customization.oaones.appsyn.common.OaonesMyBatis;
 import com.customization.oaones.appsyn.common.OaonesOpLog;
@@ -24,9 +25,6 @@ import java.util.Map;
  * 避免把审计数据按业务分权拆碎）。</p>
  */
 public class OpLogServiceImpl implements OpLogService {
-
-    /** 每进程上次清理时间（毫秒）：打开页面时最多每小时清一次历史日志。 */
-    private static volatile long lastCleanAt;
 
     private String table() {
         return OaonesProps.opLogTable();
@@ -104,7 +102,7 @@ public class OpLogServiceImpl implements OpLogService {
         JSONObject data = new JSONObject();
         data.put("admin", Boolean.valueOf(isViewer(operatorId)));
         data.put("enabled", Boolean.valueOf(OaonesProps.opLogEnabled()));
-        data.put("keepDays", Integer.valueOf(OaonesProps.opLogKeepDays()));
+        data.put("keepDays", Integer.valueOf(new LogRetentionServiceImpl().keepDays(LogRetentionCatalog.OP_LOG)));
         data.put("dedupeSeconds", Integer.valueOf(OaonesProps.opLogDedupeSeconds()));
 
         JSONArray types = new JSONArray();
@@ -143,48 +141,26 @@ public class OpLogServiceImpl implements OpLogService {
 
     @Override
     public void cleanIfDue() {
-        int keepDays = OaonesProps.opLogKeepDays();
-        if (keepDays <= 0) {
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (now - lastCleanAt < 60 * 60 * 1000L) {
-            return;
-        }
-        lastCleanAt = now;
-        doClean(keepDays);
+        // 自动清理由 OaonesLogRetentionScheduler 每天统一执行；这里仅确保调度器已启动。
+        com.customization.oaones.appsyn.job.OaonesLogRetentionScheduler.ensureStarted();
     }
 
     @Override
     public JSONObject clean(String operatorId) {
         requireViewer(operatorId);
-        int keepDays = OaonesProps.opLogKeepDays();
+        int keepDays = new LogRetentionServiceImpl().keepDays(LogRetentionCatalog.OP_LOG);
         JSONObject data = new JSONObject();
         if (keepDays <= 0) {
             data.put("deleted", Integer.valueOf(0));
-            data.put("message", "当前为永久保留（op.log.keep.days=0），未清理");
+            data.put("message", "当前为永久保留（系统设置 → 日志保留），未清理");
             return data;
         }
-        int deleted = doClean(keepDays);
-        data.put("deleted", Integer.valueOf(deleted));
-        data.put("keepDays", Integer.valueOf(keepDays));
-        return data;
+        return new LogRetentionServiceImpl().cleanNow(LogRetentionCatalog.OP_LOG);
     }
 
     /* ------------------------------------------------------------------
      * 内部
      * ------------------------------------------------------------------ */
-
-    private int doClean(int keepDays) {
-        String beforeDate = OaonesUtil.shiftDate(OaonesUtil.nowDate(), -keepDays);
-        try {
-            return OaonesMyBatis.call(OpLogMapper.class,
-                    mapper -> mapper.deleteBefore(table(), beforeDate, "00:00:00"));
-        } catch (Throwable t) {
-            OaonesLog.error("清理操作监控日志失败（before=" + beforeDate + "）", t);
-            return 0;
-        }
-    }
 
     private JSONObject stats(Integer userId, String menuId, String keyword,
                              String userKeyword,

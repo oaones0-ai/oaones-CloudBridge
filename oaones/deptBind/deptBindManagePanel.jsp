@@ -21,7 +21,7 @@
 
 <%-- 二级菜单：OA数据基准（部门绑定 - OA 部门侧） --%>
 <%-- 页面说明正文：由页壳 sub-tabs 右侧的感叹号（#manageHelpTip）悬浮/点击弹出 --%>
-<div class="help-source" id="manageHelpText">列表默认不展示，可点击“搜索”查看全部，或在分部/部门弹出框选择后自动搜索展示。分部/部门弹窗支持多选，选中分部时其下级分部会自动一并选中；分部/部门弹窗与<%= oaonesPBShort %>部门选择弹窗均支持“列表式 / 树状”两种显示模式。<span class="rule">选择即落库</span>：在“选择<%= oaonesPBShort %>部门”弹框里单击选中部门后，<span class="rule">双击该行（或点“确定”）立即写入数据库完成绑定</span>，页面上不需要再点保存；同一 OA 部门再次选择即更换所绑定的<%= oaonesPBShort %>部门，已绑定行可“解绑”。<span class="rule">分部绑定是“自动绑定”的前提</span>：绑定分部与<%= oaonesPBShort %>租户后，“智能匹配”可按<span class="rule">部门编号或名称</span>为该分部下的 OA 部门自动匹配<%= oaonesPBShort %>部门，确认后立即批量自动绑定；<span class="rule">匹配到的行会带底色标记</span>（保留到重新搜索/重置筛选/重载数据，行内另有“待绑定（未保存）”说明），便于逐行核对后再决定“立即自动绑定”或逐行手动绑定；分部未绑定<%= oaonesPBShort %>租户时，其下 OA 部门不参与自动匹配（“分部”后显示“分部未绑定”标记，行内有说明）。<span class="rule">手动选择不受该条件限制</span>：直接选择<%= oaonesPBShort %>部门即绑定，不需要分部已绑定。OA 部门到<%= oaonesPBShort %>部门支持“多对一”：多个 OA 部门可绑定<%= oaonesPBShort %>同一个部门，已被其他 OA 部门绑定的<%= oaonesPBShort %>部门仍可在弹窗中选中（选项上标注“已被 N 个 OA 部门绑定”）。</div>
+<div class="help-source" id="manageHelpText">列表默认不展示，可点击“搜索”查看全部，或在分部/部门弹出框选择后自动搜索展示。分部/部门弹窗支持多选，选中分部时其下级分部会自动一并选中；分部/部门弹窗与<%= oaonesPBShort %>部门选择弹窗均支持“列表式 / 树状”两种显示模式。<span class="rule">选择即落库</span>：在“选择<%= oaonesPBShort %>部门”弹框里单击选中部门后，<span class="rule">双击该行（或点“确定”）立即写入数据库完成绑定</span>。一个 OA 部门可以映射同一租户的多个<%= oaonesPBShort %>部门；最早建立且仍有效的映射标记为<span class="rule">人员同步默认部门</span>，人员同步只取这一条。管理员解绑当前默认映射后，下一条有效映射自动成为默认；也可删除后重新绑定来调整默认映射。<span class="rule">智能匹配</span>可按<span class="rule">部门编号或名称</span>为尚未映射的 OA 部门自动匹配<%= oaonesPBShort %>部门。OA 部门到<%= oaonesPBShort %>部门也支持多个 OA 部门共享同一个<%= oaonesPBShort %>部门，已被其他 OA 部门绑定的<%= oaonesPBShort %>部门仍可在弹窗中选中。</div>
         <div id="managePanel">
             <div class="filter-bar">
                 <span class="filter-label">OA 部门筛选：</span>
@@ -741,16 +741,10 @@ function computeSmartMatches(rows) {
     var result = {};
     var usedWx = {};
     var pending = [];
-    var subUnboundIds = [];
     rows.forEach(function (r) {
         var oaId = String(r.id);
         // 已绑定、已封存的行不参与自动匹配
         if (boundByOa[oaId] || String(r.canceled) === "1") { return; }
-        // 自动绑定（按编号/名称匹配）要求分部已绑定企微租户：未绑定的行不参与，只做提示
-        if (autoMatchBlockReason(r, boundByOa[oaId])) {
-            subUnboundIds.push(oaId);
-            return;
-        }
         pending.push(r);
     });
     // 规则1：两边编码一致
@@ -775,7 +769,7 @@ function computeSmartMatches(rows) {
     });
     var arr = [];
     Object.keys(result).forEach(function (k) { arr.push(result[k]); });
-    return { matches: arr, subUnboundIds: subUnboundIds };
+    return { matches: arr };
 }
 
 function clearSmartHighlights() {
@@ -802,14 +796,10 @@ function hideSmartModal() {
     byId("smartModal").style.display = "none";
 }
 
-function showSmartResult(matches, subUnboundCount) {
+function showSmartResult(matches) {
     smartMatchData = matches || [];
     byId("smartMsg").textContent = "智能匹配完成：已为 " + matches.length
         + " 个未绑定 OA 部门生成智能匹配" + P_SHORT + "部门"
-        + (subUnboundCount > 0
-            ? "；另有 " + subUnboundCount + " 个 OA 部门因所在分部未绑定" + P_SHORT + "租户未参与"
-                + "（手动绑定不受此限制）"
-            : "")
         + "。可点“立即自动绑定”直接写入这些绑定关系（自动绑定），"
         + "或点“仅看匹配结果”只筛选出这些部门，再逐行选择" + P_SHORT + "部门（手动绑定，即时落库）。"
         + "匹配到的行在列表中会带底色标记（保留到重新搜索/重载数据），便于逐行对照核对。";
@@ -828,7 +818,7 @@ function smartShowOnly() {
     highlightSmartRows(smartMatchData);
 }
 
-/** 立即自动绑定：把本次匹配结果一次性写入（后端 dept.autoBatchSave 校验“分部已绑定企微租户”） */
+/** 立即自动绑定：把本次匹配结果一次性写入 */
 function smartApplyNow() {
     if (!smartMatchData.length) { hideSmartModal(); return; }
     hideSmartModal();
@@ -855,13 +845,9 @@ function doSmartMatch() {
     if (!rows.length) { showToast("当前列表为空，没有可匹配的 OA 部门", 1); return; }
     var smart = computeSmartMatches(rows);
     var matches = smart.matches;
-    var subTip = smart.subUnboundIds.length
-        ? "另有 " + smart.subUnboundIds.length + " 个 OA 部门因所在分部未绑定" + P_SHORT + "租户未参与自动匹配"
-            + "（手动绑定不受此限制）。"
-        : "";
     if (!matches.length) {
         showToast("未找到可自动匹配的" + P_SHORT + "部门。规则：两边编码一致，或部门名称完全相同；"
-            + "免绑定的" + P_SHORT + "部门不参与，已被其他 OA 部门绑定的" + P_SHORT + "部门仍会参与（多对一）。" + subTip, 1, 8000);
+            + "免绑定的" + P_SHORT + "部门不参与，已被其他 OA 部门绑定的" + P_SHORT + "部门仍会参与（多对一）。", 1, 8000);
         return;
     }
     clearSmartHighlights();
@@ -875,7 +861,7 @@ function doSmartMatch() {
         };
     });
     renderManage();
-    showSmartResult(matches, smart.subUnboundIds.length);
+    showSmartResult(matches);
 }
 
 function renderBindStats(rows) {
@@ -940,8 +926,6 @@ function renderManage() {
             issue = "部门绑定异常（OA 部门已删除/已封存）";
         }
         var disabled = issue !== "";
-        // 分部未绑定：不影响手动绑定，只让该行不参与“智能匹配”自动绑定
-        var subUnbound = issue === "" && autoMatchBlockReason(d, bind) !== "";
         var statusHtml;
         if (!bind) {
             statusHtml = "<span class='tag unbound'>未绑定</span>";
@@ -951,9 +935,15 @@ function renderManage() {
             statusHtml = "<span class='tag bound'>已绑定</span>";
         }
         var note = "";
-        if (bind) {
-            note += "<div class='user-mini'>当前：" + esc(wxName(bind.wx_dept_id) || "ID " + bind.wx_dept_id)
-                + "（" + esc(bind.wx_dept_id) + "）</div>";
+        var oaBinds = binds.filter(function (b) { return String(b.oa_dept_id) === oaId; });
+        if (oaBinds.length) {
+            oaBinds.forEach(function (b) {
+                note += "<div class='user-mini'>当前：" + esc(wxName(b.wx_dept_id) || "ID " + b.wx_dept_id)
+                    + "（" + esc(b.wx_dept_id) + "）"
+                    + (String(b.sync_default) === "1"
+                        ? " <span class='tag bound'>人员同步默认部门</span>" : "")
+                    + "</div>";
+            });
         }
         if (issue) {
             note += "<div class='row-note'>" + esc(issue) + "</div>";
@@ -965,26 +955,21 @@ function renderManage() {
                     + esc(wxName(sug.wx_id) || P_SHORT + "部门ID " + sug.wx_id)
                     + "（点该行选择框后双击该部门或点“确定”即完成绑定）</div>";
             }
-            if (subUnbound) {
-                // 分部未绑定只影响“按编号/名称自动绑定”，手动选择仍然可以即时绑定
-                note += "<div class='row-note'>分部未绑定" + P_SHORT + "租户：<b>可手动选择绑定</b></div>";
-            }
             if (!bind && !hasTmp && !sug) {
                 note += "<div class='row-note'>快照为空，请先点击“更新" + P_SHORT + "部门快照”</div>";
             }
         }
         var ops = "";
-        if (bind) {
-            ops += "<button class='link danger unbind-btn' data-id='" + esc(bind.id) + "'>解绑</button>";
-        }
+        oaBinds.forEach(function (b) {
+            ops += "<button class='link danger unbind-btn' data-id='" + esc(b.id) + "'>解绑"
+                + (String(b.sync_default) === "1" ? "默认" : "") + "</button> ";
+        });
         // 分部ID/名称：OA 部门缓存优先，绑定记录兜底；名称缺失时按缓存里的分部名补全
         var subId = oaDeptSubId(d, bind);
         var subName = d.subcompany_name || (bind && bind.oa_subcompany_name) || oaSubLabel(subId) || "";
         var subStatusHtml = subId === ""
             ? "<span class='tag fail'>未归属分部</span>"
-            : (isSubBound(subId)
-                ? "<span class='tag bound' title='该分部已绑定" + P_SHORT + "租户，其下部门可参与“智能匹配”按编号/名称自动绑定'>分部已绑定</span>"
-                : "<span class='tag unbound' title='分部未绑定" + P_SHORT + "租户，该部门不能按编号/名称自动绑定（手动选择仍可绑定）；请先到“分部绑定”页绑定该分部'>分部未绑定</span>");
+            : "";
         // 智能匹配命中的行加底色（保留到重新搜索/重载）：行内同时有“待绑定（未保存）”说明
         body += "<tr" + (smartSuggestions[oaId] ? " class='smart-highlight'" : "") + ">"
             + "<td><div><b>" + OaonesHrm.dept(oaId, d.name) + "</b>（ID " + esc(oaId) + "）</div>"

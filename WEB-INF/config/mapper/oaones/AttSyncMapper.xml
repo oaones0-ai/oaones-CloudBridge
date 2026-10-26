@@ -18,7 +18,7 @@
 
     <sql id="colsCfg">
         t.id, t.type, t.cfgid, t.row_type, t.cfg_name, t.dir,
-        t.scope_subs, t.scope_depts, t.scope_users, t.scope_text,
+        t.scope_subs, t.scope_depts, t.scope_users, t.scope_text, t.oa_account_rule,
         t.data_types, t.sign_periods,
         t.win_mode, t.win_from, t.win_to, t.win_days,
         t.app_id, t.plan_mode, t.plan_workday_group_id, t.cron_day_type, t.day_cron, t.night_cron,
@@ -76,14 +76,15 @@
 
     <insert id="insertCfg" useGeneratedKeys="true" keyProperty="e.id">
         insert into ${attCfgTable}
-            (type, cfgid, row_type, cfg_name, dir, scope_subs, scope_depts, scope_users, scope_text,
+            (type, cfgid, row_type, cfg_name, dir, scope_subs, scope_depts, scope_users, scope_text, oa_account_rule,
              data_types, sign_periods, win_mode, win_from, win_to, win_days, app_id,
              plan_mode, plan_workday_group_id, cron_day_type, day_cron, night_cron, enabled,
              check_state, check_msg, check_time, fail_streak, remark,
              modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime)
         values
             (#{e.type}, #{e.cfgid}, #{e.rowType}, #{e.cfgName}, #{e.dir}, #{e.scopeSubs}, #{e.scopeDepts},
-             #{e.scopeUsers}, #{e.scopeText}, #{e.dataTypes}, #{e.signPeriods}, #{e.winMode}, #{e.winFrom},
+             #{e.scopeUsers}, #{e.scopeText}, #{e.oaAccountRule}, #{e.dataTypes}, #{e.signPeriods},
+             #{e.winMode}, #{e.winFrom},
              #{e.winTo}, #{e.winDays}, #{e.appId}, #{e.planMode}, #{e.planWorkdayGroupId}, #{e.cronDayType},
              #{e.dayCron}, #{e.nightCron}, #{e.enabled}, #{e.checkState}, #{e.checkMsg}, #{e.checkTime},
              #{e.failStreak}, #{e.remark},
@@ -99,6 +100,7 @@
             scope_depts = #{e.scopeDepts},
             scope_users = #{e.scopeUsers},
             scope_text = #{e.scopeText},
+            oa_account_rule = #{e.oaAccountRule},
             data_types = #{e.dataTypes},
             sign_periods = #{e.signPeriods},
             win_mode = #{e.winMode},
@@ -209,7 +211,9 @@
                b.x_user_id as wx_user_id,
                b.bind_state as bind_state,
                cast(r.departmentid as int) as dept_id,
-               cast(d.subcompanyid1 as int) as sub_id
+               cast(d.subcompanyid1 as int) as sub_id,
+               r.accounttype as account_type,
+               case when r.accounttype is null or r.accounttype = 0 then 1 else 0 end as primary_account
         from hrmresource r
         left join hrmdepartment d on d.id = r.departmentid
         left join ${userBindTable} b on b.cfg_id = #{cfgId} and b.oa_user_id = r.id
@@ -239,6 +243,15 @@
             </choose>
         </if>
         order by r.id
+    </select>
+
+    <!-- 编辑回显用：只取设置里已选人员ID的姓名，不按状态过滤（离职人员的历史范围仍显示姓名）。 -->
+    <select id="listUserNames" resultType="com.customization.oaones.appsyn.dto.AttMember">
+        select cast(r.id as int) as oa_user_id,
+               r.lastname as name
+        from hrmresource r
+        where r.id in
+        <foreach collection="userIds" item="uid" open="(" separator="," close=")">#{uid}</foreach>
     </select>
 
     <select id="listBoundByUsers" resultType="com.customization.oaones.appsyn.dto.AttMember">
@@ -453,10 +466,13 @@
         order by k.id
     </select>
 
-    <!-- 平台记录ID 非空时优先按它判重（平台提供稳定记录ID 时作为补充判据，需求 4.1.1） -->
+    <!-- 平台记录ID 非空时优先按它判重（平台提供稳定记录ID 时作为补充判据，需求 4.1.1）。
+         同一平台打卡可扇出到多个 OA 账户，所以记录ID 还必须与 oa_user_id 一起判，否则
+         “所有账户均同步”会在第一个账户写完后把其余账户误判为已同步。 -->
     <select id="findLinkByRecord" resultType="com.customization.oaones.appsyn.entity.AttSyncLink">
         select top 1 <include refid="colsLink"/> from ${attLinkTable} k
-        where k.type = #{type} and k.cfgid = #{cfgid} and k.dir = #{dir} and k.wx_record_id = #{wxRecordId}
+        where k.type = #{type} and k.cfgid = #{cfgid} and k.dir = #{dir}
+          and k.oa_user_id = #{oaUserId} and k.wx_record_id = #{wxRecordId}
         order by k.id
     </select>
 

@@ -192,4 +192,11 @@ server {
 15.接口日志中心:/oaones/apiLog/apiLog.jsp
 16.操作监控平台:/oaones/opMonitor/opMonitor.jsp
 17.统一认证报表:/oaones/authReport/authReport.jsp
+18.分部租户映射：/oaones/orgMap/orgMap.jsp
+19.人员同步日志：/oaones/syncCenter/syncResult.jsp
+指定平台和租户：/oaones/syncCenter/syncResult.jsp?platform=wecom&cfg_id=123&requestid=456
+跨平台按流程查询：/oaones/syncCenter/syncResult.jsp?requestid=456
+按同步批次查询：/oaones/syncCenter/syncResult.jsp?platform=wecom&cfg_id=123&log_id=789
+hide_filters=1：隐藏全部搜索条件。
+hide_summary=1：隐藏统计行和明细截断提示。
 ```

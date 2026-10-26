@@ -9,7 +9,6 @@ import com.customization.oaones.appsyn.common.OaonesParam;
 import com.customization.oaones.appsyn.common.OaonesProps;
 import com.customization.oaones.appsyn.common.OaonesUtil;
 import com.customization.oaones.appsyn.dao.dingtalk.DeptBindMapper;
-import com.customization.oaones.appsyn.dao.dingtalk.SubBindMapper;
 import com.customization.oaones.appsyn.dto.dingtalk.DeptBindRow;
 import com.customization.oaones.appsyn.entity.dingtalk.DeptBind;
 import com.customization.oaones.appsyn.service.impl.OaServiceImpl;
@@ -56,6 +55,7 @@ public class DeptBindServiceImpl implements DeptBindService {
         if (rows == null) {
             return result;
         }
+        Set<String> defaultMarked = new HashSet<String>();
         for (DeptBindRow row : rows) {
             JSONObject json = new JSONObject();
             json.put("id", OaonesUtil.nullToEmpty(row.getId()));
@@ -79,6 +79,10 @@ public class DeptBindServiceImpl implements DeptBindService {
             json.put("remark", OaonesUtil.nullToEmpty(row.getRemark()));
             json.put("corp_name", OaonesUtil.nullToEmpty(row.getCfgName()));
             json.put("corp_id", OaonesUtil.nullToEmpty(row.getCfgCorpId()));
+            String oaKey = String.valueOf(row.getCfgId()) + ":" + String.valueOf(row.getOaDeptId());
+            int syncDefault = "1".equals(OaonesUtil.nullToEmpty(row.getBindState()))
+                    && defaultMarked.add(oaKey) ? 1 : 0;
+            json.put("sync_default", syncDefault);
             result.add(json);
         }
         return result;
@@ -94,6 +98,7 @@ public class DeptBindServiceImpl implements DeptBindService {
         if (rows == null) {
             return result;
         }
+        Set<String> defaultMarked = new HashSet<String>();
         for (DeptBind row : rows) {
             JSONObject json = new JSONObject();
             json.put("id", OaonesUtil.nullToEmpty(row.getId()));
@@ -101,6 +106,7 @@ public class DeptBindServiceImpl implements DeptBindService {
             json.put("oa_dept_id", OaonesUtil.nullToEmpty(row.getOaDeptId()));
             json.put("wx_dept_id", OaonesUtil.nullToEmpty(row.getWxDeptId()));
             json.put("wx_parent_dept_id", OaonesUtil.nullToEmpty(row.getWxParentDeptId()));
+            json.put("sync_default", defaultMarked.add(String.valueOf(row.getOaDeptId())) ? 1 : 0);
             result.add(json);
         }
         return result;
@@ -143,17 +149,15 @@ public class DeptBindServiceImpl implements DeptBindService {
         if ("1".equals(OaonesUtil.s(oaDept.getString("canceled")))) {
             throw new RuntimeException("OA 部门已封存，不允许建立/更换绑定");
         }
-        // 手动绑定不受“分部已绑定”限制（该限制只作用于按编号/名称的自动绑定，见 autoBatchSave）
         int cfgKey = OaonesUtil.i(cfgId, 0);
         int oaKey = OaonesUtil.i(oaDeptId, 0);
         int wxKey = OaonesUtil.i(wxDeptId, 0);
         String now = OaonesUtil.now();
         int modeId = OaonesProps.deptBindModeId();
-        // OA 部门 → 钉钉部门为“多对一”：同一钉钉部门可被多个 OA 部门绑定，
-        // 因此这里不再校验钉钉部门是否已被其他 OA 部门占用；
-        // 仍由 (cfg_id, oa_dept_id) 唯一索引保证同一 OA 部门只保留一条绑定记录。
+        // 同一 OA 部门可以映射同租户的多个钉钉部门；同一 pair 原地更新，新部门新增一条。
+        // 人员同步始终取启用绑定中 id 最小的一条作为默认映射。
         Integer existId = OaonesMyBatis.call(DeptBindMapper.class,
-                mapper -> mapper.findIdByOaDept(table(), cfgKey, oaKey));
+                mapper -> mapper.findIdByPair(table(), cfgKey, oaKey, wxKey));
         if (existId != null) {
             DeptBind entity = new DeptBind();
             entity.setId(existId);
@@ -192,7 +196,7 @@ public class DeptBindServiceImpl implements DeptBindService {
             return 1;
         });
         Integer newId = OaonesMyBatis.call(DeptBindMapper.class,
-                mapper -> mapper.findIdByOaDept(table(), cfgKey, oaKey));
+                mapper -> mapper.findIdByPair(table(), cfgKey, oaKey, wxKey));
         if (newId == null) {
             return null;
         }
@@ -202,26 +206,19 @@ public class DeptBindServiceImpl implements DeptBindService {
 
     @Override
     public JSONObject autoBatchSave(JSONObject params, String operatorId) {
-        return doBatchSave(params, operatorId, true);
+        return doBatchSave(params, operatorId);
     }
 
     @Override
     public JSONObject batchSave(JSONObject params, String operatorId) {
-        return doBatchSave(params, operatorId, false);
+        return doBatchSave(params, operatorId);
     }
 
-    /**
-     * 批量绑定部门。
-     *
-     * @param needSubBound 是否要求“OA 部门所属分部已绑定钉钉租户”：
-     *                     自动绑定（按部门编号/名称匹配的结果）为 true，
-     *                     手动勾选后批量绑定为 false
-     */
-    private JSONObject doBatchSave(JSONObject params, String operatorId, boolean needSubBound) {
+    /** 批量绑定部门（手动绑定与按编号/名称匹配的自动绑定使用同一套规则）。 */
+    private JSONObject doBatchSave(JSONObject params, String operatorId) {
         OaonesLog.step("批量绑定部门 cfgId=" + OaonesUtil.s(params.getString("cfg_id"))
                 + " oaIds=" + OaonesUtil.s(params.getString("oa_ids"))
-                + " wxIds=" + OaonesUtil.s(params.getString("wx_ids"))
-                + " needSubBound=" + needSubBound);
+                + " wxIds=" + OaonesUtil.s(params.getString("wx_ids")));
         String cfgId = OaonesUtil.s(params.getString("cfg_id"));
         String[] oaIds = splitCsv(params.getString("oa_ids"));
         String[] wxIds = splitCsv(params.getString("wx_ids"));
@@ -240,16 +237,11 @@ public class DeptBindServiceImpl implements DeptBindService {
         if (corpId.length() == 0) {
             throw new RuntimeException("钉钉租户未配置 AppKey");
         }
-        Set<String> seenOa = new HashSet<String>();
         for (int i = 0; i < oaIds.length; i++) {
             String oaId = oaIds[i].trim();
             String wxId = wxIds[i].trim();
             if (oaId.length() == 0 || wxId.length() == 0 || "0".equals(wxId)) {
                 throw new RuntimeException("第 " + (i + 1) + " 条 OA部门/钉钉部门未选择完整");
-            }
-            // 同一个 OA 部门在一批中只能出现一次；钉钉部门允许重复（多对一：多个 OA 部门对应同一钉钉部门）
-            if (!seenOa.add(oaId)) {
-                throw new RuntimeException("批量绑定中 OA 部门ID " + oaId + " 重复");
             }
             JSONObject oaDept = oaService().getDepartment(oaId);
             if (oaDept == null) {
@@ -257,10 +249,6 @@ public class DeptBindServiceImpl implements DeptBindService {
             }
             if ("1".equals(OaonesUtil.s(oaDept.getString("canceled")))) {
                 throw new RuntimeException("OA 部门ID " + oaId + " 已封存，不允许绑定");
-            }
-            // 自动绑定要求分部已绑定：任一行的分部未绑定，整批不落库；手动绑定不校验该条件
-            if (needSubBound) {
-                requireSubBound(cfgId, oaDept);
             }
             try {
                 if (!deptTmpService().isNormal(corpId, wxId)) {
@@ -303,34 +291,6 @@ public class DeptBindServiceImpl implements DeptBindService {
         }
         OaonesMyBatis.run(DeptBindMapper.class, mapper -> mapper.deleteById(table(), id));
         OaonesLog.step("删除部门绑定 bindId=" + bindId);
-    }
-
-    /**
-     * 校验 OA 部门所属分部已建立钉钉租户绑定（仅“自动绑定”使用）。
-     *
-     * <p>自动绑定（按部门编号/名称匹配）以分部绑定为前置条件：
-     * 只有分部已绑定钉钉租户，才能按编号/名称自动匹配并绑定该分部下的部门；
-     * 手动绑定不受此限制，见 {@code batchSave} / {@code save}。</p>
-     */
-    private void requireSubBound(String cfgId, JSONObject oaDept) {
-        String subId = OaonesUtil.s(oaDept.getString("subcompanyid1"));
-        if (subId.length() == 0 || "0".equals(subId)) {
-            throw new RuntimeException("OA 部门未归属任何分部，不允许自动绑定部门；"
-                    + "请先在 OA 组织架构中维护该部门所属分部");
-        }
-        Integer cfgKey = OaonesUtil.integer(cfgId);
-        int cfg = cfgKey == null ? 0 : cfgKey;
-        int sub = OaonesUtil.i(subId, 0);
-        Integer bindId = OaonesMyBatis.call(SubBindMapper.class,
-                mapper -> mapper.findIdByCfgAndOaSub(OaonesProps.subBindTable(), cfg, sub));
-        if (bindId != null) {
-            return;
-        }
-        JSONObject oaSub = oaService().getSubCompany(subId);
-        String subName = oaSub == null ? "" : OaonesUtil.s(oaSub.getString("name"));
-        throw new RuntimeException("部门所在分部" + (subName.length() == 0 ? "" : "「" + subName + "」")
-                + "（ID " + subId + "）尚未绑定钉钉租户，不允许自动绑定部门；"
-                + "请先在“分部绑定”页完成分部绑定后再自动绑定（手动绑定不受此限制）");
     }
 
     private JSONObject find(String bindId) {

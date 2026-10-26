@@ -55,6 +55,7 @@ public class SyncLogServiceImpl implements SyncLogService {
         for (SyncLog row : rows) {
             JSONObject json = new JSONObject();
             json.put("id", OaonesUtil.nullToEmpty(row.getId()));
+            json.put("requestid", OaonesUtil.nullToEmpty(row.getRequestid()));
             json.put("cfg_id", OaonesUtil.nullToEmpty(row.getCfgid()));
             json.put("corp_name", OaonesUtil.nullToEmpty(row.getCorpname()));
             json.put("formmodeid", OaonesUtil.nullToEmpty(row.getFormmodeid()));
@@ -93,6 +94,7 @@ public class SyncLogServiceImpl implements SyncLogService {
         int operator = OaonesUtil.i(OaonesUtil.s(data.getString("create_by")), 0);
 
         SyncLog entity = new SyncLog();
+        entity.setRequestid(OaonesUtil.integer(OaonesUtil.s(data.getString("requestid"))));
         entity.setCfgid(OaonesUtil.integer(OaonesUtil.s(data.getString("cfg_id"))));
         entity.setCorpname(OaonesUtil.s(data.getString("corp_name")));
         entity.setDirection(OaonesUtil.integer(OaonesUtil.s(data.getString("direction"))));
@@ -148,6 +150,7 @@ public class SyncLogServiceImpl implements SyncLogService {
             }
             SyncLogItem entity = new SyncLogItem();
             entity.setLogId(logId);
+            entity.setRequestid(OaonesUtil.integer(OaonesUtil.s(row.getString("requestid"))));
             entity.setCfgid(OaonesUtil.integer(OaonesUtil.s(row.getString("cfg_id"))));
             entity.setDirection(OaonesUtil.integer(OaonesUtil.s(row.getString("direction"))));
             entity.setItemType(OaonesUtil.integer(OaonesUtil.s(row.getString("item_type"))));
@@ -196,6 +199,7 @@ public class SyncLogServiceImpl implements SyncLogService {
             JSONObject json = new JSONObject();
             json.put("id", OaonesUtil.nullToEmpty(row.getId()));
             json.put("log_id", OaonesUtil.nullToEmpty(row.getLogId()));
+            json.put("requestid", OaonesUtil.nullToEmpty(row.getRequestid()));
             json.put("cfg_id", OaonesUtil.nullToEmpty(row.getCfgid()));
             json.put("direction", OaonesUtil.nullToEmpty(row.getDirection()));
             json.put("item_type", OaonesUtil.nullToEmpty(row.getItemType()));

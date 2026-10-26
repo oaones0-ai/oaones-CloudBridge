@@ -24,7 +24,7 @@ public interface SyncLogService {
     /**
      * 写一条同步日志（汇总层：总数/成功/跳过/失败/起止时间/结果），返回新增日志ID。
      *
-     * <p>detail 超出 3900 字符时截断；逐条对象的同步过程写在
+     * <p>data 可带 {@code requestid}（OA 流程请求ID，定时同步为空）；detail 超出 3900 字符时截断；逐条对象的同步过程写在
      * {@link #addItems(int, JSONArray)} 的明细表里。</p>
      */
     int add(JSONObject data);
@@ -32,7 +32,8 @@ public interface SyncLogService {
     /**
      * 写一批同步明细（一行一个同步对象：单条部门 / 单条人员）。
      *
-     * <p>每条入参字段：item_type（0 部门 / 1 人员）、op（0 新增 / 1 更新 / 2 跳过 / 3 失败）、
+     * <p>每条入参字段：requestid（OA 流程请求ID，可空）、item_type（0 部门 / 1 人员）、
+     * op（0 新增 / 1 更新 / 2 跳过 / 3 失败）、
      * oa_id、oa_name、wx_id、wx_name、parent_id、parent_name、message、seq。</p>
      *
      * @param logId 所属同步日志ID（{@link #add(JSONObject)} 的返回值）

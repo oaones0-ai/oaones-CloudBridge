@@ -7,7 +7,6 @@
   平台由租户配置的 type 列区分（0 企微 / 1 钉钉 / 2 飞书）。表名均由 OaonesParam 放入入参 Map。
 
   绑定“有效”的口径各表不同（与各自页面的列表口径一致，不要互相套用）：
-    uf_oaones_sub_bind   yx = 0 有效 / 1 无效
     uf_oaones_dept_bind  yx = 1 有效 / 0 失效
     uf_oaones_user_bind  bind_state = 1 已绑定 / 0 免绑定
 
@@ -27,47 +26,6 @@
               and ((rt.wx_dept_key is not null and rt.wx_dept_key = c.root_dept_key)
                    or (rt.wx_dept_key is null and rt.wx_dept_id = c.root_dept_id))
         order by c.type, c.corp_name, c.id
-    </select>
-
-    <!-- 分部绑定：OA 分部 → 平台租户（一对一，平台侧部门取租户根部门或同步写入的部门） -->
-    <select id="listSubRows" resultType="com.customization.oaones.appsyn.dto.BindOverviewRow">
-        select b.id, b.cfg_id, b.type as platform_type, b.oa_sub_id as oa_id,
-               b.wx_dept_id, b.wx_dept_key,
-               b.yx as bind_state, b.remark,
-               b.modedatacreatedate as created_date, b.modedatacreatetime as created_time,
-               b.modedatamodifydatetime as update_time,
-               s.subcompanyname as oa_name, s.canceled as oa_canceled,
-               s.supsubcomid as oa_parent_id, ps.subcompanyname as oa_parent_name,
-               c.corp_name as cfg_name, c.corp_id, c.qy as cfg_enable,
-               c.root_dept_id, c.root_dept_key,
-               t.dept_name as wx_dept_name,
-               rt.dept_name as root_dept_name
-        from ${subBindTable} b
-        left join hrmsubcompany s on s.id = b.oa_sub_id
-        left join hrmsubcompany ps on ps.id = s.supsubcomid
-        left join ${cfgTable} c on c.id = b.cfg_id
-        left join ${deptTmpTable} t
-               on t.corpid = c.corp_id and t.type = c.type
-              and ((t.wx_dept_key is not null and t.wx_dept_key = b.wx_dept_key)
-                   or (t.wx_dept_key is null and t.wx_dept_id = b.wx_dept_id))
-        left join ${deptTmpTable} rt
-               on rt.corpid = c.corp_id and rt.type = c.type
-              and ((rt.wx_dept_key is not null and rt.wx_dept_key = c.root_dept_key)
-                   or (rt.wx_dept_key is null and rt.wx_dept_id = c.root_dept_id))
-        <where>
-            and b.yx = 0
-            <if test="platform != null">
-                and b.type = #{platform}
-            </if>
-            <if test="cfgId != null">
-                and b.cfg_id = #{cfgId}
-            </if>
-            <if test="keyword != null and keyword != ''">
-                and (s.subcompanyname like #{keyword} or c.corp_name like #{keyword}
-                     or c.corp_id like #{keyword})
-            </if>
-        </where>
-        order by b.type, b.cfg_id, s.subcompanyname, b.oa_sub_id
     </select>
 
     <!-- 部门绑定：OA 部门 → 平台部门（多对一），平台部门名称取部门快照 -->

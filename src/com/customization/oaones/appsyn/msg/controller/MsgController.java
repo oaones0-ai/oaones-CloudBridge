@@ -394,7 +394,8 @@ public class MsgController extends BaseController {
         json.put("timeoutMs", config.getTimeoutMs());
         json.put("tokenAdvanceSec", config.getTokenAdvanceSec());
         json.put("dedupWindowSec", config.getDedupWindowSec());
-        json.put("logKeepDays", config.getLogKeepDays());
+        json.put("logKeepDays", Integer.valueOf(new com.customization.oaones.appsyn.service.impl.LogRetentionServiceImpl()
+                .keepDays(com.customization.oaones.appsyn.common.LogRetentionCatalog.MSG_LOG)));
         json.put("taskKeepDays", config.getTaskKeepDays());
         json.put("remark", config.getRemark());
         return json;

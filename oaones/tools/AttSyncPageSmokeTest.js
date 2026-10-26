@@ -21,6 +21,12 @@
     var js = read(path.join(root, "js", "attSync.js"));
     var controller = read(path.resolve(root, "..", "src", "com", "customization", "oaones", "appsyn",
         "controller", "AttSyncController.java"));
+    var service = read(path.resolve(root, "..", "src", "com", "customization", "oaones", "appsyn",
+        "service", "impl", "AttSyncServiceImpl.java"));
+    var mapper = read(path.resolve(root, "..", "WEB-INF", "config", "mapper", "oaones", "AttSyncMapper.xml"));
+    var accountRuleSql = read(path.resolve(root, "..", "data", "Mysql", "oaones", "oaones0014.sql"));
+    var feishuAtt = read(path.resolve(root, "..", "src", "com", "customization", "oaones", "appsyn",
+        "api", "feishu", "FeishuAttApi.java"));
 
     var failed = 0;
 
@@ -68,7 +74,7 @@
     ["setting", "log", "item"].forEach(function (tab) {
         check("面板块 data-att-panel=\"" + tab + "\"", panel.indexOf('data-att-panel="' + tab + '"') >= 0);
     });
-    ["attCfgModal", "attSubModal", "attDeptModal", "attUserModal", "attLogModal", "attPreviewModal",
+    ["attCfgModal", "attRunModal", "attSubModal", "attDeptModal", "attUserModal", "attLogModal", "attPreviewModal",
         "attResultModal"].forEach(function (id) {
         var block = new RegExp('id="' + id + '"[\\s\\S]*?modal-head');
         check("弹框 " + id + " 有表头（可拖动）", block.test(panel));
@@ -79,6 +85,27 @@
         panel.indexOf("attPlanItemBody") >= 0 && panel.indexOf("attPlanAddBtn") >= 0);
     check("范围三要素（分部 / 部门 / 人员）", panel.indexOf("attScopeSubBtn") >= 0
         && panel.indexOf("attScopeDeptBtn") >= 0 && panel.indexOf("attScopeUserBtn") >= 0);
+    check("OA多账户同步规则（只同步主账户 / 所有账户均同步）",
+        panel.indexOf('id="attOaAccountRule"') >= 0
+        && panel.indexOf("只同步主账户") >= 0 && panel.indexOf("所有账户均同步") >= 0
+        && js.indexOf("oa_account_rule: byId(\"attOaAccountRule\").value") >= 0);
+    check("同步范围三维度 OR 并集，部门候选不受已选分部限制",
+        mapper.indexOf("r.departmentid in") >= 0
+        && mapper.indexOf("d.subcompanyid1 in") >= 0
+        && mapper.indexOf("r.id in") >= 0
+        && js.indexOf("allowedDeptIds") < 0
+        && js.indexOf("部门候选只列已选分部") < 0);
+    check("三个范围选择弹框都支持「仅显示已选 / 显示全部」",
+        ["attSubOnlyBtn", "attDeptOnlyBtn", "attUserOnlyBtn"].every(function (id) {
+            return panel.indexOf('id="' + id + '"') >= 0 && js.indexOf('byId("' + id + '")') >= 0;
+        })
+        && js.indexOf("pickOnlySelected") >= 0
+        && js.indexOf("function toggleOnlySelected") >= 0);
+    check("编辑回显人员姓名（列表一次带出 scope_user_names）",
+        service.indexOf("scope_user_names") >= 0
+        && service.indexOf("m.listUserNames") >= 0
+        && mapper.indexOf('id="listUserNames"') >= 0
+        && js.indexOf("row.scope_user_names") >= 0);
     // 考勤应用与租户绑定（2026-10-15 现场反馈）：在租户卡片上选一次 + 可重新校验，
     // 选完立刻保存并校验；新增 / 编辑设置的弹框里只读展示，不再重复选。
     check("租户卡片上的考勤应用 + 重新校验（弹框里只读）",
@@ -97,6 +124,13 @@
         jsp.indexOf('id="attTenantTabs"') < jsp.indexOf('id="attTabs"')
         && jsp.indexOf('id="attTenantTabs"') > 0);
     check("预测后 10 次弹框", panel.indexOf("attPreviewBtn") >= 0 && panel.indexOf("attPreviewBody") >= 0);
+    check("暂停状态可不设计划任务，启用时必须配置",
+        panel.indexOf("启用这条设置时必须配置计划任务") >= 0
+        && js.indexOf("enabled === 1 && !planConfigured") >= 0
+        && js.indexOf("同步设置已保存为暂停状态") >= 0);
+    check("立即执行使用页面专用弹框（不把配置对象传给 toast）",
+        panel.indexOf('id="attRunModal"') >= 0 && panel.indexOf('id="attRunNowOkBtn"') >= 0
+        && js.indexOf("OaonesToast.confirm({") < 0);
     // 「新增 / 编辑同步设置」一次配完（考勤应用已挪到租户卡片）：只有「取消 + 保存」。
     check("一步弹框（取消 / 保存，无上一步 · 下一步）",
         panel.indexOf('id="attCfgBody"') >= 0 && panel.indexOf('id="attCfgSaveBtn"') >= 0
@@ -152,6 +186,23 @@
     });
     check("JS 调用的 " + Object.keys(actions).length + " 个 action 都存在", unknown.length === 0,
         unknown.join(", "));
+    check("后端同步校验启用保存 / 直接启用都要求计划任务",
+        service.indexOf("启用状态的同步设置必须配置计划任务") >= 0
+        && service.indexOf("该设置还没有配置计划任务，不能直接启用") >= 0);
+    check("OA多账户规则贯通设置、范围人员、拉取扇出与推送过滤",
+        mapper.indexOf("t.oa_account_rule") >= 0
+        && mapper.indexOf("r.accounttype as account_type") >= 0
+        && service.indexOf("Map<String, List<AttMember>> byWx") >= 0
+        && service.indexOf("OaonesConst.ATT_SKIP_OA_SUB_ACCOUNT") >= 0
+        && accountRuleSql.indexOf("oa_account_rule int NOT NULL DEFAULT 0") >= 0);
+    check("飞书考勤请求使用秒级 check_time_from / check_time_to",
+        feishuAtt.indexOf('body.put("check_time_from"') >= 0
+        && feishuAtt.indexOf('body.put("check_time_to"') >= 0
+        && feishuAtt.indexOf('body.put("check_date_from"') < 0
+        && feishuAtt.indexOf('body.put("check_date_to"') < 0);
+    check("飞书打卡 / 补卡响应兼容新版扁平结构",
+        feishuAtt.indexOf('getJSONArray("user_flow_results")') >= 0
+        && feishuAtt.indexOf('getJSONArray("user_remedys")') >= 0);
     check("页面导出了 OaonesAttSync（init / switchTo / reload）",
         js.indexOf("window.OaonesAttSync = {") >= 0 && js.indexOf("init:") >= 0
         && js.indexOf("switchTo:") >= 0 && js.indexOf("reload:") >= 0);
@@ -179,6 +230,9 @@
         var handlers = {};
         var cache = {};
         var calls = [];
+        var warnings = [];
+        var timers = {};
+        var timerSeq = 0;
 
         function makeEl(id) {
             var el = {
@@ -236,13 +290,34 @@
                         push_note: "—" }
                 ],
                 rows: [{ id: 101, cfg_id: "11", cfg_name: "工作日补跑", dir_text: "第三方 → OA", enabled: 1,
+                    oa_account_rule: 1, oa_account_rule_text: "所有账户均同步",
+                    scope_subs: "2", scope_depts: "30", scope_users: "501",
+                    scope_user_names: { "501": "张三" },
                     scope_text: "全部已绑定人员", data_text: "正常打卡", period_text: "签到 / 签退",
-                    win_text: "当天", rule_text: "工作日 09:00–18:00", last_result: -1, fail_streak: 0 }],
+                    win_text: "当天", rule_text: "工作日 09:00–18:00", plan_mode: 0,
+                    items: [{ start_time: "09:00", end_time: "18:00", interval_min: 30 }],
+                    last_result: -1, fail_streak: 0 },
+                    { id: 102, cfg_id: "11", cfg_name: "只执行一次", dir_text: "第三方 → OA", enabled: 0,
+                        scope_text: "全部已绑定人员", data_text: "正常打卡", period_text: "签到 / 签退",
+                        win_text: "当天", rule_text: "未设置计划任务（仅手工执行）", plan_mode: 0, items: [],
+                        last_result: -1, fail_streak: 0 }],
                 groups: [], today_workday: true
             } },
             "attsync.scheduler": { code: 0, data: { enabled: true, started: true, tick_seconds: 60 } },
             "attsync.logs": { code: 0, data: { rows: [], total: 0 } },
             "attsync.items": { code: 0, data: { rows: [], total: 0 } },
+            "attsync.orgOptions": { code: 0, data: {
+                oa_subcompanies: [{ id: "2", name: "甲分部", parent: "0" }],
+                oa_departments: [
+                    { id: "30", name: "甲分部部门", parent: "0", subcompanyid1: "2" },
+                    { id: "31", name: "乙分部部门", parent: "0", subcompanyid1: "3" }
+                ]
+            } },
+            "attsync.oaUsers": { code: 0, data: [
+                { id: "501", loginid: "zhangsan", lastname: "张三", departmentname: "甲分部部门" }
+            ] },
+            "attsync.state": { code: 0, data: { id: 102, enabled: 1 } },
+            "attsync.runNow": { code: 0, data: { message: "执行完成", add: 1, update: 0, skip: 0, fail: 0, api: 2 } },
             "attsync.tenantApp": { code: 0, data: { ok: true, message: "校验通过", groups: 2, punch_count: 3 } },
             "attsync.check": { code: 0, data: { ok: true, message: "校验通过", groups: 2 } }
         };
@@ -253,7 +328,9 @@
         var sandbox = { window: null, document: doc, console: console };
         sandbox.Oaones = { api: apiCall, apiAt: apiCall };
         sandbox.OaonesToast = {
-            show: function () {}, warn: function () {}, system: function () {},
+            show: function () {}, info: function () {}, system: function () {},
+            warn: function (msg) { warnings.push(String(msg)); },
+            loading: function () {}, hideLoading: function () {},
             confirm: function (msg, cb) { if (cb) { cb(); } }
         };
         sandbox.OaonesDate = { init: function () {}, clear: function () {} };
@@ -274,6 +351,12 @@
         };
         sandbox.window = {
             document: doc, location: { href: "", replace: function () {} }, addEventListener: function () {},
+            setTimeout: function (fn) {
+                timerSeq++;
+                timers[timerSeq] = fn;
+                return timerSeq;
+            },
+            clearTimeout: function (id) { delete timers[id]; },
             Oaones: sandbox.Oaones, OaonesToast: sandbox.OaonesToast, OaonesDate: sandbox.OaonesDate,
             OaonesHrm: sandbox.OaonesHrm, OaonesTable: sandbox.OaonesTable, OaonesPicker: sandbox.OaonesPicker,
             OAONES_ATT_TYPE: 0, OAONES_ATT_TAB: "setting", OAONES_API_URL: "/oaones/WeCom/api.jsp",
@@ -307,6 +390,9 @@
         check("一屏只渲染当前租户的卡片（甲租户）",
             !!box && box.innerHTML.indexOf('data-att-tenant="11"') >= 0
             && box.innerHTML.indexOf('data-att-tenant="22"') < 0);
+        check("设置行展示 OA多账户同步规则",
+            !!box && box.innerHTML.indexOf("<span>OA多账户</span>") >= 0
+            && box.innerHTML.indexOf("所有账户均同步") >= 0);
         check("租户卡片上有考勤应用下拉 + 「重新校验」",
             !!box && box.innerHTML.indexOf('data-att-tenant-app="11"') >= 0
             && box.innerHTML.indexOf('id="attTenantApp"') >= 0
@@ -325,6 +411,13 @@
         }
         function attrHandler(pairs) {
             return { getAttribute: function (k) { return pairs[k] === undefined ? "" : pairs[k]; } };
+        }
+        function runTimers() {
+            Object.keys(timers).forEach(function (id) {
+                var fn = timers[id];
+                delete timers[id];
+                fn();
+            });
         }
 
         // 切租户页签：只换显示，不重新取数
@@ -357,9 +450,69 @@
         } } });
         check("点「新增同步设置」打开弹框",
             !!(cache["attCfgModal"] && cache["attCfgModal"].style.display === "block"));
+        check("新增设置默认只同步主账户",
+            !!(cache["attOaAccountRule"] && cache["attOaAccountRule"].value === "0"));
         check("弹框里只读展示租户的考勤应用（不再选应用 / 校验）",
             !!(cache["attCfgAppText"]
                 && cache["attCfgAppText"].textContent.indexOf("还没有指定考勤应用") >= 0));
+
+        // 编辑已有设置：人员回显姓名（不能是 #501）；部门候选不受已选分部限制。
+        fire("attTenantBox", "click", { target: { closest: function () {
+            return attrHandler({ "data-att-action": "edit", "data-id": "101" });
+        } } });
+        check("编辑已保存设置时人员直接回显姓名",
+            !!(cache["attScopeUserText"]
+                && cache["attScopeUserText"].value === "张三")
+            && cache["attScopeUserText"].value.indexOf("#501") < 0);
+        fire("attScopeDeptBtn", "click", {});
+        check("已选分部时仍列出全部分部下的部门候选",
+            !!(cache["attDeptList"]
+                && cache["attDeptList"].innerHTML.indexOf("甲分部部门") >= 0
+                && cache["attDeptList"].innerHTML.indexOf("乙分部部门") >= 0));
+        fire("attDeptOnlyBtn", "click", {});
+        check("部门弹框切「仅显示已选」后只保留当前已选部门",
+            !!(cache["attDeptList"]
+                && cache["attDeptList"].innerHTML.indexOf("甲分部部门") >= 0
+                && cache["attDeptList"].innerHTML.indexOf("乙分部部门") < 0)
+            && !!(cache["attDeptOnlyBtn"]
+                && cache["attDeptOnlyBtn"].textContent === "显示全部"));
+        fire("attDeptList", "click", { target: { closest: function () {
+            return attrHandler({ "data-att-pick": "30" });
+        } } });
+        runTimers();
+        check("已选视图里取消选择后该部门自动移出",
+            !!(cache["attDeptList"]
+                && cache["attDeptList"].innerHTML.indexOf("甲分部部门") < 0
+                && cache["attDeptList"].innerHTML.indexOf("还没有选择部门") >= 0));
+        fire("attDeptOnlyBtn", "click", {});
+        check("再点「显示全部」恢复全部部门候选",
+            !!(cache["attDeptList"]
+                && cache["attDeptList"].innerHTML.indexOf("甲分部部门") >= 0
+                && cache["attDeptList"].innerHTML.indexOf("乙分部部门") >= 0));
+
+        // 直接点「启用」：没有计划任务的设置必须在前端拦住，不调用后端。
+        var stateCalls = calls.filter(function (c) { return c.action === "attsync.state"; }).length;
+        fire("attTenantBox", "click", { target: { closest: function () {
+            return attrHandler({ "data-att-action": "cfg-state", "data-id": "102", "data-enabled": "1" });
+        } } });
+        check("没有计划任务时，列表「启用」被前端拦截",
+            calls.filter(function (c) { return c.action === "attsync.state"; }).length === stateCalls
+            && warnings.join("\n").indexOf("不能直接启用") >= 0);
+
+        // 立即执行：专用弹框正常打开，确认后按该设置 ID 调接口，不再出现 [object Object]。
+        fire("attTenantBox", "click", { target: { closest: function () {
+            return attrHandler({ "data-att-action": "run-now", "data-id": "102" });
+        } } });
+        check("「立即执行一次」打开页面专用弹框",
+            !!(cache["attRunModal"] && cache["attRunModal"].style.display === "block")
+            && !!(cache["attRunCfgName"]
+                && cache["attRunCfgName"].textContent.indexOf("只执行一次") >= 0)
+            && cache["attRunCfgName"].textContent.indexOf("[object Object]") < 0);
+        fire("attRunNowOkBtn", "click", {});
+        var runCall = calls.filter(function (c) { return c.action === "attsync.runNow"; }).pop();
+        check("「立即执行一次」确认后按设置 ID 执行并显示结果",
+            !!runCall && String(runCall.params.id) === "102"
+            && !!(cache["attResultModal"] && cache["attResultModal"].style.display === "block"));
 
         // 日志 / 明细跟着当前租户走：切页签按当前租户取数，切租户按新租户重取
         sandbox.window.OaonesAttSync.switchTo("log");

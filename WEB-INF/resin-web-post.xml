@@ -8,12 +8,12 @@
   （都带 optional="true"），所以本文件是“追加一段容器配置”的标准位置，
   既不用改 E9 的 web.xml，也不用改平台的 resin-web.xml。
 
-  这里只做一件事：注册 OAones 的 URL 路由过滤器（对外地址 → 实际页面、
-  真实 .jsp 地址不许直接访问）。过滤器只按 ecology/WEB-INF/prop/oaones.properties 里
-  **route.* 明确写出**的地址处理，其它 URL 全部原样放行，映射可以放心写成 /*。
+  这里登记 OAones 的 URL 路由过滤器、操作监控采集过滤器，以及日志保留自动清理监听器。
+  路由过滤器只按 ecology/WEB-INF/prop/oaones.properties 里 **route.* 明确写出**的地址处理，
+  其它 URL 全部原样放行，映射可以放心写成 /*。
 
-  * 非 Resin 容器（Tomcat / 其它）：把下面 <filter> 与 <filter-mapping> 两段原样加到
-    WEB-INF/web.xml 的最后（在 </web-app> 之前）即可，类名不变。
+  * 非 Resin 容器（Tomcat / 其它）：把下面的 <filter>、<filter-mapping> 与 <listener>
+    原样加到 WEB-INF/web.xml 的最后（在 </web-app> 之前）即可，类名不变。
   * 写错路由配置不会影响应用：过滤器读不到/解析不了就按“不路由”处理，
     处理过程中的异常也只记日志（ecology/log/mylog/mylog.log），请求继续走原来的流程。
 
@@ -47,4 +47,11 @@
         <filter-name>OaonesOpLogFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
+    <!--
+      OAones 日志保留自动清理：E9 启动后每天检查一次各日志表的保留天数。
+      首次执行会等平台连接池 / MyBatis 就绪后再访问数据库。
+    -->
+    <listener>
+        <listener-class>com.customization.oaones.appsyn.job.OaonesLogRetentionSchedulerListener</listener-class>
+    </listener>
 </web-app>

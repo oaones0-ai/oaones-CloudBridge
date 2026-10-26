@@ -14,7 +14,6 @@ import javax.servlet.http.HttpServletRequest;
  *
  * <p>所有 /oaones 页面通过 action 参数调用本类，按 action 前缀路由到各模块控制器：
  * cfg. → {@link ConfigController}、dept. → {@link DeptBindController}、
- * sub. → {@link SubBindController}、
  * user. → {@link UserBindController}、sync. → {@link SyncController}、
  * account. → {@link AccountController}（个人账号中心：本人自助）、
  * app. → {@link AppBindController}（企微工作台应用 - OA 页面绑定）；
@@ -49,6 +48,8 @@ public class OaonesController {
             // 考勤同步（一级菜单「考勤同步」）的内置调度器：同样做一次幂等启动
             // （按每条设置自己的计划任务跑一轮：第三方→OA 导入 / OA→第三方 推送）
             com.customization.oaones.appsyn.job.OaonesAttSyncScheduler.ensureStarted();
+            // 日志保留自动清理：每天检查一次，设置来自“系统设置 → 日志保留”
+            com.customization.oaones.appsyn.job.OaonesLogRetentionScheduler.ensureStarted();
             BaseController controller = route(action);
             if (controller == null) {
                 return OaonesUtil.fail("未知 action: " + action);
@@ -75,9 +76,6 @@ public class OaonesController {
         if ("dept".equals(prefix)) {
             return new DeptBindController();
         }
-        if ("sub".equals(prefix)) {
-            return new SubBindController();
-        }
         if ("user".equals(prefix)) {
             return new UserBindController();
         }
@@ -88,6 +86,9 @@ public class OaonesController {
         // 三个连接器共用同一套公共实现（表 uf_oaones_sync_plan 用 type 区分平台）
         if ("syncplan".equals(prefix)) {
             return new com.customization.oaones.appsyn.controller.SyncPlanController();
+        }
+        if ("syncresult".equals(prefix)) {
+            return new com.customization.oaones.appsyn.controller.SyncResultController();
         }
         if ("account".equals(prefix)) {
             return new AccountController();

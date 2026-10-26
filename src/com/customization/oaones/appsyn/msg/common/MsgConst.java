@@ -8,7 +8,7 @@ import java.util.UUID;
 /**
  * 消息中心（OA -> 企业微信推送）常量。
  *
- * <p>开关口径与 uf_oaones_app_bind.yx / uf_oaones_sub_bind.yx 保持一致：
+ * <p>开关口径与 uf_oaones_app_bind.yx 保持一致：
  * {@code 0 = 启用 / 1 = 停用}；状态口径集中在 {@link MsgConst} 一处，页面与后端都按此判断。</p>
  */
 public final class MsgConst {

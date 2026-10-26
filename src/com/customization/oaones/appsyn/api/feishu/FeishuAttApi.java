@@ -28,7 +28,7 @@ import java.util.Map;
  * 可以与通讯录共用应用，但权限必须包含考勤。</p>
  *
  * <p>接口（首次上线逐条实测，路径都可配）：考勤组 {@code /open-apis/attendance/v1/groups}、
- * 打卡流水 {@code /open-apis/attendance/v1/user_flows/query}（按 {@code check_date_from / to} +
+ * 打卡流水 {@code /open-apis/attendance/v1/user_flows/query}（按 {@code check_time_from / to} +
  * {@code user_ids} 分批取）、补卡记录 {@code /open-apis/attendance/v1/user_task_remedys/query}
  * （补卡专用接口，需求 3.4.4 飞书那一行）。</p>
  *
@@ -80,8 +80,7 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
             List<String> users = ctx.getUserIds().subList(i, Math.min(i + batch, ctx.getUserIds().size()));
             JSONObject body = new JSONObject();
             body.put("user_ids", users);
-            body.put("check_date_from", dateNumber(ctx.getFromDate()));
-            body.put("check_date_to", dateNumber(ctx.getToDate()));
+            putCheckTimeRange(body, ctx.getFromDate(), ctx.getToDate());
             JSONObject resp = OaonesHttp.postJson(url, body, bearer(token));
             if (resp.getIntValue("code") != 0) {
                 throw new RuntimeException("飞书打卡流水接口返回错误：" + resp.toJSONString());
@@ -95,7 +94,13 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
                 JSONObject row = rows.getJSONObject(k);
                 String userId = OaonesUtil.s(row.getString("user_id"));
                 JSONArray flows = row.getJSONArray("user_flows");
-                if (flows == null) {
+                if (flows == null || flows.isEmpty()) {
+                    // 新版 user_flows/query 返回扁平的 UserFlow 列表；
+                    // 保留 user_flows 嵌套解析以兼容旧版接口响应。
+                    AttPunch punch = toPunch(userId, row);
+                    if (punch != null) {
+                        result.add(punch);
+                    }
                     continue;
                 }
                 for (int f = 0; f < flows.size(); f++) {
@@ -123,14 +128,16 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
             List<String> users = ctx.getUserIds().subList(i, Math.min(i + batch, ctx.getUserIds().size()));
             JSONObject body = new JSONObject();
             body.put("user_ids", users);
-            body.put("check_date_from", dateNumber(ctx.getFromDate()));
-            body.put("check_date_to", dateNumber(ctx.getToDate()));
+            putCheckTimeRange(body, ctx.getFromDate(), ctx.getToDate());
             JSONObject resp = OaonesHttp.postJson(url, body, bearer(token));
             if (resp.getIntValue("code") != 0) {
                 throw new RuntimeException("飞书补卡记录接口返回错误：" + resp.toJSONString());
             }
             JSONObject data = resp.getJSONObject("data");
-            JSONArray rows = data == null ? null : data.getJSONArray("user_remedy_results");
+            JSONArray rows = data == null ? null : data.getJSONArray("user_remedys");
+            if (rows == null && data != null) {
+                rows = data.getJSONArray("user_remedy_results");
+            }
             if (rows == null) {
                 continue;
             }
@@ -141,7 +148,12 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
                 if (items == null) {
                     items = row.getJSONArray("user_remedys");
                 }
-                if (items == null) {
+                if (items == null || items.isEmpty()) {
+                    // 新版接口的 data.user_remedys 就是扁平的 UserTaskRemedy 列表。
+                    AttPunch punch = toRemedyPunch(userId, row);
+                    if (punch != null) {
+                        result.add(punch);
+                    }
                     continue;
                 }
                 for (int f = 0; f < items.size(); f++) {
@@ -181,7 +193,11 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
                 : Integer.valueOf(OaonesConst.ATT_PERIOD_SIGN_IN));
         punch.setDataType(Integer.valueOf(OaonesConst.ATT_DATA_NORMAL));
         punch.setRawType("正常打卡（飞书 " + (checkType.length() == 0 ? "类型未知" : checkType) + "）");
-        punch.setWxRecordId(OaonesUtil.s(flow.getString("flow_id")));
+        String recordId = OaonesUtil.s(flow.getString("flow_id"));
+        if (recordId.length() == 0) {
+            recordId = OaonesUtil.s(flow.getString("record_id"));
+        }
+        punch.setWxRecordId(recordId);
         punch.setRawSummary("location_name=" + OaonesUtil.s(flow.getString("location_name"))
                 + "、check_result=" + OaonesUtil.s(flow.getString("check_result")));
         return punch;
@@ -195,7 +211,10 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
         String time = OaonesUtil.s(row.getString("remedy_time"));
         long ts = OaonesUtil.parseDateTime(time);
         if (ts <= 0L) {
-            ts = row.getLongValue("remedy_time");
+            long seconds = row.getLongValue("time");
+            if (seconds > 0L) {
+                ts = seconds > 100000000000L ? seconds : seconds * 1000L;
+            }
         }
         if (ts <= 0L || userId.length() == 0) {
             return null;
@@ -204,12 +223,17 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
         punch.setWxUserId(userId);
         punch.setSignTime(OaonesUtil.formatDateTime(ts));
         punch.setSignDate(punch.getSignTime().substring(0, 10));
-        punch.setSignType("OffDuty".equalsIgnoreCase(OaonesUtil.s(row.getString("check_type")))
+        int workType = row.getIntValue("work_type");
+        punch.setSignType(workType == 2
                 ? Integer.valueOf(OaonesConst.ATT_PERIOD_SIGN_OUT)
                 : Integer.valueOf(OaonesConst.ATT_PERIOD_SIGN_IN));
         punch.setDataType(Integer.valueOf(OaonesConst.ATT_DATA_REMEDY));
         punch.setRawType("补卡（飞书补卡记录）");
-        punch.setWxRecordId(OaonesUtil.s(row.getString("remedy_id")));
+        String recordId = OaonesUtil.s(row.getString("remedy_id"));
+        if (recordId.length() == 0) {
+            recordId = OaonesUtil.s(row.getString("approval_id"));
+        }
+        punch.setWxRecordId(recordId);
         punch.setRawSummary("reason=" + OaonesUtil.s(row.getString("reason")));
         return punch;
     }
@@ -250,8 +274,7 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
             String today = OaonesUtil.formatDateTime(System.currentTimeMillis()).substring(0, 10);
             JSONObject body = new JSONObject();
             body.put("user_ids", users.subList(0, 1));
-            body.put("check_date_from", dateNumber(today));
-            body.put("check_date_to", dateNumber(today));
+            putCheckTimeRange(body, today, today);
             JSONObject dataResp = OaonesHttp.postJson(
                     OaonesProps.fsApiBase() + OaonesProps.attFeishuFlowPath()
                             + "?employee_type=employee_id", body, bearer(token));
@@ -277,9 +300,20 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
         return headers;
     }
 
-    private int dateNumber(String date) {
-        String text = OaonesUtil.s(date).replace("-", "").trim();
-        return OaonesUtil.i(text, 0);
+    /**
+     * 飞书打卡流水的查询区间是秒级时间戳，且区间为 {@code [from, to)}。
+     * 页面传入的是闭区间日期，因此结束日期要顺延到次日 00:00:00。
+     */
+    private void putCheckTimeRange(JSONObject body, String fromDate, String toDate) {
+        String fromText = OaonesUtil.s(fromDate).trim();
+        String toText = OaonesUtil.s(toDate).trim();
+        long from = OaonesUtil.parseDateTime(fromText + " 00:00:00");
+        long to = OaonesUtil.parseDateTime(OaonesUtil.shiftDate(toText, 1) + " 00:00:00");
+        if (from <= 0L || to <= from) {
+            throw new RuntimeException("飞书考勤查询时间范围无效：fromDate=" + fromText + "，toDate=" + toText);
+        }
+        body.put("check_time_from", String.valueOf(from / 1000L));
+        body.put("check_time_to", String.valueOf(to / 1000L));
     }
 
     private void requireCredential() {

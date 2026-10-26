@@ -5,7 +5,7 @@
   OAones 统一消息中心：推送用飞书应用（只读）
   数据来自“应用绑定”表 uf_oaones_app_bind（表名取 appbind.table）+ 飞书租户配置表
   （表名取 cfg.table），与应用绑定页共用同一行应用，消息中心不再单独维护应用表。
-  yx：0 有效 / 1 停用（与 uf_oaones_app_bind.yx、uf_oaones_sub_bind.yx 同口径）。
+  yx：0 有效 / 1 停用（与 uf_oaones_app_bind.yx 同口径）。
 -->
 <mapper namespace="com.customization.oaones.appsyn.msg.feishu.dao.MsgAppMapper">
 

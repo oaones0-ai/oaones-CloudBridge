@@ -24,7 +24,7 @@
 
 <%--
   统一消息中心 → 推送配置
-  系统参数（总开关/重试/分片/超时/去重/日志保留）+ 推送用平台应用（只读引用“应用绑定”表）。
+  系统参数（总开关/重试/分片/超时/去重/卡片任务保留）+ 推送用平台应用（只读引用“应用绑定”表）。
   应用不在这里维护：平台自建应用与【应用绑定】共用同一行（uf_oaones_app_bind），
   本页只做“设为缺省应用”和“连通测试”。
 --%>
@@ -107,14 +107,10 @@
         </div>
     </div>
     <div class="form-row">
-        <label>日志保留(天)</label>
-        <div class="field" style="max-width:160px;">
-            <input type="text" id="msgCfgLogKeep" name="msgCfgLogKeep" autocomplete="off">
-        </div>
-        <label style="width:150px;text-align:right;padding-right:12px;">卡片任务保留(天)</label>
+        <label>卡片任务保留(天)</label>
         <div class="field" style="max-width:160px;">
             <input type="text" id="msgCfgTaskKeep" name="msgCfgTaskKeep" autocomplete="off">
-            <span class="notice">0 = 永久保留</span>
+            <span class="notice">0 = 永久保留；日志保留统一在「系统设置 → 日志保留」维护</span>
         </div>
     </div>
     <div class="form-row">
@@ -256,7 +252,6 @@
             setValue("msgCfgTimeout", cfg.timeoutMs);
             setValue("msgCfgTokenAdvance", cfg.tokenAdvanceSec);
             setValue("msgCfgDedupWindow", cfg.dedupWindowSec);
-            setValue("msgCfgLogKeep", cfg.logKeepDays);
             setValue("msgCfgTaskKeep", cfg.taskKeepDays);
             setValue("msgCfgRemark", cfg.remark);
             byId("msgCfgQueue").textContent = "推送队列：" + (data.queue || "-");
@@ -312,7 +307,6 @@
             timeout_ms: value("msgCfgTimeout"),
             token_advance_sec: value("msgCfgTokenAdvance"),
             dedup_window_sec: value("msgCfgDedupWindow"),
-            log_keep_days: value("msgCfgLogKeep"),
             task_keep_days: value("msgCfgTaskKeep"),
             remark: value("msgCfgRemark")
         }, function (res) {

@@ -4,9 +4,8 @@ package com.customization.oaones.appsyn.dto;
  * 绑定总览行（`/oaones/index/BindOverview.jsp` 用，只读）。
  *
  * <p>总览页把三个连接器（企微 / 钉钉 / 飞书）的全部平台租户放在一起展示，
- * 三类绑定各有各的列，本 DTO 用一份字段承载三类行的并集：</p>
+ * 两类绑定各有各的列，本 DTO 用一份字段承载两类行的并集：</p>
  * <ul>
- *   <li>分部绑定（{@code sub}）：OA 分部 → 平台租户（平台部门取该租户的根部门或同步写入的部门）；</li>
  *   <li>部门绑定（{@code dept}）：OA 部门 → 平台部门（多对一）；</li>
  *   <li>人员绑定（{@code user}）：OA 人员 → 平台成员（多对一）。</li>
  * </ul>
@@ -31,18 +30,18 @@ public class BindOverviewRow {
     private String rootDeptKey;
     /** 租户根部门名称（取部门快照，取不到为空）。 */
     private String rootDeptName;
-    /** 绑定状态：分部 yx=0 有效；部门 yx=1 有效；人员 bind_state=1 已绑定。 */
+    /** 绑定状态：部门 yx=1 有效；人员 bind_state=1 已绑定。 */
     private Integer bindState;
 
     /** OA 侧对象ID（分部ID / 部门ID / 人员ID）。 */
     private Integer oaId;
     /** OA 侧对象名称。 */
     private String oaName;
-    /** OA 侧封存标记（分部 / 部门；人员侧为空，人员有效性看 status）。 */
+    /** OA 侧封存标记（部门；人员侧为空，人员有效性看 status）。 */
     private String oaCanceled;
-    /** OA 侧上级名称（分部的上级分部 / 部门的上级部门）。 */
+    /** OA 侧上级部门名称。 */
     private String oaParentName;
-    /** OA 侧上级ID（上级分部ID / 上级部门ID），用于渲染泛微标准页面链接。 */
+    /** OA 侧上级部门ID，用于渲染泛微标准页面链接。 */
     private Integer oaParentId;
     /** OA 侧所属分部名称（部门、人员用）。 */
     private String oaSubName;
@@ -75,7 +74,7 @@ public class BindOverviewRow {
 
     /** 绑定时间（人员绑定表的 bind_time 列）。 */
     private String bindTime;
-    /** 建模创建日期 / 时间（分部、部门绑定没有单独的绑定时间列，用它拼绑定时间）。 */
+    /** 建模创建日期 / 时间（部门绑定没有单独的绑定时间列，用它拼绑定时间）。 */
     private String createdDate;
     private String createdTime;
     /** 最近修改时间（建模标准字段 modedatamodifydatetime）。 */

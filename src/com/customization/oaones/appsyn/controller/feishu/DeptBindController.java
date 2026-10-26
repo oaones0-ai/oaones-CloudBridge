@@ -6,11 +6,9 @@ import com.customization.oaones.appsyn.controller.BaseController;
 import com.customization.oaones.appsyn.service.feishu.DeptBindService;
 import com.customization.oaones.appsyn.service.feishu.DeptTmpService;
 import com.customization.oaones.appsyn.service.OaService;
-import com.customization.oaones.appsyn.service.feishu.SubBindService;
 import com.customization.oaones.appsyn.service.impl.feishu.DeptBindServiceImpl;
 import com.customization.oaones.appsyn.service.impl.feishu.DeptTmpServiceImpl;
 import com.customization.oaones.appsyn.service.impl.OaServiceImpl;
-import com.customization.oaones.appsyn.service.impl.feishu.SubBindServiceImpl;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -31,10 +29,6 @@ public class DeptBindController extends BaseController {
         return new OaServiceImpl();
     }
 
-    private SubBindService subBindService() {
-        return new SubBindServiceImpl();
-    }
-
     @Override
     public JSONObject handle(String action, HttpServletRequest request, String operatorId)
             throws Exception {
@@ -48,8 +42,6 @@ public class DeptBindController extends BaseController {
             data.put("oa_departments", oaService.listDepartments(operatorId));
             data.put("oa_subcompanies", oaService.listSubCompaniesFromCache(operatorId));
             data.put("oa_dept_options", oaService.listDepartmentsFromCache(operatorId));
-            // 分部绑定明细：页面据此判断“分部未绑定 → 该部门不允许绑定”，并给飞书部门候选打“已被 N 个分部绑定”标记
-            data.put("sub_binds", subBindService().listEnabled(req(request, "cfg_id")));
             return OaonesUtil.ok(data);
         }
         if ("dept.wxlist".equals(action)) {
@@ -74,7 +66,6 @@ public class DeptBindController extends BaseController {
             return OaonesUtil.ok(deptBindService().batchSave(paramObject(request), operatorId));
         }
         if ("dept.autoBatchSave".equals(action)) {
-            // 自动绑定（按部门编号/名称匹配的结果）：整批要求部门所属分部已绑定飞书租户
             return OaonesUtil.ok(deptBindService().autoBatchSave(paramObject(request), operatorId));
         }
         if ("dept.save".equals(action)) {

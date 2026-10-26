@@ -427,7 +427,7 @@ public class FeishuApi {
     }
 
     /** 创建成员（入参为归一化口径，内部转成飞书字段）。 */
-    public void createUser(JSONObject user) throws Exception {
+    public JSONObject createUser(JSONObject user) throws Exception {
         OaonesLog.step("调用飞书创建成员 userid="
                 + OaonesUtil.s(user == null ? "" : user.getString("userid")));
         Map<String, String> query = new HashMap<String, String>();
@@ -435,6 +435,9 @@ public class FeishuApi {
         query.put("department_id_type", "open_department_id");
         JSONObject resp = post("/open-apis/contact/v3/users", userBody(user, false), query);
         ensureOk(resp, "创建飞书成员失败");
+        JSONObject data = resp.getJSONObject("data");
+        JSONObject created = data == null ? null : data.getJSONObject("user");
+        return created == null ? new JSONObject() : normalizeUser(created);
     }
 
     /** 更新成员（入参为归一化口径，内部转成飞书字段）。 */
@@ -610,8 +613,9 @@ public class FeishuApi {
         user.put("telephone", OaonesUtil.s(src.getString("mobile_visible")));
         user.put("avatar", avatarOf(src));
         user.put("workcode", OaonesUtil.s(src.getString("employee_no")));
-        // 飞书通讯录不返回性别，留空（快照列允许为空，页面按“-”展示）
-        user.put("gender", "");
+        // 飞书性别口径：1 男 / 2 女；0 或缺失按未知处理。
+        int gender = src.getIntValue("gender");
+        user.put("gender", gender > 0 ? String.valueOf(gender) : "");
         user.put("status", mapUserStatus(src));
         JSONArray depts = deptKeys(src.getJSONArray("department_ids"));
         user.put("department", depts);
@@ -690,6 +694,13 @@ public class FeishuApi {
         String workcode = OaonesUtil.s(user.getString("workcode"));
         if (workcode.length() > 0) {
             body.put("employee_no", workcode);
+        }
+        if (user.containsKey("gender")) {
+            body.put("gender", user.getIntValue("gender"));
+        }
+        String leaderUserId = OaonesUtil.s(user.getString("leader_user_id"));
+        if (leaderUserId.length() > 0) {
+            body.put("leader_user_id", leaderUserId);
         }
         JSONArray depts = user.getJSONArray("department");
         JSONArray deptIds = new JSONArray();

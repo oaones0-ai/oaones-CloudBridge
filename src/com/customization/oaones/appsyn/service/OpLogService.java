@@ -19,7 +19,7 @@ public interface OpLogService {
     /** 过滤项：事件类型 / 菜单列表 / 保留天数 / 开关状态。 */
     JSONObject options(String operatorId);
 
-    /** 按保留天数清理历史日志（每进程每小时最多清一次，供页面打开时调用）。 */
+    /** 确保每天执行一次的日志保留调度器已启动。 */
     void cleanIfDue();
 
     /** 手动清理：删除早于保留天数的日志。 */

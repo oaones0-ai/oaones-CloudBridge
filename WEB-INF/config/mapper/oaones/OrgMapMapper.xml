@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones OA 分部 - 平台租户一对一映射（uf_oaones_sub_tenant_map）。
+  type 区分企微 / 钉钉 / 飞书，OA 侧固定为 hrmsubcompany。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.OrgMapMapper">
+
+    <select id="listByType" resultType="com.customization.oaones.appsyn.dto.OrgMapRow">
+        select m.id, m.cfg_id, m.oa_sub_id, m.type,
+               m.yx as bind_state, m.remark,
+               m.modedatacreatedate, m.modedatacreatetime, m.modedatamodifydatetime,
+               c.corp_name as cfg_name,
+               c.corp_id as cfg_corp_id,
+               s.subcompanyname as oa_sub_name,
+               s.supsubcomid as oa_sub_parent_id
+        from ${table} m
+        left join ${cfgTable} c on c.id = m.cfg_id
+        left join hrmsubcompany s on s.id = m.oa_sub_id
+        where m.type = #{type} and (m.yx is null or m.yx = 0)
+        order by s.subcompanyname, m.id
+    </select>
+
+    <select id="findById" resultType="com.customization.oaones.appsyn.entity.OrgMap">
+        select id, cfg_id, oa_sub_id, type, yx, remark, formmodeid,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table}
+        where id = #{id} and type = #{type}
+    </select>
+
+    <select id="findBySub" resultType="com.customization.oaones.appsyn.entity.OrgMap">
+        select id, cfg_id, oa_sub_id, type, yx, remark, formmodeid,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table}
+        where type = #{type} and oa_sub_id = #{oaSubId}
+          and (yx is null or yx = 0)
+    </select>
+
+    <select id="findByCfg" resultType="com.customization.oaones.appsyn.entity.OrgMap">
+        select id, cfg_id, oa_sub_id, type, yx, remark, formmodeid,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table}
+        where type = #{type} and cfg_id = #{cfgId} and (yx is null or yx = 0)
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (cfg_id, oa_sub_id, type, yx, remark, formmodeid,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.cfgId}, #{e.oaSubId}, #{e.type}, #{e.yx}, #{e.remark}, #{e.formmodeid},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set cfg_id = #{e.cfgId},
+            yx = #{e.yx},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id} and type = #{e.type}
+    </update>
+
+    <delete id="deleteById">
+        delete from ${table} where id = #{id} and type = #{type}
+    </delete>
+</mapper>

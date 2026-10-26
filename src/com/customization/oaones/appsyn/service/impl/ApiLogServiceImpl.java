@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.customization.oaones.appsyn.common.OaonesApiLog;
 import com.customization.oaones.appsyn.common.OaonesAdmin;
 import com.customization.oaones.appsyn.common.OaonesConst;
+import com.customization.oaones.appsyn.common.LogRetentionCatalog;
 import com.customization.oaones.appsyn.common.OaonesLog;
 import com.customization.oaones.appsyn.common.OaonesMyBatis;
 import com.customization.oaones.appsyn.common.OaonesProps;
@@ -25,9 +26,6 @@ import java.util.Map;
  * 其他登录人只看得到<b>本人可维护租户</b>的日志（个人微信 {@code cfg_id=0} 只对管理员可见）。</p>
  */
 public class ApiLogServiceImpl implements ApiLogService {
-
-    /** 每进程上次清理时间（毫秒）：打开页面时最多每小时清一次历史日志。 */
-    private static volatile long lastCleanAt;
 
     private String table() {
         return OaonesProps.apiLogTable();
@@ -147,7 +145,7 @@ public class ApiLogServiceImpl implements ApiLogService {
         data.put("tenants", tenants);
         data.put("platforms", platforms);
         data.put("types", types);
-        data.put("keepDays", Integer.valueOf(OaonesProps.apiLogKeepDays()));
+        data.put("keepDays", Integer.valueOf(new LogRetentionServiceImpl().keepDays(LogRetentionCatalog.API_LOG)));
         data.put("enabled", Boolean.valueOf(OaonesProps.apiLogEnabled()));
         data.put("admin", Boolean.valueOf(admin));
         return data;
@@ -155,16 +153,8 @@ public class ApiLogServiceImpl implements ApiLogService {
 
     @Override
     public void cleanIfDue() {
-        int keepDays = OaonesProps.apiLogKeepDays();
-        if (keepDays <= 0) {
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (now - lastCleanAt < 60 * 60 * 1000L) {
-            return;
-        }
-        lastCleanAt = now;
-        doClean(keepDays);
+        // 自动清理由 OaonesLogRetentionScheduler 每天统一执行；这里仅确保调度器已启动。
+        com.customization.oaones.appsyn.job.OaonesLogRetentionScheduler.ensureStarted();
     }
 
     @Override
@@ -172,28 +162,14 @@ public class ApiLogServiceImpl implements ApiLogService {
         if (!isApiLogAdmin(operatorId)) {
             throw new RuntimeException("只有系统管理员或被授权的接口日志管理员可以清理接口日志");
         }
-        int keepDays = OaonesProps.apiLogKeepDays();
+        int keepDays = new LogRetentionServiceImpl().keepDays(LogRetentionCatalog.API_LOG);
         JSONObject data = new JSONObject();
         if (keepDays <= 0) {
             data.put("deleted", Integer.valueOf(0));
-            data.put("message", "当前为永久保留（api.log.keep.days=0），未清理");
+            data.put("message", "当前为永久保留（系统设置 → 日志保留），未清理");
             return data;
         }
-        int deleted = doClean(keepDays);
-        data.put("deleted", Integer.valueOf(deleted));
-        data.put("keepDays", Integer.valueOf(keepDays));
-        return data;
-    }
-
-    private int doClean(int keepDays) {
-        String beforeDate = OaonesUtil.shiftDate(OaonesUtil.nowDate(), -keepDays);
-        try {
-            return OaonesMyBatis.call(ApiLogMapper.class,
-                    mapper -> mapper.deleteBefore(table(), beforeDate, "00:00:00"));
-        } catch (Throwable t) {
-            OaonesLog.error("清理接口日志失败（before=" + beforeDate + "）", t);
-            return 0;
-        }
+        return new LogRetentionServiceImpl().cleanNow(LogRetentionCatalog.API_LOG);
     }
 
     /* ------------------------------------------------------------------

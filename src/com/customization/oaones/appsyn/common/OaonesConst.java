@@ -58,16 +58,6 @@ public final class OaonesConst {
     }
 
     /**
-     * 分部绑定状态（`uf_oaones_sub_bind.yx`）：0 有效。
-     *
-     * <p>本表按建模“枚举序号从 0 开始”的习惯，取值与部门绑定表
-     * （`uf_oaones_dept_bind.yx`：1 有效 / 0 失效）<b>相反</b>，两处不可混用。</p>
-     */
-    public static final int SUB_BIND_STATE_VALID = 0;
-    /** 分部绑定状态：1 无效（见 {@link #SUB_BIND_STATE_VALID}）。 */
-    public static final int SUB_BIND_STATE_INVALID = 1;
-
-    /**
      * 免绑定标记值：0 —— 三处对象统一口径，只用 0 表达“免绑定”。
      *
      * <ul>
@@ -213,13 +203,22 @@ public final class OaonesConst {
     public static final int SYNC_NODEPT_SKIP = 0;
 
     /**
-     * 同步成员时“没有找到部门”的口径：直接挂在租户下。
+     * 同步成员时“没有找到部门”的口径：在租户内按源部门层级新建缺失部门。
      *
-     * <p>OA → 平台方向使用：该成员落到本租户配置的 root 节点（企业微信/钉钉取
-     * {@code root_dept_id}，飞书取 {@code root_dept_key}）；平台 → OA 方向不使用本值
-     * （该方向在同步设置里指定“默认 OA 部门”）。</p>
+     * <p>上级有映射时挂到映射部门下；没有上级映射时作为租户一级部门。
+     * 平台 → OA 方向只允许在“租户已通过分部映射关联到 OA 分部”时使用。</p>
      */
-    public static final int SYNC_NODEPT_ATTACH_TENANT = 1;
+    public static final int SYNC_NODEPT_CREATE = 1;
+
+    /** 同步成员时“没有找到部门”的口径：落到管理员指定的默认部门或租户本身。 */
+    public static final int SYNC_NODEPT_DEFAULT_DEPT = 2;
+
+    /** 默认部门选择“租户本身”（平台方向落到 root，OA 方向只写租户/分部、不指定部门）。 */
+    public static final String SYNC_DEFAULT_TENANT = "__tenant__";
+
+    /** 兼容旧代码引用的常量；新同步设置不再使用“直接挂在租户下”作为独立口径。 */
+    @Deprecated
+    public static final int SYNC_NODEPT_ATTACH_TENANT = SYNC_NODEPT_DEFAULT_DEPT;
 
     /**
      * 同步中心「计划任务」的方式（{@code uf_oaones_sync_plan.plan_mode}）：
@@ -299,7 +298,7 @@ public final class OaonesConst {
     /**
      * 应用绑定状态（`uf_oaones_app_bind.yx`）：0 有效。
      *
-     * <p>与分部绑定表同口径（建模枚举序号从 0 开始），查询一律带 {@code yx = 0}；
+     * <p>建模枚举序号从 0 开始，查询一律带 {@code yx = 0}；
      * 与部门绑定表 `yx` 的 1 有效 / 0 失效相反，两处不可混用。</p>
      */
     public static final int APP_BIND_STATE_VALID = 0;
@@ -479,6 +478,21 @@ public final class OaonesConst {
     /** 考勤同步方向：2 = 仅「OA → 第三方」（把 OA 打卡写到平台）。 */
     public static final int ATT_DIR_OA2THIRD = 2;
 
+    /**
+     * OA 多账户同步规则：只同步主账户。
+     *
+     * <p>E9 标准 {@code hrmresource.accounttype}：0 / 空 = 主账户，1 = 子账户。
+     * 同一平台账号被多个 OA 账户绑定时，只有主账户参与导入 / 推送。</p>
+     */
+    public static final int ATT_OA_ACCOUNT_PRIMARY = 0;
+    /** OA 多账户同步规则：所有已绑定 OA 账户均同步（平台打卡向每个绑定账户分别写入）。 */
+    public static final int ATT_OA_ACCOUNT_ALL = 1;
+
+    /** OA 多账户同步规则文案。 */
+    public static String attOaAccountRuleText(int rule) {
+        return rule == ATT_OA_ACCOUNT_ALL ? "所有账户均同步" : "只同步主账户";
+    }
+
     /** 考勤同步方向文案：0 双向 / 1 第三方→OA / 2 OA→第三方。 */
     public static String attDirText(int dir) {
         if (dir == ATT_DIR_THIRD2OA) {
@@ -584,6 +598,8 @@ public final class OaonesConst {
     public static final String ATT_SKIP_OUT_OF_SCOPE = "不在同步范围，跳过";
     /** 跳过：打卡时间不在本次时间窗内。 */
     public static final String ATT_SKIP_OUT_OF_WINDOW = "不在时间窗内，跳过";
+    /** 跳过：当前设置的 OA 多账户规则只同步主账户，该 OA 账户是子账户。 */
+    public static final String ATT_SKIP_OA_SUB_ACCOUNT = "按 OA 多账户规则只同步主账户，子账户跳过";
     /** 跳过：该平台该方向暂不支持写入（需求 3.9 的兜底口径，不做“假成功”）。 */
     public static final String ATT_SKIP_PUSH_UNSUPPORTED = "该平台该方向暂不支持写入打卡（未实测开通），跳过";
 

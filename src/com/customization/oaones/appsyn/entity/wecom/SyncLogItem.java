@@ -11,6 +11,8 @@ public class SyncLogItem {
     private Integer id;
     /** 所属同步日志ID（uf_oaones_sync_log.id）。 */
     private Integer logId;
+    /** OA 流程 requestid；定时同步无流程上下文时为空。 */
+    private Integer requestid;
     private Integer cfgid;
     /** 同步方向：0 OA->企微 / 1 企微->OA。 */
     private Integer direction;
@@ -40,6 +42,9 @@ public class SyncLogItem {
 
     public Integer getLogId() { return logId; }
     public void setLogId(Integer logId) { this.logId = logId; }
+
+    public Integer getRequestid() { return requestid; }
+    public void setRequestid(Integer requestid) { this.requestid = requestid; }
 
     public Integer getCfgid() { return cfgid; }
     public void setCfgid(Integer cfgid) { this.cfgid = cfgid; }

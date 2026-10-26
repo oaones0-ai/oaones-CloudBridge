@@ -91,14 +91,10 @@
         <div class="help-source" id="cfgHelpText"><span class="rule">绑定只允许选择 uf_oaones_dep_tmp 中状态正常(type=0)的<%= oaonesPBShort %>部门；
             已删除/已封存或已标记“免绑定”的<%= oaonesPBShort %>部门不能绑定，需先在“<%= oaonesPBShort %>数据基准”页取消免绑定；
             已绑定数据状态异常时会给出提示。
-            <span class="rule">分部绑定是“自动绑定”的前置条件</span>：绑定分部与<%= oaonesPBShort %>（租户）后，
-            “OA数据基准”页的“智能匹配”可按部门编号或名称自动为该分部下的 OA 部门匹配<%= oaonesPBShort %>部门并自动绑定，
+            “OA数据基准”页的“智能匹配”可按部门编号或名称自动为 OA 部门匹配<%= oaonesPBShort %>部门并自动绑定，
             <span class="rule">匹配到的行会带底色标记</span>（保留到重新搜索/重载数据），便于逐行核对；
-            分部未绑定<%= oaonesPBShort %>租户时，其下部门不参与自动匹配（“分部”后显示“分部未绑定”），
-            需先到“分部绑定”页完成分部绑定。
             <span class="rule">选择即落库</span>：两个二级页都在选择弹框里单击选中、双击该行（或点“确定”）
             立即写入数据库，页面上没有“保存/批量绑定”这类第二步；
-            <span class="rule">手动选择不受“分部已绑定”限制</span>，解除分部绑定也不会动这些手动建立的部门绑定。
             同步时不会自动创建<%= oaonesPBShort %>部门。
             “<%= oaonesPBShort %>数据基准”页按“已绑定/未绑定/免绑定”勾选筛选<%= oaonesPBShort %>部门快照，
             已绑定行按“一行一条绑定关系”列出绑定的全部 OA 部门（多对一）并逐条提供“解绑”；
@@ -145,9 +141,6 @@ var boundByOa = {};
 var boundByWx = {};
 /** 多对一：同一企微部门 → 全部绑定的 OA 部门（用于页面展示“已绑定的 OA 部门”列表） */
 var boundListByWx = {};
-/** 已建立的分部绑定（oa_sub_id → 绑定记录，yx=0 有效）：分部未绑定时其下 OA 部门不允许建立部门绑定 */
-var subBinds = [];
-var boundBySub = {};
 var wxPickOaId = "";
 var wxPickId = "";
 var wxPickValue = "";
@@ -284,7 +277,6 @@ function loadData() {
         oaSubOptions = res.data.oa_subcompanies || [];
         oaDeptOptions = res.data.oa_dept_options || [];
         binds = res.data.binds || [];
-        subBinds = res.data.sub_binds || [];
         buildMaps();
         oaDone = true;
         finish();
@@ -311,11 +303,6 @@ function buildMaps() {
             boundListByWx[wxDeptId].push(b);
         }
     });
-    // 分部绑定：部门绑定的前置条件（分部未绑定时其下 OA 部门不可绑定；分部绑定只登记到企微租户）
-    boundBySub = {};
-    subBinds.forEach(function (b) {
-        boundBySub[String(b.oa_sub_id)] = b;
-    });
 }
 
 /** 部门所属分部ID：OA 部门缓存优先，绑定记录兜底（部门已从缓存里消失时仍能判断） */
@@ -326,29 +313,6 @@ function oaDeptSubId(row, bind) {
         id = String(bind.oa_subcompany_id == null ? "" : bind.oa_subcompany_id);
     }
     return id === "0" ? "" : id;
-}
-
-/** 该分部是否已建立企微部门绑定（部门绑定的前置条件） */
-function isSubBound(subId) {
-    return !!boundBySub[String(subId == null ? "" : subId)];
-}
-
-/**
- * 自动绑定（按部门编号/名称匹配）的“先绑分部”前置校验：返回 "" 表示可参与自动匹配，
- * 否则返回不能参与的原因。
- *
- * <p>分部绑定只作为**自动绑定**的前提：分部已绑定企微租户才能按编号/名称自动匹配其下部门；
- * 手动绑定（弹框里选择企微部门，选择即落库）不受此限制。</p>
- */
-function autoMatchBlockReason(row, bind) {
-    var subId = oaDeptSubId(row, bind);
-    if (!subId) {
-        return "OA 部门未归属分部，无法按编号/名称自动匹配；请先在 OA 组织架构中维护该部门所属分部";
-    }
-    if (isSubBound(subId)) { return ""; }
-    var name = oaSubLabel(subId) || (bind && bind.oa_subcompany_name) || "";
-    return "分部" + (name ? "「" + name + "」" : "") + "（ID " + subId + "）未绑定" + P_SHORT + "租户，"
-        + "无法自动绑定；请先在“分部绑定”页完成分部绑定（手动绑定不受此限制）";
 }
 
 function oaRows() {
@@ -448,7 +412,7 @@ function render() {
 
 /**
  * 保存“OA 部门 → 企微部门”绑定：OA数据基准页的选择弹框里双击或点“确定”时立即调用
- * （页面上不再有保存/批量绑定按钮）。手动绑定不校验“分部已绑定”。
+ * （页面上不再有保存/批量绑定按钮）。
  *
  * @param value 企微部门ID__父部门ID（弹框选项的 data-value）
  */
@@ -527,7 +491,7 @@ function wxParentOf(wxDeptId) {
     return "0";
 }
 
-/** 立即自动绑定：把“智能匹配”的结果一次性写入（后端 dept.autoBatchSave 校验分部已绑定企微租户） */
+/** 立即自动绑定：把“智能匹配”的结果一次性写入 */
 function doAutoBind(matches) {
     matches = matches || [];
     if (!matches.length) { return; }

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 日志保留配置。
+
+  配置表 uf_oaones_log_retention 每个日志项一行；缺少行时按 0（永久保留）处理。
+  实际日志表名由后端从 oaones.properties 读取，再以 ${table} 传入删除语句。
+  时间字段统一是建模标准字段：
+    modedatacreatedate = yyyy-MM-dd
+    modedatacreatetime = HH:mm:ss
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.LogRetentionMapper">
+
+    <select id="list" resultType="com.customization.oaones.appsyn.entity.LogRetentionSetting">
+        select id, log_code as logCode, keep_days as keepDays
+        from ${table}
+        order by id asc
+    </select>
+
+    <select id="getByCode" resultType="com.customization.oaones.appsyn.entity.LogRetentionSetting">
+        select id, log_code as logCode, keep_days as keepDays
+        from ${table}
+        where log_code = #{logCode}
+        order by id asc
+    </select>
+
+    <select id="countRows" resultType="java.lang.Long">
+        select count(*) from ${table}
+    </select>
+
+    <insert id="insert">
+        insert into ${table} (log_code, keep_days)
+        values (#{e.logCode}, #{e.keepDays})
+    </insert>
+
+    <update id="updateByCode">
+        update ${table}
+        set keep_days = #{e.keepDays}
+        where log_code = #{e.logCode}
+    </update>
+
+    <delete id="deleteBefore">
+        delete from ${table}
+        where (modedatacreatedate &lt; #{beforeDate}
+               or (modedatacreatedate = #{beforeDate} and modedatacreatetime &lt; #{beforeTime}))
+    </delete>
+</mapper>

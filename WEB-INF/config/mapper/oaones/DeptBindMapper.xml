@@ -33,14 +33,14 @@
                      or b.wx_dept_id like #{keyword})
             </if>
         </where>
-        order by b.cfg_id, b.oa_dept_id
+        order by b.cfg_id, b.oa_dept_id, b.id
     </select>
 
     <select id="listEnabled" resultType="com.customization.oaones.appsyn.entity.wecom.DeptBind">
         select id, cfg_id, oa_dept_id, wx_dept_id, wx_parent_dept_id, yx
         from ${table}
         where yx = 1 and cfg_id = #{cfgId}
-        order by oa_dept_id
+        order by id
     </select>
 
     <select id="findById" resultType="com.customization.oaones.appsyn.entity.wecom.DeptBind">
@@ -51,7 +51,15 @@
     </select>
 
     <select id="findIdByOaDept" resultType="java.lang.Integer">
-        select id from ${table} where cfg_id = #{cfgId} and oa_dept_id = #{oaDeptId}
+        select min(id) from ${table}
+        where cfg_id = #{cfgId} and oa_dept_id = #{oaDeptId} and yx = 1
+    </select>
+
+    <select id="findIdByPair" resultType="java.lang.Integer">
+        select id from ${table}
+        where cfg_id = #{cfgId} and oa_dept_id = #{oaDeptId}
+          and wx_dept_id = #{wxDeptId}
+        order by id
     </select>
 
     <select id="findActiveIdByWxDept" resultType="java.lang.Integer">

@@ -7,6 +7,8 @@ package com.customization.oaones.appsyn.entity.wecom;
 public class SyncLog {
 
     private Integer id;
+    /** OA 流程 requestid；定时同步无流程上下文时为空。 */
+    private Integer requestid;
     private Integer cfgid;
     private String corpname;
     /** 同步方向：0 OA->企微 / 1 企微->OA。 */
@@ -38,6 +40,9 @@ public class SyncLog {
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
+
+    public Integer getRequestid() { return requestid; }
+    public void setRequestid(Integer requestid) { this.requestid = requestid; }
 
     public Integer getCfgid() { return cfgid; }
     public void setCfgid(Integer cfgid) { this.cfgid = cfgid; }

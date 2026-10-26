@@ -21,7 +21,7 @@
 
 <%-- 二级菜单：平台数据基准（部门绑定 - 平台部门侧） --%>
 <%-- 页面说明正文：由页壳 sub-tabs 右侧的感叹号（#wxUnboundHelpTip）悬浮/点击弹出 --%>
-<div class="help-source" id="wxUnboundHelpText">以下为<%= oaonesPBShort %>部门快照中的全部正常部门，可按“已绑定/未绑定/免绑定”勾选筛选，也可在筛选栏点开“选择<%= oaonesPBShort %>部门”弹框按<%= oaonesPBShort %>部门筛选（可多选、选中部门会自动带上其全部下级部门，筛选按<%= oaonesPBShort %>部门本身匹配：只看所选部门及其下级）。<span class="rule">已绑定</span>行按“一行一条绑定关系”列出该<%= oaonesPBShort %>部门绑定的全部 OA 部门（多对一：同一<%= oaonesPBShort %>部门可被多个 OA 部门绑定），每行行尾直接带该条绑定的“解绑”按钮，点击即只解除这一条绑定，解绑后可重新绑定。<span class="rule">未绑定</span>行在“OA 部门”列的选择框里选部门：单击选中后，<span class="rule">双击该行（或点“确定”）立即写入数据库完成绑定</span>，页面上不需要再点保存。<span class="rule">免绑定</span>行不参与绑定选择，可取消免绑定后再次绑定。勾选多行可“批量免绑定”（行首复选框只对“未绑定”部门可用，这也是本页唯一需要勾选的操作），表头复选框只全选当前页，要一次选中当前筛选条件下的全部部门（含未翻到的页）请勾选表头上方（与表头复选框对齐）的“跨页全选”。本页属<span class="rule">手动绑定</span>，不要求 OA 部门所属分部已绑定<%= oaonesPBShort %>租户（“分部绑定”只影响“OA数据基准”页按部门编号/名称的自动绑定）。选择 OA 部门的弹窗与“选择<%= oaonesPBShort %>部门”筛选弹框均支持“列表式 / 树状”两种显示模式。</div>
+<div class="help-source" id="wxUnboundHelpText">以下为<%= oaonesPBShort %>部门快照中的全部正常部门，可按“已绑定/未绑定/免绑定”勾选筛选，也可在筛选栏点开“选择<%= oaonesPBShort %>部门”弹框按<%= oaonesPBShort %>部门筛选（可多选、选中部门会自动带上其全部下级部门，筛选按<%= oaonesPBShort %>部门本身匹配：只看所选部门及其下级）。<span class="rule">已绑定</span>行按“一行一条绑定关系”列出该<%= oaonesPBShort %>部门绑定的全部 OA 部门（多对一：同一<%= oaonesPBShort %>部门可被多个 OA 部门绑定），每行行尾直接带该条绑定的“解绑”按钮，点击即只解除这一条绑定，解绑后可重新绑定。<span class="rule">未绑定</span>行在“OA 部门”列的选择框里选部门：单击选中后，<span class="rule">双击该行（或点“确定”）立即写入数据库完成绑定</span>，页面上不需要再点保存。<span class="rule">免绑定</span>行不参与绑定选择，可取消免绑定后再次绑定。勾选多行可“批量免绑定”（行首复选框只对“未绑定”部门可用，这也是本页唯一需要勾选的操作），表头复选框只全选当前页，要一次选中当前筛选条件下的全部部门（含未翻到的页）请勾选表头上方（与表头复选框对齐）的“跨页全选”。选择 OA 部门的弹窗与“选择<%= oaonesPBShort %>部门”筛选弹框均支持“列表式 / 树状”两种显示模式。</div>
         <div id="wxUnboundPanel" style="display:none;">
             <div class="filter-bar" style="justify-content:space-between;">
                 <div style="display:flex; gap:10px; align-items:center; flex:1; flex-wrap:wrap;">
@@ -79,7 +79,7 @@
             </div>
         </div>
         <div class="wx-pick-list" id="oaBindList"></div>
-        <div class="muted wx-pick-note">只展示未绑定、状态正常的 OA 部门（同一 OA 部门只能有一个部门绑定）；树状模式按 OA 部门上下级展示。已绑定到其他<%= oaonesPBShort %>部门的 OA 部门不可选；本页为手动绑定，<span class="rule">不要求所属分部已绑定<%= oaonesPBShort %>租户</span>。单击选中，<span class="rule">双击该行（或点“确定”）立即写入数据库完成绑定</span>，不需要再点保存。同一<%= oaonesPBShort %>部门可被多个 OA 部门绑定（多对一），在其他 OA 部门上按此方式绑定即可。</div>
+        <div class="muted wx-pick-note">只展示未绑定、状态正常的 OA 部门（同一 OA 部门只能有一个部门绑定）；树状模式按 OA 部门上下级展示。已绑定到其他<%= oaonesPBShort %>部门的 OA 部门不可选。单击选中，<span class="rule">双击该行（或点“确定”）立即写入数据库完成绑定</span>，不需要再点保存。同一<%= oaonesPBShort %>部门可被多个 OA 部门绑定（多对一），在其他 OA 部门上按此方式绑定即可。</div>
     </div>
     <div class="modal-foot">
         <button type="button" class="btn secondary" id="oaBindClearBtn">清空选择</button>

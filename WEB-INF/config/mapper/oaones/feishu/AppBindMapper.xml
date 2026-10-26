@@ -8,7 +8,7 @@
   用户从飞书工作台打开该应用时，按飞书网页授权拿到的成员身份找到 OA 账号，
   免登录进入 oa_page_url（手机端优先 oa_page_url_mobile，留空则回退 oa_page_url）。
   同一租户可绑定多个应用；同一租户下同一个 AgentId 只允许一条记录（唯一索引兜底）。
-  绑定状态 yx：0 有效 / 1 无效（与分部绑定表同口径，与部门绑定表相反）。
+  绑定状态 yx：0 有效 / 1 无效（与部门绑定表的 1/0 相反）。
 -->
 <mapper namespace="com.customization.oaones.appsyn.dao.feishu.AppBindMapper">
 

@@ -181,6 +181,19 @@
                     <button class="btn small secondary" id="attScopeUserBtn">选择</button>
                 </div>
             </div>
+            <div class="form-row">
+                <label>OA多账户同步规则<span class="req-mark">*</span></label>
+                <div>
+                    <select id="attOaAccountRule" class="oa-select">
+                        <option value="0">只同步主账户</option>
+                        <option value="1">所有账户均同步</option>
+                    </select>
+                    <div class="field-note">同一平台账号绑定多个 OA 账户时生效。
+                        「只同步主账户」仅处理 OA 主账户（子账户跳过）；
+                        「所有账户均同步」会把平台打卡分别写入每个已绑定 OA 账户，
+                        也会把每个 OA 账户的打卡推送到该平台账号。</div>
+                </div>
+            </div>
             <input type="hidden" id="attScopeSubs" value="">
             <input type="hidden" id="attScopeDepts" value="">
             <input type="hidden" id="attScopeUsers" value="">
@@ -244,6 +257,9 @@
 
         <div class="form-group">
             <div class="form-group-title">计划任务</div>
+            <div class="field-note" style="margin:-4px 0 10px;">
+                启用这条设置时必须配置计划任务；暂停状态可以留空，保存后通过“立即执行一次”手工运行。
+            </div>
             <div class="form-row">
                 <label>同步方式</label>
                 <div>
@@ -326,8 +342,35 @@
     </div>
 </div>
 
-<%-- ============ 弹框 2：选分部 / 选部门 / 选人员
-     与「日程同步」同一套选择框：两列（ID + 名称）、单击选中 / 双击确定并退出、全选、
+<%-- ============ 弹框 2：立即执行一次 ============ --%>
+<div class="modal" id="attRunModal" style="width:480px;">
+    <div class="modal-head">
+        <span>立即执行一次</span>
+        <button type="button" class="modal-x" data-att-close="attRunModal" title="关闭"></button>
+    </div>
+    <div class="modal-body">
+        <div class="notice" id="attRunCfgName" style="margin-bottom:12px;"></div>
+        <div class="form-row">
+            <label>本次时间口径</label>
+            <div>
+                <select id="attRunWinMode" class="oa-select">
+                    <option value="">按设置自己的口径</option>
+                    <option value="0">临时：当天数据</option>
+                    <option value="1">临时：前一天数据</option>
+                    <option value="3">临时：最近 2 天</option>
+                </select>
+            </div>
+        </div>
+        <div class="field-note">本次执行不会改变计划任务配置与下次执行时间。</div>
+    </div>
+    <div class="modal-foot">
+        <button class="btn secondary" data-att-close="attRunModal">取消</button>
+        <button class="btn" id="attRunNowOkBtn">执行</button>
+    </div>
+</div>
+
+<%-- ============ 弹框 3：选分部 / 选部门 / 选人员
+     与「日程同步」同一套选择框：两列（ID + 名称）、单击选中 / 双击确定并退出、全选、仅显示已选、
      分部与部门可切列表式 / 树状；打开时取快照，点「取消 / ×」回退本次改动。 ============ --%>
 <div class="modal wx-pick-modal" id="attSubModal" style="width:760px;">
     <div class="modal-head">
@@ -338,6 +381,8 @@
         <div class="pick-view-bar">
             <input type="text" id="attSubSearch" placeholder="输入分部名称 / 编号搜索"
                    autocomplete="off" data-lpignore="true">
+            <button type="button" class="link only-checked-btn" id="attSubOnlyBtn"
+                    aria-pressed="false" title="只看已选择的分部">仅显示已选</button>
             <button type="button" class="btn small secondary pick-all-btn" id="attSubAllBtn"
                     data-pick-all="attSub">全选</button>
             <div class="view-switch mini" data-view-key="attSub">
@@ -364,6 +409,8 @@
         <div class="pick-view-bar">
             <input type="text" id="attDeptSearch" placeholder="输入部门名称 / 编号搜索"
                    autocomplete="off" data-lpignore="true">
+            <button type="button" class="link only-checked-btn" id="attDeptOnlyBtn"
+                    aria-pressed="false" title="只看已选择的部门">仅显示已选</button>
             <button type="button" class="btn small secondary pick-all-btn" id="attDeptAllBtn"
                     data-pick-all="attDept">全选</button>
             <div class="view-switch mini" data-view-key="attDept">
@@ -391,6 +438,8 @@
             <input type="text" id="attUserSearch" placeholder="姓名 / 登录名 / 工号"
                    autocomplete="off" data-lpignore="true">
             <button type="button" class="btn small secondary" id="attUserSearchBtn">搜索</button>
+            <button type="button" class="link only-checked-btn" id="attUserOnlyBtn"
+                    aria-pressed="false" title="只看已选择的人员">仅显示已选</button>
             <button type="button" class="btn small secondary pick-all-btn" id="attUserAllBtn"
                     data-pick-all="attUser">全选</button>
         </div>
@@ -404,15 +453,25 @@
     </div>
 </div>
 
-<%-- ============ 弹框 3：批次明细 ============ --%>
-<div class="modal" id="attLogModal">
+<%-- ============ 弹框 4：批次明细 ============ --%>
+<div class="modal" id="attLogModal" style="width:900px;">
     <div class="modal-head">
         <span>同步批次明细</span>
         <button type="button" class="modal-x" data-att-close="attLogModal" title="关闭"></button>
     </div>
     <div class="modal-body modal-wide">
         <div id="attLogDetailHead"></div>
-        <table class="grid">
+        <table class="grid" style="table-layout:fixed;">
+            <colgroup>
+                <col style="width:10.5%;">
+                <col style="width:13.5%;">
+                <col style="width:18.5%;">
+                <col style="width:15%;">
+                <col style="width:11%;">
+                <col style="width:8%;">
+                <col style="width:15%;">
+                <col style="width:9%;">
+            </colgroup>
             <thead>
             <tr>
                 <th>人员</th>
@@ -433,7 +492,7 @@
     </div>
 </div>
 
-<%-- ============ 弹框 4：预测后 10 次 ============ --%>
+<%-- ============ 弹框 5：预测后 10 次 ============ --%>
 <div class="modal" id="attPreviewModal">
     <div class="modal-head">
         <span>预测后 10 次执行时间</span>
@@ -456,7 +515,7 @@
     </div>
 </div>
 
-<%-- ============ 弹框 5：校验结果 / 平台原文 ============ --%>
+<%-- ============ 弹框 6：校验结果 / 平台原文 ============ --%>
 <div class="modal" id="attResultModal">
     <div class="modal-head">
         <span id="attResultTitle">校验结果</span>

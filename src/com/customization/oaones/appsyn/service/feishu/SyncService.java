@@ -27,8 +27,9 @@ public interface SyncService {
      * 得到将要写入的清单与提示文案，供页面用弹窗向用户确认；
      * 真正的写入在 {@link #runScoped(JSONObject, String)} 里按同一套计划执行。</p>
      *
-     * @param params cfg_id、direction、oa_sub_ids、oa_dept_ids、wx_dept_id（留空 = 租户 root 节点）。
-     *               飞书→OA 时 oa_sub_ids = OA 落点分部（单选必选）、oa_dept_ids = OA 落点部门
+     * @param params cfg_id、direction、nodept_policy、default_dept_id。
+     *               OA→飞书只传 oa_sub_ids / oa_dept_ids；飞书→OA 只传 wx_dept_id。
+     *               目标部门统一按租户现有部门映射确定，不再传页面落点。
      *               （单选、可不选：不选时新建的 OA 部门直接落在该落点分部下）。
      */
     JSONObject preview(JSONObject params, String operatorId);

@@ -70,7 +70,7 @@
         同一会话去重窗口内重复打开同一个菜单只记一条（窗口见 <code>op.log.dedupe.seconds</code>）。
         顶部可按 <b>人员 / 事件类型 / 菜单 / 时间</b> 过滤，另可叠加关键字（菜单名称 / 访问地址 / IP）。
         <span class="rule">日志条数按“菜单打开”增长，量大时请先用人员与时间缩小范围。</span>
-        保留天数由 <code>oaones.properties#op.log.keep.days</code> 控制（默认 90 天，0 表示永久保留）；
+        保留天数在后台 <b>系统设置 → 日志保留</b> 中维护（默认永久保留，按天设置）；
         采集总开关是 <code>oaones.properties#op.log.enable</code>（0 = 关闭采集，历史记录仍可查看）。
         <% } %>
     </div>

@@ -47,7 +47,7 @@
 </head>
 <body>
 <%-- 两级标题由 navbar.jsp 统一渲染：一级标题 = 模块标题 + （带租户时）当前租户名与“设置”，
-     二级标题 = 该租户的功能菜单（同步中心 / 分部绑定 / 部门绑定 / 人员绑定 / 快照列表 / 应用绑定），
+     二级标题 = 该租户的功能菜单（同步中心 / 部门绑定 / 人员绑定 / 快照列表 / 应用绑定），
      本页是二级标题“应用绑定”的落地页。 --%>
 <jsp:include page="/oaones/Feishu/navbar.jsp">
     <jsp:param name="active" value="appBind"/>

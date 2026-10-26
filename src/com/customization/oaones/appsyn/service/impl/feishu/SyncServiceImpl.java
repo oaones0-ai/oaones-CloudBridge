@@ -6,10 +6,13 @@ import com.customization.oaones.appsyn.api.feishu.FeishuApi;
 import com.customization.oaones.appsyn.common.OaonesConst;
 import com.customization.oaones.appsyn.common.OaonesLog;
 import com.customization.oaones.appsyn.common.OaonesProps;
+import com.customization.oaones.appsyn.common.OaonesMyBatis;
 import com.customization.oaones.appsyn.common.OaonesUtil;
+import com.customization.oaones.appsyn.dao.OrgMapMapper;
 import com.customization.oaones.appsyn.dto.feishu.SyncPlan;
 import com.customization.oaones.appsyn.dto.feishu.SyncPlanItem;
 import com.customization.oaones.appsyn.dto.feishu.SyncScope;
+import com.customization.oaones.appsyn.entity.OrgMap;
 import com.customization.oaones.appsyn.service.impl.OaServiceImpl;
 import com.customization.oaones.appsyn.service.impl.SyncPlanServiceImpl;
 import com.customization.oaones.appsyn.service.feishu.ConfigService;
@@ -17,7 +20,6 @@ import com.customization.oaones.appsyn.service.feishu.DeptBindService;
 import com.customization.oaones.appsyn.service.feishu.SyncLogService;
 import com.customization.oaones.appsyn.service.feishu.SyncScopeService;
 import com.customization.oaones.appsyn.service.feishu.SyncService;
-import com.customization.oaones.appsyn.service.feishu.SubBindService;
 import com.customization.oaones.appsyn.service.feishu.UserBindService;
 import com.customization.oaones.appsyn.service.feishu.UserTmpService;
 import com.customization.oaones.appsyn.service.OaService;
@@ -46,8 +48,8 @@ public class SyncServiceImpl implements SyncService {
 
     /** 预览弹窗里每类清单最多回传的条数（页面只用于列名字，不用于写库）。 */
     private static final int PREVIEW_LIST_LIMIT = 200;
-    /** 单次同步最多记录的明细条数（防止超大数据量时日志表被写爆）。 */
-    private static final int LOG_ITEM_LIMIT = 5000;
+    /** 同步结果要求每个部门、人员各一行，因此明细不截断。 */
+    private static final int LOG_ITEM_LIMIT = Integer.MAX_VALUE;
     /** 提示文案里每类最多列出的名称个数。 */
     private static final int MESSAGE_NAME_LIMIT = 10;
 
@@ -79,10 +81,6 @@ public class SyncServiceImpl implements SyncService {
 
     private SyncScopeService syncScopeService() {
         return new SyncScopeServiceImpl();
-    }
-
-    private SubBindService subBindService() {
-        return new SubBindServiceImpl();
     }
 
     /* ===============================================================
@@ -221,7 +219,8 @@ public class SyncServiceImpl implements SyncService {
         JSONArray deptBinds = deptBindService().listEnabled(cfgId);
         for (int i = 0; i < deptBinds.size(); i++) {
             JSONObject bind = deptBinds.getJSONObject(i);
-            oaDeptBindMap.put(OaonesUtil.s(bind.getString("oa_dept_id")), bind);
+            String bindKey = OaonesUtil.s(bind.getString("oa_dept_id"));
+            if (!oaDeptBindMap.containsKey(bindKey)) { oaDeptBindMap.put(bindKey, bind); }
         }
         // 部门名称同步：只更新“已绑定且飞书侧仍存在”的部门，未绑定/已删除一律不自动创建
         OaService oaService = oaService();
@@ -273,6 +272,13 @@ public class SyncServiceImpl implements SyncService {
             String wxUserId = OaonesUtil.s(row.getString("wx_user_id"));
             String oaDeptId = OaonesUtil.s(row.getString("oa_dept_id"));
             try {
+                if (!isSystemBind(row)) {
+                    addMessage(summary, "skip", "OA人员[id=" + oaUserId + "]绑定方式为“"
+                            + OaonesConst.bindSourceText(OaonesUtil.i(
+                            OaonesUtil.s(row.getString("bind_source")), 0))
+                            + "”，同步中心只修改系统自动绑定");
+                    continue;
+                }
                 // oa_canceled 由 hrmresource.status 推导（E9 标准表没有 canceled 列）：>=4 视为离职/解聘
                 if ("1".equals(OaonesUtil.s(row.getString("oa_canceled")))) {
                     addMessage(summary, "fail", "OA人员[id=" + oaUserId
@@ -355,6 +361,9 @@ public class SyncServiceImpl implements SyncService {
         JSONArray rows = userBindService().listBoundRows(cfgId);
         for (int i = 0; i < rows.size(); i++) {
             JSONObject row = rows.getJSONObject(i);
+            if (!isSystemBind(row)) {
+                continue;
+            }
             String bindWxUserId = OaonesUtil.s(row.getString("wx_user_id"));
             if (bindWxUserId.length() == 0) {
                 continue;
@@ -370,7 +379,8 @@ public class SyncServiceImpl implements SyncService {
         JSONArray deptBinds = deptBindService().listEnabled(cfgId);
         for (int i = 0; i < deptBinds.size(); i++) {
             JSONObject bind = deptBinds.getJSONObject(i);
-            wxDeptBindMap.put(OaonesUtil.s(bind.getString("wx_dept_id")), bind);
+            String bindKey = OaonesUtil.s(bind.getString("wx_dept_id"));
+            if (!wxDeptBindMap.containsKey(bindKey)) { wxDeptBindMap.put(bindKey, bind); }
         }
         OaService oaService = oaService();
         for (int i = 0; i < wxUsers.size(); i++) {
@@ -499,8 +509,8 @@ public class SyncServiceImpl implements SyncService {
         int direction = scope.getDirection();
         String start = OaonesUtil.now();
         JSONObject stats = direction == OaonesConst.DIR_OA_TO_WX
-                ? executeOaToWx(plan, operatorId)
-                : executeWxToOa(plan, operatorId);
+                ? executeMappedOaToWx(plan, operatorId, params)
+                : executeMappedWxToOa(plan, operatorId, params);
         String end = OaonesUtil.now();
 
         int success = stats.getIntValue("success");
@@ -522,6 +532,14 @@ public class SyncServiceImpl implements SyncService {
         logRow.put("end_time", end);
         logRow.put("run_status", String.valueOf(runStatus));
         logRow.put("detail", planDetailText(plan, stats, start, end));
+        logRow.put("dept_count", String.valueOf(plan.count(OaonesConst.SYNC_ITEM_DEPT,
+                OaonesConst.SYNC_OP_CREATE) + plan.count(OaonesConst.SYNC_ITEM_DEPT,
+                OaonesConst.SYNC_OP_UPDATE)));
+        logRow.put("user_count", String.valueOf(plan.count(OaonesConst.SYNC_ITEM_USER,
+                OaonesConst.SYNC_OP_CREATE) + plan.count(OaonesConst.SYNC_ITEM_USER,
+                OaonesConst.SYNC_OP_UPDATE)));
+        logRow.put("nodept_count", String.valueOf(countNoDept(plan)));
+        logRow.put("nodept_dept", "");
         logRow.put("create_by", operatorId);
         logRow.put("create_time", end);
         int logId = syncLogService().add(logRow);
@@ -544,6 +562,8 @@ public class SyncServiceImpl implements SyncService {
         data.put("start_time", start);
         data.put("end_time", end);
         data.put("detail_count", itemCount);
+        data.put("nodept_count", countNoDept(plan));
+        data.put("nodept_dept", "");
         data.put("messages", messagesOf(plan, 100));
         return OaonesUtil.ok(data);
     }
@@ -572,6 +592,11 @@ public class SyncServiceImpl implements SyncService {
                 && oaSubIds.trim().length() == 0 && oaDeptIds.trim().length() == 0) {
             throw new RuntimeException("请先选择要同步的 OA 分部或 OA 部门");
         }
+        if (direction == OaonesConst.DIR_WX_TO_OA
+                && OaonesUtil.s(params.getString("wx_dept_id")).trim().length() == 0
+                && !"1".equals(OaonesUtil.s(params.getString("scope_all")))) {
+            throw new RuntimeException("请先选择要同步的平台部门");
+        }
         SyncScope scope = syncScopeService().resolve(cfgId, direction, oaSubIds, oaDeptIds,
                 OaonesUtil.s(params.getString("wx_dept_id")));
         if (direction == OaonesConst.DIR_OA_TO_WX && scope.getOaDepts().isEmpty()) {
@@ -585,8 +610,8 @@ public class SyncServiceImpl implements SyncService {
         }
         FeishuApi api = configService().getClient(cfgId);
         return direction == OaonesConst.DIR_OA_TO_WX
-                ? buildOaToWxPlan(scope, api)
-                : buildWxToOaPlan(scope, api);
+                ? buildMappedOaToWxPlan(scope, api, params)
+                : buildMappedWxToOaPlan(scope, api, params);
     }
 
     /* ---------------------------------------------------------------
@@ -606,9 +631,9 @@ public class SyncServiceImpl implements SyncService {
      * “A 同步到 B”的前置校验：<b>A（来源范围）与 B（落点）都必须没有任何绑定关系</b>。
      *
      * <ul>
-     *   <li>OA → 飞书：A = 所选 OA 分部 / 部门（含下级）——不得已有部门绑定，所选分部不得已有分部绑定；
+     *   <li>OA → 飞书：A = 所选 OA 分部 / 部门（含下级）——不得已有部门绑定；
      *       B = 飞书落点部门（非空时）——不得已被任何 OA 部门绑定；
-     *       若 A 含分部，还要保证该飞书租户没有被其它分部占用（分部 ⇄ 租户是一对一）。</li>
+     *       所选分部仍可在平台侧创建对应的部门。</li>
      *   <li>飞书 → OA：A = 所选飞书部门（含下级）——不得已有部门绑定；
      *       B = OA 落点部门（选了落点部门时）——不得已被绑定；
      *       只选落点分部（没选落点分部下的落点部门）时不校验 B——
@@ -631,28 +656,6 @@ public class SyncServiceImpl implements SyncService {
                 if (scope.oaDeptInScope(oaDeptId)) {
                     conflicts.add("OA 部门「" + oaDeptName(oaDeptId) + "」(ID " + oaDeptId
                             + ") 已绑定飞书部门 " + OaonesUtil.s(bind.getString("wx_dept_id")));
-                }
-            }
-            // A 侧：所选分部不得已有分部绑定；A 含分部时该租户也不能被其它分部占用
-            Set<String> selectedSubs = new HashSet<String>();
-            JSONArray subBinds = subBindService().listEnabled(cfgId);
-            for (int i = 0; i < scope.getOaSubs().size(); i++) {
-                String subId = OaonesUtil.s(scope.getOaSubs().get(i).getString("id"));
-                selectedSubs.add(subId);
-                // 分部侧一对一：这里的绑定不分租户（可能绑在别的租户上），必须查“该分部的现有绑定”
-                Integer boundCfg = subBindService().cfgIdOfSub(subId);
-                if (boundCfg != null && boundCfg.intValue() > 0) {
-                    conflicts.add("OA 分部「" + subLabel(scope, subId) + "」(ID " + subId
-                            + ") 已绑定飞书租户 " + boundCfg);
-                }
-            }
-            if (!selectedSubs.isEmpty()) {
-                for (int j = 0; j < subBinds.size(); j++) {
-                    String boundSub = OaonesUtil.s(subBinds.getJSONObject(j).getString("oa_sub_id"));
-                    if (!selectedSubs.contains(boundSub)) {
-                        conflicts.add("飞书租户已被 OA 分部「" + subLabel(scope, boundSub)
-                                + "」(ID " + boundSub + ") 绑定（一个租户只能被一个分部绑定）");
-                    }
                 }
             }
             // B 侧：飞书落点部门不得已被其它 OA 部门绑定（落点为空 = root 时不作为绑定对象）
@@ -718,7 +721,657 @@ public class SyncServiceImpl implements SyncService {
         return sub == null ? "" : OaonesUtil.s(sub.getString("name"));
     }
 
-    private SyncPlan buildOaToWxPlan(SyncScope scope, FeishuApi api) throws Exception {
+    private SyncPlan buildMappedOaToWxPlan(SyncScope scope, FeishuApi api, JSONObject params)
+            throws Exception {
+        String cfgId = scope.getCfgId();
+        int policy = noDeptPolicy(params);
+        String defaultDeptId = OaonesUtil.s(params.getString("default_dept_id"));
+        SyncPlan plan = new SyncPlan();
+        plan.setScope(scope);
+
+        Map<String, JSONObject> wxDeptMap = wxDeptMap(api);
+        Map<String, JSONObject> firstBind = firstDeptBindByOa(cfgId);
+        Map<String, JSONObject> bindByOaUser = userBindByOa(cfgId);
+        Map<String, JSONObject> bindByWxUser = userBindByWx(cfgId);
+        Map<String, JSONObject> wxUserMap = wxUserMap(api, syncPlanRootDeptId(cfgId));
+        Map<String, SyncPlanItem> deptItems = new HashMap<String, SyncPlanItem>();
+
+        // 每个源部门固定一行结果；已有映射只用于人员写入，不修改部门。
+        for (int i = 0; i < scope.getOaDepts().size(); i++) {
+            JSONObject dept = scope.getOaDepts().get(i);
+            String oaDeptId = OaonesUtil.s(dept.getString("id"));
+            String oaName = OaonesUtil.s(dept.getString("name"));
+            SyncPlanItem item = new SyncPlanItem();
+            item.setItemType(OaonesConst.SYNC_ITEM_DEPT);
+            item.setOaId(oaDeptId);
+            item.setOaName(oaName);
+            JSONObject bind = firstBind.get(oaDeptId);
+            String wxDeptId = bind == null ? "" : OaonesUtil.s(bind.getString("wx_dept_id"));
+            if (wxDeptId.length() > 0 && wxDeptMap.containsKey(wxDeptId)) {
+                item.setOp(OaonesConst.SYNC_OP_UPDATE);
+                item.setWxId(wxDeptId);
+                item.setWxName(wxDeptName(wxDeptMap, wxDeptId));
+                item.setMessage("按租户部门映射同步人员；本次不修改飞书部门"
+                        + (isDefaultDeptBind(bind) ? "（人员同步默认部门）" : ""));
+            } else {
+                item.setOp(OaonesConst.SYNC_OP_SKIP);
+                item.setMessage(policy == OaonesConst.SYNC_NODEPT_CREATE
+                        ? "当前没有有效部门映射；仅在成员需要写入时新增部门"
+                        : "当前没有有效部门映射，未修改飞书部门");
+            }
+            plan.addItem(item);
+            deptItems.put(oaDeptId, item);
+        }
+
+        JSONArray oaUsers = oaService().listUsers("");
+        for (int i = 0; i < oaUsers.size(); i++) {
+            JSONObject user = oaUsers.getJSONObject(i);
+            String oaDeptId = OaonesUtil.s(user.getString("departmentid"));
+            if (!deptItems.containsKey(oaDeptId)) {
+                continue;
+            }
+            String oaUserId = OaonesUtil.s(user.getString("id"));
+            String oaName = OaonesUtil.s(user.getString("lastname"));
+            SyncPlanItem item = new SyncPlanItem();
+            item.setItemType(OaonesConst.SYNC_ITEM_USER);
+            item.setOaId(oaUserId);
+            item.setOaName(oaName);
+            item.setSrcParentId(oaDeptId);
+            item.setParentName(OaonesUtil.s(user.getString("departmentname")));
+            JSONObject existingBind = bindByOaUser.get(oaUserId);
+            if (existingBind != null && !isSystemBind(existingBind)) {
+                item.setOp(OaonesConst.SYNC_OP_SKIP);
+                item.setMessage("人员绑定方式为“" + OaonesConst.bindSourceText(
+                        OaonesUtil.i(OaonesUtil.s(existingBind.getString("bind_source")), 0))
+                        + "”，同步中心只处理系统自动绑定，本次不修改");
+                plan.addItem(item);
+                continue;
+            }
+            if (oaName.length() == 0) {
+                item.setOp(OaonesConst.SYNC_OP_FAIL);
+                item.setMessage("OA 人员姓名为空，无法同步");
+                plan.addItem(item);
+                continue;
+            }
+            JSONObject deptBind = firstBind.get(oaDeptId);
+            String wxDeptId = deptBind == null ? "" : OaonesUtil.s(deptBind.getString("wx_dept_id"));
+            if (wxDeptId.length() == 0 || !wxDeptMap.containsKey(wxDeptId)) {
+                if (policy == OaonesConst.SYNC_NODEPT_SKIP) {
+                    item.setOp(OaonesConst.SYNC_OP_SKIP);
+                    item.setMessage("OA 部门没有有效映射，按设置“不同步”");
+                    plan.addItem(item);
+                    continue;
+                }
+                if (policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT) {
+                    wxDeptId = resolveDefaultWxDept(cfgId, defaultDeptId, wxDeptMap);
+                    item.setMessage("OA 部门没有有效映射，按设置落到默认部门");
+                } else {
+                    SyncPlanItem deptItem = deptItems.get(oaDeptId);
+                    if (deptItem != null && deptItem.getOp() == OaonesConst.SYNC_OP_SKIP) {
+                        deptItem.setOp(OaonesConst.SYNC_OP_CREATE);
+                        deptItem.setMessage("按 OA 层级新增缺失部门（请尽量先设置部门映射）");
+                    }
+                    item.setMessage("OA 部门没有有效映射，按设置新增部门");
+                }
+            }
+            if (wxDeptId.length() > 0) {
+                item.setParentId(wxDeptId);
+                item.setParentName(wxDeptName(wxDeptMap, wxDeptId));
+            }
+            String wxUserId = existingBind == null ? "" : OaonesUtil.s(existingBind.getString("wx_user_id"));
+            if (wxUserId.length() == 0) {
+                wxUserId = "oa" + oaUserId;
+            }
+            JSONObject wxBound = bindByWxUser.get(wxUserId);
+            if (wxBound != null && !isSystemBind(wxBound)) {
+                item.setOp(OaonesConst.SYNC_OP_SKIP);
+                item.setMessage("平台账号已被其他人员以“" + OaonesConst.bindSourceText(
+                        OaonesUtil.i(OaonesUtil.s(wxBound.getString("bind_source")), 0))
+                        + "”绑定，系统同步不修改该账号");
+                plan.addItem(item);
+                continue;
+            }
+            item.setWxId(wxUserId);
+            item.setWxName(oaName);
+            item.setOp(wxUserMap.containsKey(wxUserId)
+                    ? OaonesConst.SYNC_OP_UPDATE : OaonesConst.SYNC_OP_CREATE);
+            plan.addItem(item);
+        }
+        return plan;
+    }
+
+    private SyncPlan buildMappedWxToOaPlan(SyncScope scope, FeishuApi api, JSONObject params)
+            throws Exception {
+        String cfgId = scope.getCfgId();
+        int policy = noDeptPolicy(params);
+        String defaultDeptId = OaonesUtil.s(params.getString("default_dept_id"));
+        if (policy == OaonesConst.SYNC_NODEPT_CREATE
+                || (policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT
+                && OaonesConst.SYNC_DEFAULT_TENANT.equals(defaultDeptId))) {
+            assertTenantSubMapping(cfgId);
+        }
+        SyncPlan plan = new SyncPlan();
+        plan.setScope(scope);
+
+        Map<String, JSONObject> firstBind = firstDeptBindByWx(cfgId);
+        Map<String, JSONObject> bindByWxUser = userBindByWx(cfgId);
+        Map<String, SyncPlanItem> deptItems = new HashMap<String, SyncPlanItem>();
+        for (int i = 0; i < scope.getWxDepts().size(); i++) {
+            JSONObject dept = scope.getWxDepts().get(i);
+            String wxDeptId = OaonesUtil.s(dept.getString("id"));
+            String wxName = OaonesUtil.s(dept.getString("name"));
+            SyncPlanItem item = new SyncPlanItem();
+            item.setItemType(OaonesConst.SYNC_ITEM_DEPT);
+            item.setWxId(wxDeptId);
+            item.setWxName(wxName);
+            JSONObject bind = firstBind.get(wxDeptId);
+            String oaDeptId = bind == null ? "" : OaonesUtil.s(bind.getString("oa_dept_id"));
+            if (oaDeptId.length() > 0 && oaService().getDepartment(oaDeptId) != null) {
+                item.setOp(OaonesConst.SYNC_OP_UPDATE);
+                item.setOaId(oaDeptId);
+                item.setOaName(oaDeptName(oaDeptId));
+                item.setMessage("按租户部门映射写入 OA 人员；本次不修改 OA 部门");
+            } else {
+                item.setOp(OaonesConst.SYNC_OP_SKIP);
+                item.setMessage(policy == OaonesConst.SYNC_NODEPT_CREATE
+                        ? "当前没有有效部门映射；仅在成员需要写入时新增部门"
+                        : "当前没有有效部门映射，未修改 OA 部门");
+            }
+            plan.addItem(item);
+            deptItems.put(wxDeptId, item);
+        }
+
+        Map<String, JSONObject> wxUsers = new HashMap<String, JSONObject>();
+        String[] roots = OaonesUtil.s(scope.getWxDeptId()).split(",");
+        for (int r = 0; r < roots.length; r++) {
+            String root = roots[r].trim();
+            if (root.length() == 0) { continue; }
+            JSONArray rows = api.listUsers(root, true);
+            for (int i = 0; i < rows.size(); i++) {
+                JSONObject row = rows.getJSONObject(i);
+                wxUsers.put(OaonesUtil.s(row.getString("userid")), row);
+            }
+        }
+        for (Map.Entry<String, JSONObject> entry : wxUsers.entrySet()) {
+            String wxUserId = entry.getKey();
+            JSONObject wx = entry.getValue();
+            String memberDeptId = mainWxDeptId(wx);
+            if (memberDeptId.length() == 0 || !scope.wxDeptInScope(memberDeptId)) {
+                continue;
+            }
+            String wxName = OaonesUtil.s(wx.getString("name"));
+            SyncPlanItem item = new SyncPlanItem();
+            item.setItemType(OaonesConst.SYNC_ITEM_USER);
+            item.setWxId(wxUserId);
+            item.setWxName(wxName);
+            item.setSrcParentId(memberDeptId);
+            item.setParentName(wxDeptNameById(scope, memberDeptId));
+            JSONObject existingBind = bindByWxUser.get(wxUserId);
+            if (existingBind != null && !isSystemBind(existingBind)) {
+                item.setOp(OaonesConst.SYNC_OP_SKIP);
+                item.setMessage("人员绑定方式为“" + OaonesConst.bindSourceText(
+                        OaonesUtil.i(OaonesUtil.s(existingBind.getString("bind_source")), 0))
+                        + "”，同步中心只处理系统自动绑定，本次不修改");
+                plan.addItem(item);
+                continue;
+            }
+            if (wxName.length() == 0) {
+                item.setOp(OaonesConst.SYNC_OP_FAIL);
+                item.setMessage("平台人员姓名为空，无法写入 OA");
+                plan.addItem(item);
+                continue;
+            }
+            JSONObject deptBind = firstBind.get(memberDeptId);
+            String oaDeptId = deptBind == null ? "" : OaonesUtil.s(deptBind.getString("oa_dept_id"));
+            if (oaDeptId.length() == 0 || oaService().getDepartment(oaDeptId) == null) {
+                if (policy == OaonesConst.SYNC_NODEPT_SKIP) {
+                    item.setOp(OaonesConst.SYNC_OP_SKIP);
+                    item.setMessage("平台部门没有有效映射，按设置“不同步”");
+                    plan.addItem(item);
+                    continue;
+                }
+                if (policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT) {
+                    item.setMessage("平台部门没有有效映射，按设置落到默认部门");
+                    oaDeptId = OaonesConst.SYNC_DEFAULT_TENANT.equals(defaultDeptId)
+                            ? "0" : defaultDeptId;
+                } else {
+                    SyncPlanItem deptItem = deptItems.get(memberDeptId);
+                    if (deptItem != null && deptItem.getOp() == OaonesConst.SYNC_OP_SKIP) {
+                        deptItem.setOp(OaonesConst.SYNC_OP_CREATE);
+                        deptItem.setMessage("按平台部门层级新增缺失 OA 部门（请尽量先设置部门映射）");
+                    }
+                    item.setMessage("平台部门没有有效映射，按设置新增 OA 部门");
+                }
+            }
+            item.setOaId(existingBind == null ? "" : OaonesUtil.s(existingBind.getString("oa_user_id")));
+            item.setOaName(item.getOaId().length() == 0 ? "" : oaUserName(item.getOaId()));
+            item.setOp(item.getOaId().length() > 0
+                    ? OaonesConst.SYNC_OP_UPDATE : OaonesConst.SYNC_OP_CREATE);
+            if (item.getOp() == OaonesConst.SYNC_OP_CREATE) {
+                String loginId = sanitizeAccount(wxUserId);
+                if (oaService().findUserIdByLoginId(loginId) != null) {
+                    item.setOp(OaonesConst.SYNC_OP_SKIP);
+                    item.setMessage("OA 已存在登录名 " + loginId
+                            + " 的账号，请先手工建立系统绑定");
+                }
+            }
+            plan.addItem(item);
+        }
+        return plan;
+    }
+
+    private JSONObject executeMappedOaToWx(SyncPlan plan, String operatorId, JSONObject params) {
+        SyncScope scope = plan.getScope();
+        String cfgId = scope.getCfgId();
+        FeishuApi api = configService().getClient(cfgId);
+        Map<String, JSONObject> wxDeptMap = safeWxDeptMap(api);
+        Map<String, JSONObject> firstBind = firstDeptBindByOa(cfgId);
+        Map<String, JSONObject> bindByOaUser = userBindByOa(cfgId);
+        Map<String, String> live = new HashMap<String, String>();
+        for (Map.Entry<String, JSONObject> e : firstBind.entrySet()) {
+            live.put(e.getKey(), OaonesUtil.s(e.getValue().getString("wx_dept_id")));
+        }
+        Map<String, SyncPlanItem> deptItems = new HashMap<String, SyncPlanItem>();
+        List<SyncPlanItem> deptList = plan.of(OaonesConst.SYNC_ITEM_DEPT);
+        for (SyncPlanItem deptItem : deptList) {
+            deptItems.put(deptItem.getOaId(), deptItem);
+        }
+        int policy = noDeptPolicy(params);
+        String defaultDeptId = OaonesUtil.s(params.getString("default_dept_id"));
+        List<SyncPlanItem> usersToBind = new ArrayList<SyncPlanItem>();
+
+        List<SyncPlanItem> userList = plan.of(OaonesConst.SYNC_ITEM_USER);
+        for (SyncPlanItem item : userList) {
+            if (item.getOp() == OaonesConst.SYNC_OP_SKIP
+                    || item.getOp() == OaonesConst.SYNC_OP_FAIL) {
+                continue;
+            }
+            String wxDeptId = firstValidLiveDept(live.get(item.getSrcParentId()), wxDeptMap);
+            if (wxDeptId.length() == 0) {
+                try {
+                    wxDeptId = ensureWxDeptForOa(cfgId, item.getSrcParentId(), policy,
+                            defaultDeptId, live, wxDeptMap, operatorId,
+                            new HashSet<String>());
+                    if (wxDeptId.length() == 0) {
+                        item.setOp(OaonesConst.SYNC_OP_SKIP);
+                        item.setMessage("OA 人员所属部门没有映射，按设置未新增部门");
+                        continue;
+                    }
+                    SyncPlanItem deptItem = deptItems.get(item.getSrcParentId());
+                    if (deptItem != null && policy == OaonesConst.SYNC_NODEPT_CREATE) {
+                        deptItem.setOp(OaonesConst.SYNC_OP_CREATE);
+                        deptItem.setWxId(wxDeptId);
+                        deptItem.setWxName(wxDeptName(wxDeptMap, wxDeptId));
+                        deptItem.setMessage("按设置新增飞书部门并建立人员同步默认映射");
+                    }
+                } catch (Exception e) {
+                    item.setOp(OaonesConst.SYNC_OP_FAIL);
+                    item.setMessage("新增部门失败: " + e.getMessage());
+                    continue;
+                }
+            }
+            item.setParentId(wxDeptId);
+            item.setParentName(wxDeptName(wxDeptMap, wxDeptId));
+            try {
+                JSONObject oaUser = oaService().getUser(item.getOaId());
+                String mobile = oaUser == null ? "" : OaonesUtil.s(oaUser.getString("mobile"));
+                String email = oaUser == null ? "" : OaonesUtil.s(oaUser.getString("email"));
+                String wxUserId = item.getWxId();
+                if (wxUserId.length() == 0) {
+                    wxUserId = "oa" + item.getOaId();
+                    item.setWxId(wxUserId);
+                }
+                JSONObject user = newWxUser(wxUserId, item.getOaName(), mobile, email, wxDeptId);
+                if (api.userExists(wxUserId)) {
+                    api.updateUser(user);
+                    item.setOp(OaonesConst.SYNC_OP_UPDATE);
+                    item.setMessage("更新飞书成员资料与所属部门");
+                } else {
+                    api.createUser(user);
+                    item.setOp(OaonesConst.SYNC_OP_CREATE);
+                    item.setMessage("新建飞书成员并写入系统绑定");
+                }
+                if (bindByOaUser.get(item.getOaId()) == null) {
+                    usersToBind.add(item);
+                }
+            } catch (Exception e) {
+                item.setOp(OaonesConst.SYNC_OP_FAIL);
+                item.setMessage("人员同步失败: " + e.getMessage());
+                log.writeLog("oaones mapped sync oa->wx user fail oaUserId=" + item.getOaId(), e);
+            }
+        }
+        if (!usersToBind.isEmpty()) {
+            try {
+                userTmpService().refreshByCfgId(cfgId);
+            } catch (Exception e) {
+                OaonesLog.error("刷新飞书人员快照失败（人员绑定可能未落库）", e);
+            }
+            for (SyncPlanItem item : usersToBind) {
+                try {
+                    saveUserBind(cfgId, item.getOaId(), item.getWxId(), item.getParentId(), operatorId);
+                    item.setMessage(item.getMessage() + "，并写入系统绑定");
+                } catch (Exception e) {
+                    item.setOp(OaonesConst.SYNC_OP_FAIL);
+                    item.setMessage("飞书成员已写入，但系统绑定失败: " + e.getMessage());
+                }
+            }
+        }
+        for (SyncPlanItem item : userList) {
+            if (item.getOp() == OaonesConst.SYNC_OP_CREATE
+                    || item.getOp() == OaonesConst.SYNC_OP_UPDATE) {
+                userBindService().markSynced(cfgId, item.getOaId(), OaonesConst.DIR_OA_TO_WX);
+            }
+        }
+        return planStats(plan);
+    }
+
+    private JSONObject executeMappedWxToOa(SyncPlan plan, String operatorId, JSONObject params) {
+        SyncScope scope = plan.getScope();
+        String cfgId = scope.getCfgId();
+        int policy = noDeptPolicy(params);
+        String defaultDeptId = OaonesUtil.s(params.getString("default_dept_id"));
+        String tenantSubId = tenantSubId(cfgId);
+        if ((policy == OaonesConst.SYNC_NODEPT_CREATE
+                || (policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT
+                && OaonesConst.SYNC_DEFAULT_TENANT.equals(defaultDeptId)))
+                && tenantSubId.length() == 0) {
+            throw new RuntimeException("平台 → OA 选择“新增部门”或“默认部门=租户本身”时，"
+                    + "租户必须先映射 OA 分部");
+        }
+        Map<String, JSONObject> firstBind = firstDeptBindByWx(cfgId);
+        Map<String, JSONObject> bindByWxUser = userBindByWx(cfgId);
+        Map<String, String> live = new HashMap<String, String>();
+        for (Map.Entry<String, JSONObject> e : firstBind.entrySet()) {
+            live.put(e.getKey(), OaonesUtil.s(e.getValue().getString("oa_dept_id")));
+        }
+        Map<String, SyncPlanItem> deptItems = new HashMap<String, SyncPlanItem>();
+        for (SyncPlanItem deptItem : plan.of(OaonesConst.SYNC_ITEM_DEPT)) {
+            deptItems.put(deptItem.getWxId(), deptItem);
+        }
+        List<SyncPlanItem> usersToBind = new ArrayList<SyncPlanItem>();
+        List<SyncPlanItem> userList = plan.of(OaonesConst.SYNC_ITEM_USER);
+        for (SyncPlanItem item : userList) {
+            if (item.getOp() == OaonesConst.SYNC_OP_SKIP
+                    || item.getOp() == OaonesConst.SYNC_OP_FAIL) {
+                continue;
+            }
+            String oaDeptId = firstValidOaDept(live.get(item.getSrcParentId()));
+            if (oaDeptId.length() == 0) {
+                try {
+                    oaDeptId = ensureOaDeptForWx(cfgId, item.getSrcParentId(), scope,
+                            policy, defaultDeptId, live, operatorId, new HashSet<String>());
+                    if (oaDeptId.length() == 0) {
+                        item.setOp(OaonesConst.SYNC_OP_SKIP);
+                        item.setMessage("平台部门没有映射，按设置未新增 OA 部门");
+                        continue;
+                    }
+                    SyncPlanItem deptItem = deptItems.get(item.getSrcParentId());
+                    if (deptItem != null && policy == OaonesConst.SYNC_NODEPT_CREATE) {
+                        deptItem.setOp(OaonesConst.SYNC_OP_CREATE);
+                        deptItem.setOaId(oaDeptId);
+                        deptItem.setOaName(oaDeptName(oaDeptId));
+                        deptItem.setMessage("按设置新增 OA 部门并建立人员同步默认映射");
+                    }
+                } catch (Exception e) {
+                    item.setOp(OaonesConst.SYNC_OP_FAIL);
+                    item.setMessage("新增部门失败: " + e.getMessage());
+                    continue;
+                }
+            }
+            item.setParentId(oaDeptId);
+            item.setParentName(oaDeptName(oaDeptId));
+            try {
+                JSONObject wx = apiGetUser(scope.getCfgId(), item.getWxId());
+                String name = wx == null ? item.getWxName() : OaonesUtil.s(wx.getString("name"));
+                String mobile = wx == null ? "" : OaonesUtil.s(wx.getString("mobile"));
+                String email = wx == null ? "" : OaonesUtil.s(wx.getString("email"));
+                String oaUserId = item.getOaId();
+                String subId = "0".equals(oaDeptId) ? tenantSubId : subcompanyOfOaDept(oaDeptId);
+                if (oaUserId.length() > 0) {
+                    oaService().updateUserBasic(oaUserId, name, mobile, email, oaDeptId, subId);
+                    item.setOp(OaonesConst.SYNC_OP_UPDATE);
+                    item.setMessage("更新 OA 人员资料与所属部门");
+                } else {
+                    String loginId = sanitizeAccount(item.getWxId());
+                    int newId = oaService().createUser(loginId, name, mobile, email,
+                            oaDeptId, subId, null, operatorId);
+                    item.setOaId(String.valueOf(newId));
+                    item.setOaName(name);
+                    item.setOp(OaonesConst.SYNC_OP_CREATE);
+                    item.setMessage("新建 OA 账号并写入系统绑定");
+                }
+                if (bindByWxUser.get(item.getWxId()) == null) {
+                    usersToBind.add(item);
+                }
+            } catch (Exception e) {
+                item.setOp(OaonesConst.SYNC_OP_FAIL);
+                item.setMessage("人员同步失败: " + e.getMessage());
+                log.writeLog("oaones mapped sync wx->oa user fail wxUserId=" + item.getWxId(), e);
+            }
+        }
+        for (SyncPlanItem item : usersToBind) {
+            try {
+                saveUserBind(cfgId, item.getOaId(), item.getWxId(),
+                        item.getSrcParentId(), operatorId);
+                item.setMessage(item.getMessage() + "，并写入系统绑定");
+            } catch (Exception e) {
+                item.setOp(OaonesConst.SYNC_OP_FAIL);
+                item.setMessage("OA 人员已写入，但系统绑定失败: " + e.getMessage());
+            }
+        }
+        for (SyncPlanItem item : userList) {
+            if (item.getOp() == OaonesConst.SYNC_OP_CREATE
+                    || item.getOp() == OaonesConst.SYNC_OP_UPDATE) {
+                userBindService().markSynced(cfgId, item.getOaId(), OaonesConst.DIR_WX_TO_OA);
+            }
+        }
+        return planStats(plan);
+    }
+
+    private int noDeptPolicy(JSONObject params) {
+        int policy = OaonesUtil.i(OaonesUtil.s(params == null ? "" : params.getString("nodept_policy")),
+                OaonesConst.SYNC_NODEPT_SKIP);
+        return policy == OaonesConst.SYNC_NODEPT_CREATE
+                || policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT
+                ? policy : OaonesConst.SYNC_NODEPT_SKIP;
+    }
+
+    /** 部门绑定按 ID 升序读取，同一 OA 部门只保留第一条（人员同步默认部门）。 */
+    private Map<String, JSONObject> firstDeptBindByOa(String cfgId) {
+        Map<String, JSONObject> out = new HashMap<String, JSONObject>();
+        JSONArray rows = deptBindService().listEnabled(cfgId);
+        for (int i = 0; i < rows.size(); i++) {
+            JSONObject row = rows.getJSONObject(i);
+            String key = OaonesUtil.s(row.getString("oa_dept_id"));
+            if (!out.containsKey(key)) { out.put(key, row); }
+        }
+        return out;
+    }
+
+    /** 平台部门可能映射到多个 OA 部门；人员同步同样固定取第一条。 */
+    private Map<String, JSONObject> firstDeptBindByWx(String cfgId) {
+        Map<String, JSONObject> out = new HashMap<String, JSONObject>();
+        JSONArray rows = deptBindService().listEnabled(cfgId);
+        for (int i = 0; i < rows.size(); i++) {
+            JSONObject row = rows.getJSONObject(i);
+            String key = OaonesUtil.s(row.getString("wx_dept_id"));
+            if (!out.containsKey(key)) { out.put(key, row); }
+        }
+        return out;
+    }
+
+    private Map<String, JSONObject> userBindByOa(String cfgId) {
+        Map<String, JSONObject> out = new HashMap<String, JSONObject>();
+        JSONArray rows = userBindService().listBoundRows(cfgId);
+        for (int i = 0; i < rows.size(); i++) {
+            JSONObject row = rows.getJSONObject(i);
+            out.put(OaonesUtil.s(row.getString("oa_user_id")), row);
+        }
+        return out;
+    }
+
+    private Map<String, JSONObject> userBindByWx(String cfgId) {
+        Map<String, JSONObject> out = new HashMap<String, JSONObject>();
+        JSONArray rows = userBindService().listBoundRows(cfgId);
+        for (int i = 0; i < rows.size(); i++) {
+            JSONObject row = rows.getJSONObject(i);
+            String key = OaonesUtil.s(row.getString("wx_user_id"));
+            if (key.length() > 0 && !out.containsKey(key)) { out.put(key, row); }
+        }
+        return out;
+    }
+
+    private boolean isSystemBind(JSONObject bind) {
+        return OaonesUtil.i(OaonesUtil.s(bind.getString("bind_source")),
+                OaonesConst.BIND_SOURCE_SYSTEM) == OaonesConst.BIND_SOURCE_SYSTEM;
+    }
+
+    private boolean isDefaultDeptBind(JSONObject bind) {
+        return bind != null && "1".equals(OaonesUtil.s(bind.getString("sync_default")));
+    }
+
+    private String resolveDefaultWxDept(String cfgId, String defaultDeptId,
+                                        Map<String, JSONObject> wxDeptMap) {
+        if (OaonesConst.SYNC_DEFAULT_TENANT.equals(defaultDeptId)) {
+            return syncPlanRootDeptId(cfgId);
+        }
+        return wxDeptMap.containsKey(defaultDeptId) ? defaultDeptId : "";
+    }
+
+    private String firstValidLiveDept(String wxDeptId, Map<String, JSONObject> wxDeptMap) {
+        return wxDeptId != null && wxDeptMap.containsKey(wxDeptId) ? wxDeptId : "";
+    }
+
+    private String firstValidOaDept(String oaDeptId) {
+        if (oaDeptId == null || "0".equals(oaDeptId)) { return ""; }
+        return oaService().getDepartment(oaDeptId) == null ? "" : oaDeptId;
+    }
+
+    /**
+     * OA 部门没有映射时按设置处理。新增模式沿 OA 父级向上找最近映射：
+     * 找到则建在其下，找不到则建在租户 root 下。
+     */
+    private String ensureWxDeptForOa(String cfgId, String oaDeptId, int policy,
+                                     String defaultDeptId, Map<String, String> live,
+                                     Map<String, JSONObject> wxDeptMap, String operatorId,
+                                     Set<String> visiting) throws Exception {
+        String existing = firstValidLiveDept(live.get(oaDeptId), wxDeptMap);
+        if (existing.length() > 0) { return existing; }
+        if (policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT) {
+            return resolveDefaultWxDept(cfgId, defaultDeptId, wxDeptMap);
+        }
+        if (policy != OaonesConst.SYNC_NODEPT_CREATE) { return ""; }
+        if (!visiting.add(oaDeptId)) {
+            throw new RuntimeException("OA 部门层级存在循环，无法新增部门");
+        }
+        JSONObject oaDept = oaService().getDepartment(oaDeptId);
+        if (oaDept == null) {
+            throw new RuntimeException("OA 部门[id=" + oaDeptId + "]不存在");
+        }
+        String parentWxId = "";
+        String parentOaId = OaonesUtil.s(oaDept.getString("parent"));
+        if (parentOaId.length() > 0 && !"0".equals(parentOaId)) {
+            parentWxId = ensureWxDeptForOa(cfgId, parentOaId, policy, defaultDeptId,
+                    live, wxDeptMap, operatorId, visiting);
+        }
+        if (parentWxId.length() == 0) {
+            parentWxId = syncPlanRootDeptId(cfgId);
+        }
+        String newIdText = configService().getClient(cfgId).createDepartment(
+                OaonesUtil.s(oaDept.getString("name")),
+                parentWxId, null);
+        String newWxId = String.valueOf(newIdText);
+        JSONObject dept = new JSONObject();
+        dept.put("id", newWxId);
+        dept.put("name", OaonesUtil.s(oaDept.getString("name")));
+        dept.put("parentid", parentWxId);
+        wxDeptMap.put(newWxId, dept);
+        saveDeptBind(cfgId, oaDeptId, newWxId, parentWxId, operatorId);
+        live.put(oaDeptId, newWxId);
+        visiting.remove(oaDeptId);
+        return newWxId;
+    }
+
+    /**
+     * 平台部门没有映射时按设置处理。新增模式沿平台父级向上找最近映射：
+     * 找到则建在其下；找不到则只在租户已映射 OA 分部时，建为该分部下的一级部门。
+     */
+    private String ensureOaDeptForWx(String cfgId, String wxDeptId, SyncScope scope,
+                                     int policy, String defaultDeptId,
+                                     Map<String, String> live, String operatorId,
+                                     Set<String> visiting) throws Exception {
+        String existing = firstValidOaDept(live.get(wxDeptId));
+        if (existing.length() > 0) { return existing; }
+        if (policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT) {
+            return OaonesConst.SYNC_DEFAULT_TENANT.equals(defaultDeptId) ? "0" : defaultDeptId;
+        }
+        if (policy != OaonesConst.SYNC_NODEPT_CREATE) { return ""; }
+        String tenantSubId = tenantSubId(cfgId);
+        if (tenantSubId.length() == 0) {
+            throw new RuntimeException("租户未映射 OA 分部，禁止自动新建 OA 部门");
+        }
+        if (!visiting.add(wxDeptId)) {
+            throw new RuntimeException("平台部门层级存在循环，无法新增 OA 部门");
+        }
+        JSONObject source = wxNode(scope, wxDeptId);
+        if (source == null) {
+            throw new RuntimeException("平台部门[id=" + wxDeptId + "]不存在");
+        }
+        String parentWxId = OaonesUtil.s(source.getString("parentid"));
+        String parentOaId = "";
+        if (parentWxId.length() > 0 && !"0".equals(parentWxId)
+                && !parentWxId.equals(OaonesUtil.s(scope.getCfg().getString("root_dept_id")))
+                && wxNode(scope, parentWxId) != null) {
+            parentOaId = ensureOaDeptForWx(cfgId, parentWxId, scope, policy, defaultDeptId,
+                    live, operatorId, visiting);
+        }
+        JSONObject created = parentOaId.length() > 0
+                ? oaService().createDepartment(OaonesUtil.s(source.getString("name")),
+                        parentOaId, operatorId)
+                : oaService().createDepartment(OaonesUtil.s(source.getString("name")),
+                        "", tenantSubId, operatorId);
+        String newOaId = OaonesUtil.s(created.getString("id"));
+        saveDeptBind(cfgId, newOaId, wxDeptId, parentWxId, operatorId);
+        live.put(wxDeptId, newOaId);
+        visiting.remove(wxDeptId);
+        return newOaId;
+    }
+
+    private JSONObject wxNode(SyncScope scope, String wxDeptId) {
+        for (JSONObject row : scope.getWxDepts()) {
+            if (wxDeptId.equals(OaonesUtil.s(row.getString("id")))) { return row; }
+        }
+        return null;
+    }
+
+    private String tenantSubId(String cfgId) {
+        OrgMap mapping = OaonesMyBatis.call(OrgMapMapper.class,
+                mapper -> mapper.findByCfg(OaonesProps.subTenantMapTable(),
+                        OaonesConst.TYPE_FEISHU, OaonesUtil.i(cfgId, 0)));
+        return mapping == null || mapping.getOaSubId() == null ? ""
+                : String.valueOf(mapping.getOaSubId().intValue());
+    }
+
+    private void assertTenantSubMapping(String cfgId) {
+        if (tenantSubId(cfgId).length() == 0) {
+            throw new RuntimeException("平台 → OA 选择“新增部门”时，租户必须先映射到 OA 分部");
+        }
+    }
+
+    private String subcompanyOfOaDept(String oaDeptId) {
+        JSONObject dept = oaService().getDepartment(oaDeptId);
+        return dept == null ? "" : OaonesUtil.s(dept.getString("subcompanyid1"));
+    }
+
+    private JSONObject apiGetUser(String cfgId, String wxUserId) {
+        try {
+            return configService().getClient(cfgId).getUser(wxUserId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private SyncPlan buildOaToWxPlanLegacy(SyncScope scope, FeishuApi api) throws Exception {
         String cfgId = scope.getCfgId();
         SyncPlan plan = new SyncPlan();
         plan.setScope(scope);
@@ -756,7 +1409,7 @@ public class SyncServiceImpl implements SyncService {
         Set<String> oaNoBind = oaNoBindIds(cfgId);
 
         // A 侧选中的 OA 分部：飞书里只有部门概念，分部在飞书侧落成一个部门（挂在落点下），
-        // 该分部的下级部门挂在这个部门下面；同步完成后写分部绑定（含该分部对应的飞书部门）。
+        // 该分部的下级部门挂在这个部门下面。
         Map<String, String> plannedWxOfSub = new HashMap<String, String>();
         for (int i = 0; i < scope.getOaSubs().size(); i++) {
             JSONObject sub = scope.getOaSubs().get(i);
@@ -769,7 +1422,7 @@ public class SyncServiceImpl implements SyncService {
             subItem.setParentId(scope.getWxDeptId());
             subItem.setParentName(wxDeptName(wxDeptMap, scope.getWxDeptId()));
             subItem.setMessage("飞书里只有部门概念：在飞书「" + subItem.getParentName() + "」下新建部门「"
-                    + subItem.getOaName() + "」代表该 OA 分部，并写入分部绑定");
+                    + subItem.getOaName() + "」代表该 OA 分部");
             plan.addItem(subItem);
             plannedWxOfSub.put(subId, "");
         }
@@ -896,7 +1549,7 @@ public class SyncServiceImpl implements SyncService {
      * 2.2 飞书 → OA：飞书部门（含下级）→ OA 分部/部门（含下级）
      * --------------------------------------------------------------- */
 
-    private SyncPlan buildWxToOaPlan(SyncScope scope, FeishuApi api) throws Exception {
+    private SyncPlan buildWxToOaPlanLegacy(SyncScope scope, FeishuApi api) throws Exception {
         String cfgId = scope.getCfgId();
         SyncPlan plan = new SyncPlan();
         plan.setScope(scope);
@@ -1237,7 +1890,7 @@ public class SyncServiceImpl implements SyncService {
      * 2.3 执行：OA → 飞书
      * --------------------------------------------------------------- */
 
-    private JSONObject executeOaToWx(SyncPlan plan, String operatorId) {
+    private JSONObject executeOaToWxLegacy(SyncPlan plan, String operatorId) {
         SyncScope scope = plan.getScope();
         String cfgId = scope.getCfgId();
         FeishuApi api = configService().getClient(cfgId);
@@ -1256,7 +1909,7 @@ public class SyncServiceImpl implements SyncService {
         // OA 分部 → 该分部在飞书侧对应的部门（飞书只有部门概念，分部落成一个部门）
         Map<String, String> liveWxOfSub = new HashMap<String, String>();
 
-        // 0) 分部：先在飞书落点下建出“代表该分部”的部门，并写入分部绑定（含该部门ID），
+        // 0) 分部：先在飞书落点下建出“代表该分部”的部门，
         //    分部的下级部门随后挂在这个部门下面
         for (int i = 0; i < subItems.size(); i++) {
             SyncPlanItem item = subItems.get(i);
@@ -1266,9 +1919,8 @@ public class SyncServiceImpl implements SyncService {
                 item.setWxId(newId);
                 item.setWxName(item.getOaName());
                 liveWxOfSub.put(item.getOaId(), newId);
-                saveSubBind(cfgId, item.getOaId(), newId, operatorId);
                 item.setMessage("在飞书「" + item.getParentName() + "」下新建部门「" + item.getOaName()
-                        + "」（飞书部门ID " + newId + "）代表该 OA 分部，并写入分部绑定");
+                        + "」（飞书部门ID " + newId + "）代表该 OA 分部");
             } catch (Exception e) {
                 item.setOp(OaonesConst.SYNC_OP_FAIL);
                 item.setMessage("分部同步失败: " + e.getMessage());
@@ -1405,7 +2057,7 @@ public class SyncServiceImpl implements SyncService {
      * 2.4 执行：飞书 → OA
      * --------------------------------------------------------------- */
 
-    private JSONObject executeWxToOa(SyncPlan plan, String operatorId) {
+    private JSONObject executeWxToOaLegacy(SyncPlan plan, String operatorId) {
         SyncScope scope = plan.getScope();
         String cfgId = scope.getCfgId();
         // 飞书部门 → OA 部门（本次同步后的实际映射）
@@ -1632,21 +2284,6 @@ public class SyncServiceImpl implements SyncService {
         deptBindService().save(params, operatorId);
     }
 
-    /**
-     * 写入分部绑定并登记“该分部在飞书侧对应的部门”。
-     *
-     * <p>飞书里只有部门概念：A = OA 分部时，本次在飞书新建的“代表该分部的部门”会写进
-     * {@code uf_oaones_sub_bind.wx_dept_id}，该分部下的部门挂在这个部门下面。</p>
-     */
-    private void saveSubBind(String cfgId, String oaSubId, String wxDeptId, String operatorId) {
-        JSONObject params = new JSONObject();
-        params.put("cfg_id", cfgId);
-        params.put("oa_sub_id", oaSubId);
-        params.put("remark", OaonesConst.SCOPE_SYNC_BIND_REMARK);
-        subBindService().save(params, operatorId);
-        subBindService().markWxDept(cfgId, oaSubId, wxDeptId, operatorId);
-    }
-
     /** 部门绑定里已记录的飞书父部门ID（取不到时返回 "0"）。 */
     private String existingParentWxDept(String cfgId, String oaDeptId) {
         JSONArray rows = deptBindService().listEnabled(cfgId);
@@ -1693,6 +2330,18 @@ public class SyncServiceImpl implements SyncService {
         stats.put("skip", skip);
         stats.put("fail", fail);
         return stats;
+    }
+
+    private int countNoDept(SyncPlan plan) {
+        int count = 0;
+        for (SyncPlanItem item : plan.of(OaonesConst.SYNC_ITEM_USER)) {
+            String message = item.getMessage();
+            if (message.contains("没有有效映射") || message.contains("没有映射")
+                    || message.contains("没有找到部门")) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /* ---------------------------------------------------------------
@@ -1825,14 +2474,9 @@ public class SyncServiceImpl implements SyncService {
         StringBuilder sb = new StringBuilder();
         sb.append("同步方向：").append(scope.getDirection() == OaonesConst.DIR_OA_TO_WX
                 ? "OA → 飞书" : "飞书 → OA").append('\n');
-        if (scope.getDirection() == OaonesConst.DIR_WX_TO_OA) {
-            // 飞书→OA：来源是飞书侧，OA 侧是落点（落点分部必选 + 落点部门非必选）
-            sb.append("同步范围：").append(scope.getWxScopeText()).append('\n');
-            sb.append("OA 落点：").append(oaLandingText(scope)).append('\n');
-        } else {
-            sb.append("同步范围：").append(scope.getScopeText()).append("（含下级数据）\n");
-            sb.append("飞书侧节点：").append(scope.getWxScopeText()).append('\n');
-        }
+        sb.append("同步范围：").append(scope.getDirection() == OaonesConst.DIR_WX_TO_OA
+                ? scope.getWxScopeText() : scope.getScopeText()).append("（含下级数据）\n");
+        sb.append("目标口径：按租户现有部门映射写入人员，同一对象取第一条有效映射。\n");
         sb.append("开始时间：").append(start).append("  结束时间：").append(end).append('\n');
         sb.append("本次同步：更新部门 ").append(plan.deptUpdateCount())
                 .append(" 个、更新人员 ").append(plan.userUpdateCount())
@@ -1866,13 +2510,11 @@ public class SyncServiceImpl implements SyncService {
         SyncScope scope = plan.getScope();
         boolean oaToWx = scope.getDirection() == OaonesConst.DIR_OA_TO_WX;
         StringBuilder sb = new StringBuilder();
-        // 飞书→OA 时 OA 侧是落点：落点分部（必选）+ 落点部门（非必选）
-        String oaLandingText = oaLandingText(scope);
         sb.append("即将将").append(oaToWx ? "OA数据（" : "飞书数据（")
                 .append(oaToWx ? scope.getScopeText() + "（含下级数据）" : scope.getWxScopeText())
-                .append("）同步到").append(oaToWx ? "飞书（落点：" : "OA（落点：")
-                .append(oaToWx ? scope.getWxScopeText() : oaLandingText)
-                .append("），本次同步将更新 ").append(plan.deptUpdateCount()).append(" 个部门");
+                .append("）同步到").append(oaToWx ? "飞书" : "OA")
+                .append("（按租户部门映射写入人员），本次同步将更新 ")
+                .append(plan.deptUpdateCount()).append(" 个部门");
         String deptUpdateNames = namesOf(plan, OaonesConst.SYNC_ITEM_DEPT, OaonesConst.SYNC_OP_UPDATE);
         if (deptUpdateNames.length() > 0) {
             sb.append("：").append(deptUpdateNames);

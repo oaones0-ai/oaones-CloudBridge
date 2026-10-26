@@ -19,6 +19,10 @@ public class AttMember {
     private Integer bindState;
     private Integer deptId;
     private Integer subId;
+    /** E9 标准账户类型：0 / 空 = 主账户，1 = 子账户（次账号）。 */
+    private Integer accountType;
+    /** 由 SQL 算好的主账户标志：1 = 主账户 / 0 = 子账户。 */
+    private Integer primaryAccount;
 
     public Integer getOaUserId() { return oaUserId; }
     public void setOaUserId(Integer oaUserId) { this.oaUserId = oaUserId; }
@@ -46,4 +50,18 @@ public class AttMember {
 
     public Integer getSubId() { return subId; }
     public void setSubId(Integer subId) { this.subId = subId; }
+
+    public Integer getAccountType() { return accountType; }
+    public void setAccountType(Integer accountType) { this.accountType = accountType; }
+
+    public Integer getPrimaryAccount() { return primaryAccount; }
+    public void setPrimaryAccount(Integer primaryAccount) { this.primaryAccount = primaryAccount; }
+
+    /** 是否主账户（兼容历史查询：没有标志时按 accountType 0 / 空判定）。 */
+    public boolean isPrimaryAccount() {
+        if (primaryAccount != null) {
+            return primaryAccount.intValue() == 1;
+        }
+        return accountType == null || accountType.intValue() == 0;
+    }
 }

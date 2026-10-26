@@ -16,7 +16,7 @@ public interface ApiLogService {
     /** 过滤项：平台 / 租户 / 接口类型（按登录人权限给出可见租户）。 */
     JSONObject options(String operatorId);
 
-    /** 按保留天数清理历史日志（每进程每小时最多清一次，供页面打开时调用）。 */
+    /** 确保每天执行一次的日志保留调度器已启动。 */
     void cleanIfDue();
 
     /** 手动清理：删除早于保留天数的日志。 */

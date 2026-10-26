@@ -9,6 +9,8 @@ import com.customization.oaones.appsyn.common.OaonesSso;
 import com.customization.oaones.appsyn.common.OaonesUtil;
 import com.customization.oaones.appsyn.common.QrLoginPlatform;
 import com.customization.oaones.appsyn.common.ScanLoginState;
+import com.customization.oaones.appsyn.service.PersonalWxService;
+import com.customization.oaones.appsyn.service.impl.PersonalWxServiceImpl;
 import com.customization.oaones.appsyn.service.impl.wecom.LoginConfigServiceImpl;
 import com.customization.oaones.appsyn.service.impl.wecom.LoginServiceImpl;
 import com.customization.oaones.appsyn.service.impl.wecom.LoginSmsServiceImpl;
@@ -24,11 +26,12 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * 统一登录页控制器（action 前缀 {@code login.}）。
  *
- * <p><b>一个页面、三种登录方式、一张二维码</b>：统一登录页
+ * <p><b>一个页面、四种登录方式</b>：统一登录页
  * {@code /oaones/login/login.jsp} 同时提供
- * <b>账号密码登录</b> / <b>验证登录</b>（页签内可切手机号 / 邮箱两种验证方式）/ <b>扫码登录</b>；
- * 扫码登录只有**一个页签、一张二维码**，企业微信 / 钉钉 / 飞书 客户端都能扫
- * （扫的是同一张码，落地页按扫码客户端的 User-Agent 判断平台，见 {@link QrLoginPlatform}）。</p>
+ * <b>账号密码登录</b> / <b>验证登录</b>（页签内可切手机号 / 邮箱两种验证方式）/
+ * <b>企业应用扫码</b> / <b>个人微信登录</b>；企业微信 / 钉钉 / 飞书客户端共用一张本站二维码，
+ * 个人微信使用独立的微信官方二维码，但四者共用同一套票据、轮询与一次性登录令牌
+ * （见 {@link QrLoginPlatform}）。</p>
  *
  * <p>与模块内其它控制器最大的不同：<b>登录页、扫码落地页、PC 轮询都没有 OA 登录会话</b>，
  * 因此不能走 {@code /oaones/{WeCom,DingTalk,Feishu}/api.jsp}（那里会先做登录校验、未登录直接返回 401），
@@ -58,6 +61,10 @@ public class LoginController extends BaseController {
 
     private LoginSmsService loginSmsService() {
         return new LoginSmsServiceImpl();
+    }
+
+    private PersonalWxService personalWxService() {
+        return new PersonalWxServiceImpl();
     }
 
     /**
@@ -99,7 +106,7 @@ public class LoginController extends BaseController {
                 return emailLogin(request, response);
             }
             if ("login.qrCreate".equals(action)) {
-                requireScanEnabled();
+                requireEnterpriseQrEnabled();
                 // 二维码内容 = 站点地址 + login.scan.path（统一扫码落地页）+ 票据；
                 // 与平台无关，所以一张码三个客户端都能扫
                 JSONObject data = scanLoginService().create(
@@ -109,6 +116,22 @@ public class LoginController extends BaseController {
                         Util.getIpAddr(request),
                         OaonesUtil.s(request.getHeader("User-Agent")));
                 return OaonesUtil.ok(data);
+            }
+            if ("login.personalwxQrCreate".equals(action)) {
+                requirePersonalWxEnabled();
+                // 个人微信必须使用微信官方 qrconnect 二维码；票据仍复用统一扫码登录表，
+                // 因此轮询、确认、一次性令牌与 PC 写会话都和三个企业应用平台一致。
+                JSONObject ticketData = scanLoginService().create(
+                        req(request, "browser_key"),
+                        OaonesSso.siteBase(request),
+                        landingUrl(req(request, "gopage")),
+                        Util.getIpAddr(request),
+                        OaonesUtil.s(request.getHeader("User-Agent")));
+                String ticket = OaonesUtil.s(ticketData.getString("ticket"));
+                JSONObject wx = personalWxService().loginQrStart(
+                        ticket, OaonesSso.siteBase(request));
+                ticketData.put("auth_url", OaonesUtil.s(wx.getString("auth_url")));
+                return OaonesUtil.ok(ticketData);
             }
             if ("login.qrStatus".equals(action)) {
                 requireScanEnabled();
@@ -122,12 +145,17 @@ public class LoginController extends BaseController {
                         req(request, "browser_key"), req(request, "token"));
                 int oaUserId = OaonesUtil.i(OaonesUtil.nullToEmpty(data.getString("oa_user_id")), 0);
                 String platformLabel = OaonesUtil.s(data.getString("platform_label"));
+                String platform = OaonesUtil.s(data.getString("platform"));
+                String cfgId = OaonesUtil.s(data.getString("cfg_id"));
                 String source = "扫码登录："
                         + (platformLabel.length() == 0 ? "" : platformLabel)
                         + "成员「" + OaonesUtil.s(data.getString("out_user_name"))
                         + (OaonesUtil.s(data.getString("out_user_name")).length() == 0
                             ? OaonesUtil.s(data.getString("out_user_id")) : "")
-                        + "」(租户 " + OaonesUtil.s(data.getString("cfg_id")) + ")";
+                        + "」";
+                if (!QrLoginPlatform.PERSONAL_WX.equals(platform) && cfgId.length() > 0) {
+                    source += "(租户 " + cfgId + ")";
+                }
                 OaonesSso.login(request, response, oaUserId, source);
                 return OaonesUtil.ok(data);
             }
@@ -167,7 +195,7 @@ public class LoginController extends BaseController {
         String platform = scanPlatform(request);
         if (platform.length() == 0) {
             // 文案里的客户端名单只列“登录设置”里**已开启扫码**的平台（后台没启用飞书就不提飞书）；
-            // 三个平台全被关掉时扫码登录本身是关闭的，直接说明，而不是列出用不了的客户端。
+            // 企业应用与个人微信都不可用时扫码登录本身是关闭的，直接说明，而不是列出用不了的客户端。
             // 页面用 Util.toHtml 转义后再显示，这里只写纯文本（不要带 HTML 标签）
             String clients = QrLoginPlatform.enabledLabelText(loginConfigService().publicSettings());
             return OaonesUtil.ok(mode("unsupported", clients.length() == 0
@@ -187,6 +215,23 @@ public class LoginController extends BaseController {
         }
         if (QrLoginPlatform.FEISHU.equals(platform)) {
             return new com.customization.oaones.appsyn.controller.feishu.LoginController().scanStep(request);
+        }
+        if (QrLoginPlatform.PERSONAL_WX.equals(platform)) {
+            JSONObject state = ScanLoginState.parse(req(request, "state"));
+            String ticket = OaonesUtil.s(state.getString("ticket")).trim();
+            if (ticket.length() == 0) {
+                ticket = req(request, "t");
+            }
+            try {
+                return OaonesUtil.ok(personalWxService().loginScanStep(ticket,
+                        req(request, "code"), OaonesSso.siteBase(request),
+                        Util.getIpAddr(request),
+                        OaonesUtil.s(request.getHeader("User-Agent"))));
+            } catch (Exception e) {
+                OaonesLog.error("个人微信扫码登录落地处理失败", e);
+                return OaonesUtil.ok(mode("failed",
+                        e.getMessage() == null ? "个人微信登录失败，请重新扫码" : e.getMessage()));
+            }
         }
         return new com.customization.oaones.appsyn.controller.wecom.LoginController().scanStep(request);
     }
@@ -369,6 +414,20 @@ public class LoginController extends BaseController {
     private void requireScanEnabled() {
         if (!loginConfigService().publicSettings().getBooleanValue("qr_enable")) {
             throw new RuntimeException("扫码登录已在“登录设置”里关闭，无法使用");
+        }
+    }
+
+    /** 本站企业应用二维码生成：个人微信单开时不能走这里（它使用微信官方二维码）。 */
+    private void requireEnterpriseQrEnabled() {
+        if (!loginConfigService().publicSettings().getBooleanValue("enterprise_qr_enable")) {
+            throw new RuntimeException("企业微信 / 钉钉 / 飞书扫码登录已在“登录设置”里关闭");
+        }
+    }
+
+    /** 个人微信登录开关：页面已隐藏入口，这里是服务端兜底。 */
+    private void requirePersonalWxEnabled() {
+        if (!loginConfigService().publicSettings().getBooleanValue("personal_wx_available")) {
+            throw new RuntimeException("个人微信登录未开启或尚未维护微信授权密钥（AppID / AppSecret）");
         }
     }
 

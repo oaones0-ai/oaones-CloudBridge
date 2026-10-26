@@ -46,7 +46,7 @@
             if (tip) {
                 var msgs = [];
                 if (options.enabled === false) { msgs.push("接口日志已关闭（oaones.properties#api.log.enable=0）"); }
-                if (options.keepDays === 0) { msgs.push("日志为永久保留（api.log.keep.days=0）"); }
+                if (options.keepDays === 0) { msgs.push("日志为永久保留（可在系统设置 → 日志保留中修改）"); }
                 if (msgs.length > 0) { tip.textContent = msgs.join("；"); tip.style.display = ""; }
             }
             var cleanBtn = byId("apiLogCleanBtn");

@@ -10,7 +10,7 @@
  * 先选租户、再看功能——一个租户一个页签、一屏只看一个租户，下面那排
  * 「同步设置 / 同步日志 / 打卡明细」都跟着当前选中的租户走（日志 / 明细按它筛，不再各自放租户下拉）。
  *
- * 编辑弹框里：范围三要素（分部 / 部门 / 人员，多选弹框、选中含下级、候选按 OA 分权过滤）、
+ * 编辑弹框里：范围三要素（分部 / 部门 / 人员，多选弹框、OR 并集、选中含下级、候选按 OA 分权过滤）、
  * 数据类型与打卡时段、时间口径、计划任务（按时间段 / 高级 cron，可「预测后 10 次」）；
  * 考勤应用只读展示（在租户卡片上维护）。
  *
@@ -33,10 +33,13 @@
         itemPager: null,
         activeTenant: "",
         scope: { subs: [], depts: [], users: [] },
+        scopeUserNames: {},
+        pickOnlySelected: { subs: false, depts: false, users: false },
         subOptions: [],
         deptOptions: [],
         userOptions: [],
-        editing: { id: 0, cfgId: 0, items: [] }
+        editing: { id: 0, cfgId: 0, items: [] },
+        runCfgId: 0
     };
 
     function byId(id) { return document.getElementById(id); }
@@ -50,6 +53,12 @@
 
     function toast(msg) {
         if (window.OaonesToast) { window.OaonesToast.warn(msg); }
+    }
+
+    function info(msg, duration) {
+        if (!window.OaonesToast) { return; }
+        if (window.OaonesToast.info) { window.OaonesToast.info(msg, duration); }
+        else { window.OaonesToast.show(msg, { mode: 0, duration: duration }); }
     }
 
     function confirmBox(msg, okText, cb) {
@@ -291,7 +300,7 @@
         if (Number(tenant.check_state) === 1) {
             return "校验通过：" + (tenant.check_time || "");
         }
-        return "改了应用或还没校验过，点「重新校验」真调一次平台考勤接口。";
+        return "改了应用或还没校验过，点「重新校验」真调一次平台考勤接口。如果配置的是自建应用，绑定了打卡应用权限，则需要等令牌时间超时（企微默认7200s）重新获取，才能得到打卡数据的权限。";
     }
 
     function cfgRowHtml(row) {
@@ -316,6 +325,10 @@
             + '</div></div>'
             + '<div class="cfg-item-row"><span>范围</span><b>'
             + esc(row.scope_text || "全部已绑定人员") + '</b></div>'
+            + '<div class="cfg-item-row"><span>OA多账户</span><b>'
+            + esc(row.oa_account_rule_text
+                || (Number(row.oa_account_rule) === 1 ? "所有账户均同步" : "只同步主账户"))
+            + '</b></div>'
             + '<div class="cfg-item-row"><span>类型</span><b>' + esc(row.data_text)
             + '；' + esc(row.period_text) + '</b></div>'
             + '<div class="cfg-item-row"><span>时间口径</span><b>' + esc(row.win_text) + '</b></div>'
@@ -327,6 +340,15 @@
             + '<div class="cfg-item-row"><span>下次执行</span><b>' + esc(row.next_run || "—") + '</b></div>'
             + alert
             + '</div>';
+    }
+
+    function rowHasPlan(row) {
+        if (!row) { return false; }
+        if (Number(row.plan_mode) === 1) {
+            return String(row.day_cron || "").trim().length > 0
+                || String(row.night_cron || "").trim().length > 0;
+        }
+        return !!(row.items && row.items.length);
     }
 
     function showRunResult(data) {
@@ -347,30 +369,33 @@
     }
 
     function runNow(id) {
-        var html = ''
-            + '<div class="form-row"><label>本次时间口径</label><div>'
-            + '<select id="attRunWinMode" class="oa-select">'
-            + '<option value="">按设置自己的口径</option>'
-            + '<option value="0">临时：当天数据</option>'
-            + '<option value="1">临时：前一天数据</option>'
-            + '<option value="3">临时：最近 2 天</option>'
-            + '</select></div></div>'
-            + '<div class="field-note">「立即执行一次」不会改变计划任务的配置与下次执行时间。</div>';
-        if (!window.OaonesToast || !window.OaonesToast.confirm) { return; }
-        window.OaonesToast.confirm({
-            title: "立即执行一次",
-            message: html,
-            html: true,
-            okText: "执行",
-            onOk: function () {
-                var sel = byId("attRunWinMode");
-                var params = { id: id };
-                if (sel && sel.value !== "") { params.win_mode = sel.value; }
-                call("attsync.runNow", params, function (data) {
-                    showRunResult(data);
-                    loadSetting();
-                });
+        var row = null;
+        for (var i = 0; i < state.rows.length; i++) {
+            if (String(state.rows[i].id) === String(id)) { row = state.rows[i]; break; }
+        }
+        if (!row) { toast("这条同步设置不存在，请刷新后重试"); return; }
+        state.runCfgId = Number(row.id) || 0;
+        byId("attRunCfgName").textContent = "设置：" + (row.cfg_name || ("#" + row.id))
+            + "；时间口径：" + (row.win_text || "按设置");
+        byId("attRunWinMode").value = "";
+        openModal("attRunModal");
+    }
+
+    function executeRunNow() {
+        var params = { id: state.runCfgId };
+        var sel = byId("attRunWinMode");
+        if (sel && sel.value !== "") { params.win_mode = sel.value; }
+        closeModal("attRunModal");
+        if (window.OaonesToast && window.OaonesToast.loading) {
+            window.OaonesToast.loading("正在执行考勤同步，请不要关闭页面…");
+        }
+        call("attsync.runNow", params, function (data) {
+            if (window.OaonesToast && window.OaonesToast.hideLoading) {
+                window.OaonesToast.hideLoading();
             }
+            if (!data) { return; }
+            showRunResult(data);
+            loadSetting();
         });
     }
 
@@ -388,6 +413,17 @@
             return;
         }
         if (action === "cfg-state") {
+            if (String(target.getAttribute("data-enabled")) === "1") {
+                var row = null;
+                for (var i = 0; i < state.rows.length; i++) {
+                    if (String(state.rows[i].id) === String(id)) { row = state.rows[i]; break; }
+                }
+                if (!rowHasPlan(row)) {
+                    toast("该设置还没有配置计划任务，不能直接启用；"
+                        + "请先编辑并设置按时间段或 cron，保存后再启用");
+                    return;
+                }
+            }
             call("attsync.state", { id: id, enabled: target.getAttribute("data-enabled") }, function () {
                 loadSetting();
             });
@@ -483,6 +519,7 @@
         fillCfgForm({
             id: 0, cfg_id: cfgId, cfg_name: "", dir: 0,
             scope_subs: "", scope_depts: "", scope_users: "",
+            oa_account_rule: 0,
             data_types: 1, sign_periods: 3,
             win_mode: 0, win_days: 2,
             plan_mode: 0, workday_group_id: 0, cron_day_type: 0, day_cron: "", night_cron: "",
@@ -511,6 +548,12 @@
         state.scope.subs = splitIds(row.scope_subs);
         state.scope.depts = splitIds(row.scope_depts);
         state.scope.users = splitIds(row.scope_users);
+        state.scopeUserNames = {};
+        var savedUserNames = row.scope_user_names || {};
+        Object.keys(savedUserNames).forEach(function (id) {
+            state.scopeUserNames[String(id)] = String(savedUserNames[id] || "");
+        });
+        byId("attOaAccountRule").value = String(Number(row.oa_account_rule) === 1 ? 1 : 0);
         ensureOrgOptions(renderScopeTexts);
 
         var types = Number(row.data_types) || 0;
@@ -672,34 +715,51 @@
         if (periods === 0) { toast("请至少勾选一个打卡时段（签到 / 签退）"); return; }
         var name = String(byId("attCfgName").value || "").trim();
         if (!name) { toast("请填写设置名称"); return; }
+        var enabled = byId("attCfgEnabled").checked ? 1 : 0;
+        var planMode = byId("attPlanMode").value;
+        var planItems = readPlanItems();
+        var planConfigured = String(planMode) === "1"
+            ? String(byId("attDayCron").value || "").trim().length > 0
+                || String(byId("attNightCron").value || "").trim().length > 0
+            : planItems.length > 0;
+        if (enabled === 1 && !planConfigured) {
+            toast("启用状态的同步设置必须配置计划任务；"
+                + "如果只需要手工执行，请先保存为暂停状态，执行时再点“立即执行一次”");
+            return;
+        }
         call("attsync.save", {
             id: Number(byId("attCfgId").value) || 0,
             type: TYPE,
             cfg_id: byId("attCfgTenant").value,
             cfg_name: name,
             dir: byId("attCfgDir").value,
-            enabled: byId("attCfgEnabled").checked ? 1 : 0,
+            enabled: enabled,
             scope_subs: state.scope.subs.join(","),
             scope_depts: state.scope.depts.join(","),
             scope_users: state.scope.users.join(","),
+            oa_account_rule: byId("attOaAccountRule").value,
             data_types: dataTypes,
             sign_periods: periods,
             win_mode: byId("attWinMode").value,
             win_days: byId("attWinDays").value,
             win_from: byId("attWinFrom").value,
             win_to: byId("attWinTo").value,
-            plan_mode: byId("attPlanMode").value,
+            plan_mode: planMode,
             workday_group_id: byId("attWorkdayGroup").value,
             cron_day_type: byId("attCronDayType").value,
             day_cron: byId("attDayCron").value,
             night_cron: byId("attNightCron").value,
             remark: byId("attCfgRemark").value,
-            items: JSON.stringify(readPlanItems())
+            items: JSON.stringify(planItems)
         }, function (data, json) {
             // 保存失败（校验没过 / 名称重复 / 后端报错）时**不关弹框**，错误提示由 api / toast 统一给出
             if (!json || json.code !== 0) { return; }
             closeModal("attCfgModal");
             loadSetting();
+            if (!planConfigured) {
+                info("同步设置已保存为暂停状态。未设置计划任务，该设置不会自动执行；"
+                    + "需要时可点“立即执行一次”手工运行。", 8000);
+            }
         });
     }
 
@@ -728,7 +788,7 @@
     }
 
     /* ------------------------------------------------------------------
-     * 三、范围选择（分部 / 部门 / 人员；候选按 OA 分权过滤，选中含下级）
+     * 三、范围选择（分部 / 部门 / 人员；三者 OR 并集，候选按 OA 分权过滤，选中含下级）
      * ------------------------------------------------------------------ */
 
     function ensureOrgOptions(cb) {
@@ -769,7 +829,7 @@
         if (!ids.length) { return ""; }
         var names = [];
         for (var i = 0; i < ids.length; i++) {
-            var found = "";
+            var found = state.scopeUserNames[String(ids[i])] || "";
             for (var j = 0; j < state.userOptions.length; j++) {
                 if (String(state.userOptions[j].id) === String(ids[i])) {
                     found = state.userOptions[j].lastname || state.userOptions[j].name || "";
@@ -784,6 +844,7 @@
     function openPicker(which) {
         ensureOrgOptions(function () {
             snapshotScope();
+            state.pickOnlySelected[which] = false;
             var key = PICK_KEYS[which];
             byId(key + "Search").value = "";
             if (window.OaonesPicker && window.OaonesPicker.resetTree) { window.OaonesPicker.resetTree(key); }
@@ -805,6 +866,8 @@
     var PICK_KEYS = { subs: "attSub", depts: "attDept", users: "attUser" };
     /** 打开弹框时的选择快照：点「取消 / ×」回退本次改动（点「确定」/ 双击才留下）。 */
     var pickBackup = null;
+    /** “仅显示已选”下取消勾选后的延迟重绘：给双击留出时间，同时让单选取消后自动移出。 */
+    var pickRefreshTimers = {};
 
     function snapshotScope() {
         pickBackup = {
@@ -816,6 +879,7 @@
 
     function restoreScope() {
         if (!pickBackup) { return; }
+        Object.keys(pickRefreshTimers).forEach(clearPickRefresh);
         state.scope.subs = pickBackup.subs.slice(0);
         state.scope.depts = pickBackup.depts.slice(0);
         state.scope.users = pickBackup.users.slice(0);
@@ -889,14 +953,15 @@
         return false;
     }
 
-    /** 当前候选（已按关键字与前置条件过滤）：部门候选只列已选分部（含下级）下的部门。 */
+    /** 当前候选（已按关键字过滤）：部门候选不受已选分部限制，三个范围维度互相独立。 */
     function pickRows(which) {
         var keyword = String(byId(PICK_KEYS[which] + "Search").value || "").trim().toLowerCase();
-        var allowed = which === "depts" ? allowedDeptIds() : null;
+        var onlySelected = state.pickOnlySelected[which] === true;
+        var picked = scopeIds(which);
         var options = scopeOptions(which);
         var rows = [];
         for (var i = 0; i < options.length; i++) {
-            if (allowed && allowed.indexOf(String(options[i].id)) < 0) { continue; }
+            if (onlySelected && picked.indexOf(Number(options[i].id)) < 0) { continue; }
             if (!pickRowHits(which, options[i], keyword)) { continue; }
             rows.push(options[i]);
         }
@@ -922,8 +987,13 @@
     }
 
     function pickEmptyText(which) {
+        if (state.pickOnlySelected[which]) {
+            if (which === "users") { return "还没有选择人员。"; }
+            if (which === "depts") { return "还没有选择部门。"; }
+            return "还没有选择分部。";
+        }
         if (which === "users") { return "没有匹配的人员（候选按泛微标准分权过滤）。"; }
-        if (which === "depts") { return "没有匹配的部门（可能是开了分权，或该分部（含下级）下没有部门）。"; }
+        if (which === "depts") { return "没有匹配的部门（可能是开了 OA 分权）。"; }
         return "没有匹配的分部（可能是开了 OA 分权）。";
     }
 
@@ -935,8 +1005,7 @@
         if (which === "subs") {
             return "已选 " + size + " 个分部（自动含其全部下级分部 / 部门）";
         }
-        return "已选 " + size + " 个部门（自动含其全部下级部门）；"
-            + (state.scope.subs.length ? "候选已按已选分部（含下级）过滤。" : "未选分部时列出全部部门。");
+        return "已选 " + size + " 个部门（自动含其全部下级部门）；部门与分部互相独立。";
     }
 
     function renderPick(which) {
@@ -961,7 +1030,46 @@
             list.innerHTML = html || '<div class="empty">' + esc(pickEmptyText(which)) + "</div>";
         }
         byId(key + "Note").textContent = pickNoteText(which);
+        syncOnlySelectedState(which);
         syncPickAllState(which);
+    }
+
+    /** “仅显示已选 / 显示全部”按钮：文案是点击后会进入的视图，并带已选数量。 */
+    function syncOnlySelectedState(which) {
+        var btn = byId({
+            subs: "attSubOnlyBtn",
+            depts: "attDeptOnlyBtn",
+            users: "attUserOnlyBtn"
+        }[which]);
+        if (!btn) { return; }
+        var only = state.pickOnlySelected[which] === true;
+        var size = scopeIds(which).length;
+        btn.textContent = only ? "显示全部" : "仅显示已选" + (size ? "（" + size + "）" : "");
+        btn.classList.toggle("active", only);
+        btn.setAttribute("aria-pressed", only ? "true" : "false");
+        btn.title = only ? "返回全部候选数据" : "只看当前已经选择的数据";
+    }
+
+    function toggleOnlySelected(which) {
+        clearPickRefresh(which);
+        state.pickOnlySelected[which] = state.pickOnlySelected[which] !== true;
+        renderPick(which);
+    }
+
+    function clearPickRefresh(which) {
+        if (pickRefreshTimers[which]) {
+            window.clearTimeout(pickRefreshTimers[which]);
+            delete pickRefreshTimers[which];
+        }
+    }
+
+    function schedulePickRefresh(which) {
+        clearPickRefresh(which);
+        if (state.pickOnlySelected[which] !== true) { return; }
+        pickRefreshTimers[which] = window.setTimeout(function () {
+            delete pickRefreshTimers[which];
+            renderPick(which);
+        }, 260);
     }
 
     /** 单击后只就地刷新选中态（不重建列表），保证双击仍命中同一行。 */
@@ -978,6 +1086,7 @@
             options[i].classList.toggle("partial", !active && !!partial[id]);
         }
         byId(PICK_KEYS[which] + "Note").textContent = pickNoteText(which);
+        syncOnlySelectedState(which);
         syncPickAllState(which);
     }
 
@@ -1030,50 +1139,25 @@
         afterScopeChange(which);
     }
 
-    /** 改完某个维度后：分部一变就裁掉不再允许的部门，并刷新表单上三个只读回显。 */
+    /** 改完某个维度后刷新表单上三个只读回显；三个维度各自保留，互不裁剪。 */
     function afterScopeChange(which) {
-        if (which === "subs") {
-            var allowed = allowedDeptIds();
-            if (allowed) {
-                state.scope.depts = state.scope.depts.filter(function (id) {
-                    return allowed.indexOf(String(id)) >= 0;
-                });
-            }
-        }
         renderScopeTexts();
-    }
-
-    /** 部门候选的前置条件：已选分部（含下级）下的部门（与后端同一口径）。 */
-    function allowedDeptIds() {
-        if (!state.scope.subs.length) { return null; }
-        var subIds = {};
-        state.scope.subs.forEach(function (id) { subIds[String(id)] = true; });
-        var grew = true;
-        while (grew) {
-            grew = false;
-            state.subOptions.forEach(function (option) {
-                if (subIds[String(option.parent)] && !subIds[String(option.id)]) {
-                    subIds[String(option.id)] = true;
-                    grew = true;
-                }
-            });
-        }
-        var allowed = [];
-        state.deptOptions.forEach(function (option) {
-            if (subIds[String(option.subcompanyid1)]) { allowed.push(String(option.id)); }
-        });
-        return allowed;
     }
 
     function loadUsers(keyword, cb) {
         call("attsync.oaUsers", { keyword: keyword || "" }, function (data) {
-            state.userOptions = data || [];
+            state.userOptions = Array.isArray(data) ? data : [];
+            state.userOptions.forEach(function (one) {
+                var name = one.lastname || one.name || "";
+                if (name) { state.scopeUserNames[String(one.id)] = name; }
+            });
             if (cb) { cb(); }
         });
     }
 
     /** 「确定」/ 双击候选行：留下本次选择并关闭弹框。 */
     function applyPick(which) {
+        clearPickRefresh(which);
         commitScope();
         renderScopeTexts();
         closeModal(which === "subs" ? "attSubModal" : (which === "depts" ? "attDeptModal" : "attUserModal"));
@@ -1093,10 +1177,12 @@
             if (!btn) { return; }
             togglePick(which, btn.getAttribute("data-att-pick"));
             refreshPickDom(which);
+            schedulePickRefresh(which);
         });
         byId(listId).addEventListener("dblclick", function (e) {
             var btn = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
             if (!btn) { return; }
+            clearPickRefresh(which);
             // 双击前已经收到两次单击（选中→取消），这里确保该行处于选中态后再确定
             var id = btn.getAttribute("data-att-pick");
             if (scopeIds(which).indexOf(Number(id)) < 0) {
@@ -1267,6 +1353,7 @@
 
     function bindEvents() {
         byId("attCfgSaveBtn").addEventListener("click", saveCfg);
+        byId("attRunNowOkBtn").addEventListener("click", executeRunNow);
         byId("attPreviewBtn").addEventListener("click", previewPlan);
         byId("attWinMode").addEventListener("change", syncWinRows);
         byId("attPlanMode").addEventListener("change", syncPlanMode);
@@ -1278,6 +1365,9 @@
         byId("attScopeSubBtn").addEventListener("click", function () { openPicker("subs"); });
         byId("attScopeDeptBtn").addEventListener("click", function () { openPicker("depts"); });
         byId("attScopeUserBtn").addEventListener("click", function () { openPicker("users"); });
+        byId("attSubOnlyBtn").addEventListener("click", function () { toggleOnlySelected("subs"); });
+        byId("attDeptOnlyBtn").addEventListener("click", function () { toggleOnlySelected("depts"); });
+        byId("attUserOnlyBtn").addEventListener("click", function () { toggleOnlySelected("users"); });
         byId("attSubSearch").addEventListener("input", function () { renderPick("subs"); });
         byId("attDeptSearch").addEventListener("input", function () { renderPick("depts"); });
         byId("attUserSearch").addEventListener("input", function () { renderPick("users"); });

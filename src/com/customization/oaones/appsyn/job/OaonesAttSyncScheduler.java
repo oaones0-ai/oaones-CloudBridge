@@ -1,6 +1,7 @@
 package com.customization.oaones.appsyn.job;
 
 import com.alibaba.fastjson.JSONObject;
+import com.customization.oaones.appsyn.common.LogRetentionCatalog;
 import com.customization.oaones.appsyn.common.OaonesLog;
 import com.customization.oaones.appsyn.common.OaonesPlatformGate;
 import com.customization.oaones.appsyn.common.OaonesProps;
@@ -124,7 +125,10 @@ public final class OaonesAttSyncScheduler {
         json.put("item_limit", OaonesProps.attSyncItemLimit());
         json.put("user_batch", OaonesProps.attSyncUserBatch());
         json.put("day_batch", OaonesProps.attSyncDayBatch());
-        json.put("log_keep_days", OaonesProps.attLogKeepDays());
+        com.customization.oaones.appsyn.service.impl.LogRetentionServiceImpl retention =
+                new com.customization.oaones.appsyn.service.impl.LogRetentionServiceImpl();
+        json.put("log_keep_days", Integer.valueOf(retention.keepDays(LogRetentionCatalog.ATT_LOG)));
+        json.put("log_item_keep_days", Integer.valueOf(retention.keepDays(LogRetentionCatalog.ATT_LOG_ITEM)));
         return json;
     }
 }

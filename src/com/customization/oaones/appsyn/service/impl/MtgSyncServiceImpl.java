@@ -473,7 +473,7 @@ public class MtgSyncServiceImpl implements MtgSyncService {
             p.put("keyword", keyword);
             p.put("keywordLike", "%" + keyword + "%");
         }
-        // 组织维度筛选：分部 / 部门都**自动含其下级**（页面口径，与“分部绑定 / 部门绑定”的筛选一致）
+        // 组织维度筛选：分部 / 部门都**自动含其下级**（页面口径，与“部门绑定”的筛选一致）
         List<Integer> subIds = subtreeIds(splitIds(params.getString("sub_ids")), true);
         if (!subIds.isEmpty()) {
             p.put("subIds", subIds);
@@ -545,7 +545,7 @@ public class MtgSyncServiceImpl implements MtgSyncService {
      * 把「分部 / 部门」ID 展开成「自身 + 全部下级」。
      *
      * <p>页面口径：<b>选中分部自动含其下级分部、选中部门自动含其下级部门</b>
-     * （与「分部绑定 / 部门绑定」两页的分部 / 部门筛选一致）。<b>展开用全量组织</b>——
+     * （与「部门绑定」页的分部 / 部门筛选一致）。<b>展开用全量组织</b>——
      * 结果列表本身不按 OA 分权裁剪（只有“选择候选”按分权过滤，见 {@code common.OaonesHrmScope}），
      * 所以这里不能再去套登录人的分权范围，否则下级会漏掉。</p>
      */

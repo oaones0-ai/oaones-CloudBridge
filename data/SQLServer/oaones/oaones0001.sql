@@ -232,6 +232,9 @@ ELSE
     PRINT 'uf_oaones_user_tmp already exists';
 
 
+
+
+
 IF OBJECT_ID('dbo.uf_oaones_sub_bind','U') IS NULL
     BEGIN
         CREATE TABLE dbo.uf_oaones_sub_bind (
@@ -256,7 +259,6 @@ IF OBJECT_ID('dbo.uf_oaones_sub_bind','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_sub_bind already exists';
-
 
 IF OBJECT_ID('dbo.uf_oaones_app_bind','U') IS NULL
     BEGIN

@@ -58,8 +58,13 @@ public class SyncScopeServiceImpl implements SyncScopeService {
 
         List<String> subIds = splitCsv(oaSubIds);
         List<String> deptIds = splitCsv(oaDeptIds);
-        resolveOa(scope, subIds, deptIds);
-        resolveWx(scope, wxDeptId);
+        if (direction == com.customization.oaones.appsyn.common.OaonesConst.DIR_OA_TO_WX) {
+            resolveOa(scope, subIds, deptIds);
+            resolveWx(scope, "");
+        } else {
+            scope.setScopeText("");
+            resolveWx(scope, wxDeptId);
+        }
 
         OaonesLog.step("解析同步范围 cfgId=" + cfgId + " direction=" + direction
                 + " OA部门数=" + scope.getOaDepts().size()
@@ -231,29 +236,35 @@ public class SyncScopeServiceImpl implements SyncScopeService {
             byId.put(OaonesUtil.s(row.getString("id")), row);
         }
 
-        boolean specified = wxDeptId != null && wxDeptId.trim().length() > 0;
-        String effective = specified ? wxDeptId.trim()
-                : String.valueOf(Util.getIntValue(OaonesUtil.s(scope.getCfg().getString("root_dept_id")), 1));
-        if ("0".equals(effective)) {
-            effective = "1";
+        List<String> roots = splitCsv(wxDeptId);
+        boolean specified = !roots.isEmpty();
+        if (!specified) {
+            String root = String.valueOf(Util.getIntValue(
+                    OaonesUtil.s(scope.getCfg().getString("root_dept_id")), 1));
+            roots.add("0".equals(root) ? "1" : root);
         }
-        JSONObject node = byId.get(effective);
-        if (node == null) {
-            if (specified) {
-                throw new RuntimeException("钉钉部门[id=" + effective
-                        + "]不在部门快照里（可能已删除），请先更新钉钉部门快照或重新选择");
-            }
-            // root 节点本身常常不是快照里的“业务部门”（钉钉根为 1），这里补一个占位节点，
-            // 保证“未指定部门 = root 节点”时新增部门仍能挂到 root 下
-            node = new JSONObject();
-            node.put("id", effective);
-            node.put("name", "root 节点");
-            node.put("parentid", "0");
-        }
-        scope.setWxDeptId(effective);
-
         Set<String> wxScope = new LinkedHashSet<String>();
-        wxScope.add(effective);
+        StringBuilder rootIds = new StringBuilder();
+        List<String> rootNames = new ArrayList<String>();
+        for (String root : roots) {
+            JSONObject node = byId.get(root);
+            if (node == null) {
+                if (specified) {
+                    throw new RuntimeException("钉钉部门[id=" + root
+                            + "]不在部门快照里（可能已删除），请先更新钉钉部门快照或重新选择");
+                }
+                node = new JSONObject();
+                node.put("id", root);
+                node.put("name", "root 节点");
+                node.put("parentid", "0");
+            }
+            if (rootIds.length() > 0) { rootIds.append(','); }
+            rootIds.append(root);
+            rootNames.add(OaonesUtil.s(node.getString("name")).length() == 0
+                    ? root : OaonesUtil.s(node.getString("name")));
+            wxScope.add(root);
+        }
+        scope.setWxDeptId(rootIds.toString());
         boolean grew = true;
         while (grew) {
             grew = false;
@@ -288,9 +299,8 @@ public class SyncScopeServiceImpl implements SyncScopeService {
             }
         });
         scope.setWxDepts(resolved);
-        String nodeName = OaonesUtil.s(node.getString("name"));
         scope.setWxScopeText((specified ? "钉钉部门「" : "钉钉 root 节点「")
-                + (nodeName.length() == 0 ? effective : nodeName) + "」（含下级部门）");
+                + String.join("」「", rootNames) + "」（含下级部门）");
     }
 
     /** 钉钉部门层级深度（向上追 parentid；出现环时最多追 30 层）。 */

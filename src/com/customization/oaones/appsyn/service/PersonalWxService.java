@@ -23,6 +23,9 @@ public interface PersonalWxService {
     /** 当前登录人是否有权维护微信授权密钥、解绑 / 代绑他人的个人微信。 */
     boolean canMaintain(String operatorId);
 
+    /** 全局微信授权密钥是否已配置（AppID 与 AppSecret 都非空）；登录页只据此判断个人微信能否使用。 */
+    boolean configured();
+
     /**
      * 微信授权密钥（AppID / AppSecret 掩码 / 备注）+ 是否已配置；仅维护人可读。
      *
@@ -78,6 +81,20 @@ public interface PersonalWxService {
      * @param callbackBase    回调地址前缀（协议 + 域名 + 端口），供未配置 properties 时兜底
      */
     JSONObject qrStart(String operatorId, String targetOaUserId, String callbackBase);
+
+    /**
+     * 个人微信登录：为统一扫码登录票据生成微信网页授权地址。
+     *
+     * <p>这里返回的 {@code auth_url} 由登录页内嵌成微信官方二维码；扫码回调仍回到统一落地页
+     * {@code /oaones/login/scan.jsp}，state 里带票据，不暴露 AppSecret。</p>
+     */
+    JSONObject loginQrStart(String ticket, String callbackBase);
+
+    /**
+     * 个人微信登录回调：用微信返回的 code 换 openid，按个人微信绑定关系定位 OA 账号，
+     * 再把统一登录票据推进到“已扫码 / 已确认”。
+     */
+    JSONObject loginScanStep(String ticket, String code, String baseUrl, String ip, String userAgent);
 
     /** 扫码回调：按 code 换 openid 并写入 / 更新绑定（无登录会话，身份取自签名 state）。 */
     JSONObject scanConfirm(String code, String state);

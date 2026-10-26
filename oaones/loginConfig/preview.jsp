@@ -43,6 +43,7 @@
             <button type="button" class="login-tab active" data-preview-tab="pwd">账号密码登录</button>
             <button type="button" class="login-tab" data-preview-tab="verify">验证登录</button>
             <button type="button" class="login-tab" data-preview-tab="scan">扫码登录</button>
+            <button type="button" class="login-tab" data-preview-tab="personalwx">个人微信登录</button>
         </div>
         <div class="login-pane" data-preview-pane="pwd">
             <div class="login-field">
@@ -90,7 +91,15 @@
                 <div class="login-qr-img-box">
                     <div class="login-preview-qr">登录二维码</div>
                 </div>
-                <p class="login-qr-tip" id="previewScanTip">用手机扫描二维码并在手机上确认登录</p>
+                <p class="login-qr-expire" id="previewScanTip">二维码有效期：120秒，请使用（企微 飞书 钉钉 个人微信）进行扫码登录</p>
+            </div>
+        </div>
+        <div class="login-pane" data-preview-pane="personalwx" style="display:none;">
+            <div class="login-qr-box">
+                <div class="login-qr-img-box">
+                    <div class="login-preview-qr">微信官方二维码</div>
+                </div>
+                <p class="login-qr-expire">二维码有效期：120秒，请使用（企微 飞书 钉钉 个人微信）进行扫码登录</p>
             </div>
         </div>
         <div class="login-preview-pane-empty" id="previewEmpty" style="display:none;">
@@ -141,7 +150,11 @@
         }
         if (methods.scan) {
             addDefaultItem(list, "扫码登录", "：用本人的" + (scanText || "企业微信 / 钉钉 / 飞书")
-                + "扫同一张二维码并在手机上确认，需先在“个人账号中心”绑定本人 OA 账号");
+                + "扫同一张二维码，扫码后自动登录，需先在“个人账号中心”绑定本人 OA 账号");
+        }
+        if (methods.personalWx) {
+            addDefaultItem(list, "个人微信登录", "：用本人的个人微信扫描微信官方二维码，"
+                + "需先在“个人账号中心 → 个人微信”绑定本人 OA 账号");
         }
         if (list.childNodes.length > 0) {
             box.appendChild(list);
@@ -174,6 +187,7 @@
         settings = settings || {};
         var methods = settings.methods || {};
         var body = document.body;
+        var centerLayout = Number(settings.layoutMode) === 1;
         var brandOpacity = Number(settings.brandOpacity);
         if (!isFinite(brandOpacity)) {
             brandOpacity = 100;
@@ -182,6 +196,7 @@
 
         body.className = "login-page login-preview-frame"
             + (settings.custom ? " login-page-custom" : " login-page-default")
+            + (centerLayout ? " login-page-layout-center" : "")
             + (settings.brandCustom ? " login-page-brand-custom" : "")
             + (brandOpacity < 100 ? " login-page-brand-surface" : "");
         if (settings.bg) {
@@ -251,12 +266,15 @@
         var showPwd = !!methods.password;
         var showVerify = !!(methods.mobile || methods.email);
         var showScan = !!methods.scan;
-        var any = showPwd || showVerify || showScan;
+        var showPersonalWx = !!methods.personalWx;
+        var any = showPwd || showVerify || showScan || showPersonalWx;
         byId("previewTabs").style.display = any ? "" : "none";
         byId("previewEmpty").style.display = any ? "none" : "";
         byId("previewTabs").querySelector('[data-preview-tab="pwd"]').style.display = showPwd ? "" : "none";
         byId("previewTabs").querySelector('[data-preview-tab="verify"]').style.display = showVerify ? "" : "none";
         byId("previewTabs").querySelector('[data-preview-tab="scan"]').style.display = showScan ? "" : "none";
+        byId("previewTabs").querySelector('[data-preview-tab="personalwx"]').style.display =
+            showPersonalWx ? "" : "none";
 
         byId("previewVerifyMethodRow").style.display = methods.mobile && methods.email ? "" : "none";
         var verifyEmailOnly = !methods.mobile && methods.email;
@@ -264,13 +282,14 @@
         byId("previewVerifyTarget").placeholder = verifyEmailOnly
             ? "请输入在 OA 里维护的邮箱" : "请输入在 OA 里维护的手机号";
         byId("previewVerifyCodeLabel").textContent = verifyEmailOnly ? "邮箱验证码" : "手机验证码";
-        byId("previewScanTip").textContent = "请用本人的" + (settings.scanText || "企业微信 / 钉钉 / 飞书")
-            + "扫一扫扫描上方二维码，在手机上点“确认登录”后本页会自动进入 OA";
+        byId("previewScanTip").textContent =
+            "二维码有效期：120秒，请使用（企微 飞书 钉钉 个人微信）进行扫码登录";
 
         var visible = [];
         if (showPwd) { visible.push("pwd"); }
         if (showVerify) { visible.push("verify"); }
         if (showScan) { visible.push("scan"); }
+        if (showPersonalWx) { visible.push("personalwx"); }
         if (any) {
             setPane(visible.indexOf(activePane) >= 0 ? activePane : visible[0]);
         } else {

@@ -21,6 +21,8 @@
     com.customization.oaones.appsyn.job.OaonesSyncPlanScheduler.ensureStarted();
     // 会议同步 / 日程同步的内置调度器：同样在任意 OAones 页面被访问时幂等启动。
     com.customization.oaones.appsyn.job.OaonesMtgSyncScheduler.ensureStarted();
+    // 日志保留自动清理：每天检查一次，所有 OAones 日志表共用这一套数据库配置。
+    com.customization.oaones.appsyn.job.OaonesLogRetentionScheduler.ensureStarted();
 %>
 <%!
     /**

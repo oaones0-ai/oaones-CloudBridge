@@ -28,9 +28,9 @@ public class SyncPlanCfg {
     private Integer intervalMin;
     /** 计划任务 cron 表达式（Quartz 口径）：{@code planMode = 1} 时按它执行。 */
     private String cron;
-    /** 成员没有找到部门时的口径：0 不同步 / 1 直接挂在租户下（OA→平台 方向）。 */
+    /** 成员没有找到部门时的口径：0 不同步 / 1 新增部门 / 2 默认部门。 */
     private Integer nodeptPolicy;
-    /** 成员没有找到部门时的默认 OA 部门ID（平台→OA 方向）。 */
+    /** 默认部门ID；“__tenant__” 表示直接落到租户本身。 */
     private String defaultDeptId;
     /** 默认 OA 部门名称快照（页面展示用）。 */
     private String defaultDeptName;

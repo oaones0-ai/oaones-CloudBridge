@@ -17,8 +17,8 @@ public final class OaonesParam {
     public static final String CFG_TABLE = "cfgTable";
     /** 部门绑定表物理名。 */
     public static final String DEPT_BIND_TABLE = "deptBindTable";
-    /** 分部绑定表物理名。 */
-    public static final String SUB_BIND_TABLE = "subBindTable";
+    /** OA 分部 - 平台租户一对一映射表物理名。 */
+    public static final String SUB_TENANT_MAP_TABLE = "subTenantMapTable";
     /** 人员绑定表物理名。 */
     public static final String USER_BIND_TABLE = "userBindTable";
     /** 默认人员绑定规则表物理名。 */
@@ -31,6 +31,8 @@ public final class OaonesParam {
     public static final String DEPT_TMP_TABLE = "deptTmpTable";
     /** 人员快照表物理名。 */
     public static final String USER_TMP_TABLE = "userTmpTable";
+    /** 操作监控日志表物理名（登录 / 退出 / 菜单访问留痕）。 */
+    public static final String OP_LOG_TABLE = "opLogTable";
     /** 企微应用绑定表物理名。 */
     public static final String APP_BIND_TABLE = "appBindTable";
     /** 应用中心表（第三方应用列表：默认地址 + 单点登录实现类）物理名。 */
@@ -79,13 +81,14 @@ public final class OaonesParam {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put(CFG_TABLE, OaonesProps.cfgTable());
         params.put(DEPT_BIND_TABLE, OaonesProps.deptBindTable());
-        params.put(SUB_BIND_TABLE, OaonesProps.subBindTable());
+        params.put(SUB_TENANT_MAP_TABLE, OaonesProps.subTenantMapTable());
         params.put(USER_BIND_TABLE, OaonesProps.userBindTable());
         params.put(USER_RULE_TABLE, OaonesProps.userRuleTable());
         params.put(SYNC_LOG_TABLE, OaonesProps.syncLogTable());
         params.put(SYNC_LOG_ITEM_TABLE, OaonesProps.syncLogItemTable());
         params.put(DEPT_TMP_TABLE, OaonesProps.deptTmpTable());
         params.put(USER_TMP_TABLE, OaonesProps.userTmpTable());
+        params.put(OP_LOG_TABLE, OaonesProps.opLogTable());
         params.put(APP_BIND_TABLE, OaonesProps.appBindTable());
         params.put(APP_TABLE, OaonesProps.appTable());
         params.put(MTG_SYNC_TABLE, OaonesProps.mtgSyncTable());

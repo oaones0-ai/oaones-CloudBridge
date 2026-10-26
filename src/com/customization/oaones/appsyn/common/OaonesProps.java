@@ -31,7 +31,7 @@ public final class OaonesProps {
     /** 未配置表名时的兜底表名（与 sql/oaones_tables.sql 建表脚本一致）。 */
     private static final String DEF_CFG_TABLE = "uf_oaones_qywx_config";
     private static final String DEF_DEPT_BIND_TABLE = "uf_oaones_dept_bind";
-    private static final String DEF_SUB_BIND_TABLE = "uf_oaones_sub_bind";
+    private static final String DEF_SUB_TENANT_MAP_TABLE = "uf_oaones_sub_tenant_map";
     private static final String DEF_USER_BIND_TABLE = "uf_oaones_user_bind";
     private static final String DEF_USER_RULE_TABLE = "uf_oaones_user_rule";
     private static final String DEF_SYNC_LOG_TABLE = "uf_oaones_sync_log";
@@ -75,6 +75,8 @@ public final class OaonesProps {
     private static final String DEF_API_LOG_TABLE = "uf_oaones_api_log";
     /** 操作监控日志表（oaones.properties#oaones_op_log_table）默认表名。 */
     private static final String DEF_OP_LOG_TABLE = "uf_oaones_op_log";
+    /** 日志保留设置表（oaones.properties#oaones_log_retention_table）默认表名。 */
+    private static final String DEF_LOG_RETENTION_TABLE = "uf_oaones_log_retention";
     /** OA 分权（选择 OA 组织架构时按登录人范围过滤）三类候选各自对应的 E9 分权权限点。 */
     private static final String DEF_SEC_RIGHT_SUB = "Subcompanys:decentralization";
     private static final String DEF_SEC_RIGHT_DEPT = "Departments:decentralization";
@@ -180,9 +182,13 @@ public final class OaonesProps {
         return tableOf("oaones_dept_bind_table", DEF_DEPT_BIND_TABLE);
     }
 
-    /** OA分部 - 企业微信部门 绑定表（E9 建模表，配置项 oaones_sub_bind_table）。 */
-    public static String subBindTable() {
-        return tableOf("oaones_sub_bind_table", DEF_SUB_BIND_TABLE);
+    /**
+     * OA 分部 - 平台租户一对一映射表（配置项 oaones_sub_tenant_map_table）。
+     *
+     * <p>本表只服务独立的分部映射页面，不替代部门绑定表。</p>
+     */
+    public static String subTenantMapTable() {
+        return tableOf("oaones_sub_tenant_map_table", DEF_SUB_TENANT_MAP_TABLE);
     }
 
     /** OA人员 - 企业微信成员 绑定表（E9 建模表，配置项 oaones_user_bind_table）。 */
@@ -507,12 +513,12 @@ public final class OaonesProps {
     }
 
     /**
-     * 接口日志保留天数（oaones.properties#api.log.keep.days，默认 30；0 = 永久保留）。
+     * 旧接口日志保留天数配置（oaones.properties#api.log.keep.days，默认 0；0 = 永久保留）。
      *
-     * <p>打开「接口日志中心」页面时顺带清理更早的日志（每进程每小时最多清一次）。</p>
+     * <p>现由「系统设置 → 日志保留」统一维护；本方法仅为旧部署兼容保留。</p>
      */
     public static int apiLogKeepDays() {
-        return propInt("api.log.keep.days", 30);
+        return propInt("api.log.keep.days", 0);
     }
 
     /**
@@ -536,6 +542,11 @@ public final class OaonesProps {
         return tableOf("oaones_op_log_table", DEF_OP_LOG_TABLE);
     }
 
+    /** 日志保留设置表（配置项 {@code oaones_log_retention_table}）。 */
+    public static String logRetentionTable() {
+        return tableOf("oaones_log_retention_table", DEF_LOG_RETENTION_TABLE);
+    }
+
     /**
      * 是否采集操作监控（oaones.properties#op.log.enable，默认 1 = 开启）。
      *
@@ -547,12 +558,12 @@ public final class OaonesProps {
     }
 
     /**
-     * 操作监控日志保留天数（oaones.properties#op.log.keep.days，默认 90；0 = 永久保留）。
+     * 旧操作监控日志保留天数配置（oaones.properties#op.log.keep.days，默认 0；0 = 永久保留）。
      *
-     * <p>打开「操作监控平台」页面时顺带清理更早的日志（每进程每小时最多清一次）。</p>
+     * <p>现由「系统设置 → 日志保留」统一维护；本方法仅为旧部署兼容保留。</p>
      */
     public static int opLogKeepDays() {
-        return propInt("op.log.keep.days", 90);
+        return propInt("op.log.keep.days", 0);
     }
 
     /**
@@ -962,10 +973,13 @@ public final class OaonesProps {
     }
 
     /**
-     * 扫码后是否需要扫码人在手机上点“确认登录”：1=需要（默认，防误扫/防二维码被他人扫走），0=扫码即登录。
+     * 扫码后是否需要扫码人在手机上点“确认登录”：1=需要，0=扫码即登录（默认）。
+     *
+     * <p>统一登录页不再做手机端二次确认：扫码授权成功即签发一次性登录令牌，
+     * 电脑端轮询到结果后直接进入工作台。保留该开关只为兼容旧配置与历史调用。</p>
      */
     public static int loginQrConfirm() {
-        return propInt("login.qr.confirm", 1);
+        return propInt("login.qr.confirm", 0);
     }
 
     /** 过期票据保留小时数（新建二维码时顺手清理更早的记录，默认 24 小时）。 */
@@ -988,11 +1002,11 @@ public final class OaonesProps {
      * 登录成功后的默认落地页（未指定 gopage 时用，`#` 之后的页面参数要整段保留，
      * 见 {@link OaonesSso#internalPath}）。
      *
-     * <p>默认落“应用中心 - 桌面启动台”`/oaones/appCenter/Desktop.jsp`（不再进系统首页）；
+     * <p>默认落工作台对外地址 `/oaones/desktop`（路由到应用中心桌面启动台，不再进系统首页）；
      * 想回系统首页把 {@code login.landing.url} 配成 `/wui/index.html#/main` 即可。</p>
      */
     public static String loginLandingUrl() {
-        return prop("login.landing.url", "/oaones/appCenter/Desktop.jsp");
+        return prop("login.landing.url", "/oaones/desktop");
     }
 
     /**
@@ -1143,9 +1157,9 @@ public final class OaonesProps {
         return WeaverUtil.getModeIdByTableName(deptBindTable());
     }
 
-    /** 分部绑定建模模块ID（按 {@link #subBindTable()} 反查）。 */
-    public static int subBindModeId() {
-        return WeaverUtil.getModeIdByTableName(subBindTable());
+    /** OA 分部 - 平台租户映射建模模块ID（按 {@link #subTenantMapTable()} 反查）。 */
+    public static int subTenantMapModeId() {
+        return WeaverUtil.getModeIdByTableName(subTenantMapTable());
     }
 
     /** 人员绑定建模模块ID（按 {@link #userBindTable()} 反查）。 */
@@ -1366,9 +1380,9 @@ public final class OaonesProps {
         return times < 0 ? 0 : times;
     }
 
-    /** 考勤同步日志（批次 + 明细）保留天数（{@code att.log.keep.days}，默认 90；0 = 永久保留）。 */
+    /** 旧考勤同步日志保留天数配置；现由「系统设置 → 日志保留」统一维护，默认 0。 */
     public static int attLogKeepDays() {
-        return propInt("att.log.keep.days", 90);
+        return propInt("att.log.keep.days", 0);
     }
 
     /** 「最近 N 天」口径的默认 N（{@code att.win.last.days.default}，默认 2）。 */

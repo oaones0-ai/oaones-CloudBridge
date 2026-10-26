@@ -108,6 +108,13 @@
         .layout-fields .layout-mode { grid-column:1 / -1; display:flex; align-items:center;
             gap:7px; font-size:13px; color:var(--oa-g-900); }
         .layout-fields .layout-mode input[type=checkbox] { margin:0; accent-color:var(--oa-primary); }
+        .layout-anchor-options { grid-column:1 / -1; display:flex; flex-wrap:wrap;
+            gap:10px 28px; align-items:flex-start; }
+        .layout-anchor-option { display:flex; align-items:flex-start; gap:7px;
+            max-width:250px; font-size:13px; line-height:1.65; color:var(--oa-g-900); }
+        .layout-anchor-option input[type=radio] { margin:3px 0 0; accent-color:var(--oa-primary); }
+        .layout-anchor-option .muted { display:block; font-size:12px; color:var(--oa-g-500); }
+        .layout-mode-result { grid-column:1 / -1; }
         .layout-field label { display:block; font-size:12px; color:var(--oa-g-600); margin-bottom:4px; }
         .layout-field input { width:100%; }
         .layout-field .unit { display:block; margin-top:2px; text-align:right;
@@ -219,9 +226,10 @@
                 自动判断平台，再用该平台已对接的租户换成员身份。
                 下面的三个开关是<b>同一张二维码按平台的准入</b>：关掉某个平台只是不允许用该平台扫码，
                 不影响另外两个平台使用同一张二维码。</p>
-            <p><b>个人微信登录</b>：目前只保留配置项，尚未接入（登录页仍不支持用个人微信扫码）。
-                独立菜单「微信设置」里的<b>个人微信绑定</b>是另一件事——它维护“谁绑定了哪个微信号”，
-                与本页的登录方式开关互不影响。</p>
+            <p><b>个人微信登录</b>：开启后登录页出现独立的<b>“个人微信登录”</b>页签，
+                使用微信开放平台官方二维码；扫码后按「微信设置」里的个人微信绑定关系定位 OA 账号。
+                使用前必须先在「微信设置」页维护 AppID / AppSecret，并让员工完成个人微信绑定。
+                个人微信与企业微信 / 钉钉 / 飞书不共用二维码，但共用扫码登录票据、确认流程与有效期。</p>
             <p><b>扫码二维码有效期（秒）</b>：超时后登录页提示
                 <span class="rule">已超时，请手动刷新二维码</span>；允许 <b>30 ~ 180 秒</b>（最长 3 分钟），
                 留空表示用系统默认值（默认 <b>120 秒</b>）。登录页二维码下方会按秒倒计时，
@@ -246,8 +254,12 @@
                 <b>0% = 完全不透明，100% = 完全透明</b>。100% 是默认值，也就是没有底板，与历史登录页一致；
                 只调整底板，左侧文字本身始终保持清晰。调整后直接看右侧浮动的整页效果预览，
                 超时后的“重新登录”弹框里不显示左侧区域，也不受这里影响。</p>
-            <p><b>登录框位置与尺寸</b>：以<b>浏览器可视区域左上角</b>为 0,0，按像素设置登录框的
-                左侧（X）、顶部（Y）、宽度和高度。直接在右侧浮动的效果预览里<b>拖动登录框</b>调整位置，
+            <p><b>登录框与左侧文字定位方式</b>：二选一，并<b>同时作用于登录框和左侧文字</b>。
+                “左上角相对定位”沿用现有方式，以浏览器可视区域左上角为 0,0；
+                “中心点相对定位”以浏览器视口中心为 0,0，X / Y 表示区域中心相对视口中心的偏移，
+                向右 / 向下为正，向左 / 向上为负。两种方式都可继续在效果预览中拖动，保存后始终使用同一个定位基准。</p>
+            <p><b>登录框位置与尺寸</b>：按当前选择的定位方式设置登录框的 X、Y、宽度和高度。
+                直接在右侧浮动的效果预览里<b>拖动登录框</b>调整位置，
                 拖右下角调整宽高；四项要么都设置、要么都不设置。<b>不勾选“自定义位置与尺寸”时，
                 登录框在页面居中（水平、垂直），左侧文字保留在登录框左边</b>（系统默认布局）。
                 坐标允许 0，所以“留空”才表示默认。宽高按 CSS 像素保存；高度固定时表单内容超出
@@ -261,8 +273,9 @@
                 左侧区域的位置与尺寸在下一行「文字说明位置与尺寸」单独设置；
                 左侧区域在<b>超时后的“重新登录”弹框里不显示</b>（弹框只留登录本身）。</p>
             <p><b>文字说明位置与尺寸</b>：设置的是登录页<b>左侧文字区</b>（自定义富文本或系统默认说明都在里面）。
-                口径与登录框一致：以<b>浏览器可视区域左上角</b>为 0,0，按像素设置左侧（X）、顶部（Y）、
-                宽度和高度；直接在右侧浮动的效果预览里<b>拖动文字区</b>调整位置，拖右下角调整宽高，
+                口径与登录框完全一致，使用同一个定位方式：按像素设置左侧文字的 X、Y、宽度和高度
+                （左上角模式为左边缘 / 上边缘，中心模式为区域中心相对视口中心的偏移）；
+                直接在右侧浮动的效果预览里<b>拖动文字区</b>调整位置，拖右下角调整宽高，
                 四项要么都设置、要么都不设置。<b>不勾选“自定义位置与尺寸”时跟随系统默认版式</b>
                 （在登录框左边，随登录框的默认 / 自定义布局自动让位）。高度固定时内容超出会在文字区内滚动；
                 视口宽度 ≤ 860px 时仍使用移动端默认布局；超时后的“重新登录”弹框里不显示左侧区域。</p>
@@ -322,10 +335,12 @@
                         这里勾选的平台才允许扫码（至少勾一个扫码页签才会出现）。</td>
                 </tr>
                 <tr>
-                    <td><b>个人微信登录</b> <span class="muted">（未接入）</span></td>
+                    <td><b>个人微信登录</b></td>
                     <td><label><input type="checkbox" id="cfgPersonalWxEnable" name="personal_wx_enable"> 开启</label></td>
-                    <td>仅保留配置项：保存后登录页不展示、也没有登录实现（接入后再启用）。
-                        个人微信<b>绑定</b>见独立菜单「微信设置」，与本开关无关。</td>
+                    <td>开启后登录页显示独立的“个人微信登录”页签，使用微信开放平台官方二维码。
+                        使用前需在独立菜单「微信设置」维护 AppID / AppSecret，
+                        并与员工建立个人微信绑定；未配置密钥时登录页不会把这路方式算作可用。
+                        <span id="cfgPersonalWxState" class="muted"></span></td>
                 </tr>
                 <tr>
                     <td><b>扫码二维码有效期（秒）</b></td>
@@ -420,6 +435,39 @@
                 </tr>
                 <tr>
                     <td>
+                        <b>定位方式</b>
+                        <div class="muted" style="margin-top:4px;">登录框与左侧文字共用</div>
+                    </td>
+                    <td colspan="2">
+                        <div class="layout-editor">
+                            <div class="layout-fields">
+                                <div class="layout-anchor-options" role="radiogroup" aria-label="登录框与左侧文字定位方式">
+                                    <label class="layout-anchor-option">
+                                        <input type="radio" name="cfgLayoutMode" id="cfgLayoutModeLeftTop"
+                                               value="0" checked>
+                                        <span>左上角相对定位
+                                            <span class="muted">保留现有方式，X / Y 是区域左上角坐标</span>
+                                        </span>
+                                    </label>
+                                    <label class="layout-anchor-option">
+                                        <input type="radio" name="cfgLayoutMode" id="cfgLayoutModeCenter"
+                                               value="1">
+                                        <span>中心点相对定位
+                                            <span class="muted">X / Y 是区域中心相对视口中心的偏移，可为负数</span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="layout-tip" id="cfgLayoutModeHint">
+                                    登录框和左侧文字始终使用同一种定位方式；切换时会按预览中的当前位置换算，
+                                    不会改变画面上的点位。
+                                </div>
+                                <span class="cfg-logo-result layout-mode-result" id="cfgLayoutModeResult"></span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
                         <b>登录框位置与尺寸</b>
                         <div class="muted" style="margin-top:4px;">在顶部效果预览中拖动登录框</div>
                     </td>
@@ -431,14 +479,14 @@
                                     使用自定义位置与尺寸（不勾选 = 系统默认居中布局）
                                 </label>
                                 <div class="layout-field">
-                                    <label for="cfgLoginBoxLeft">距页面左侧（X）</label>
+                                    <label for="cfgLoginBoxLeft" id="cfgLoginBoxLeftLabel">距页面左侧（X）</label>
                                     <input type="number" id="cfgLoginBoxLeft" min="0"
                                            max="<%=OaonesConst.LOGIN_BOX_MAX_POS%>" step="1"
                                            autocomplete="off" data-lpignore="true" disabled>
                                     <span class="unit">px</span>
                                 </div>
                                 <div class="layout-field">
-                                    <label for="cfgLoginBoxTop">距页面顶部（Y）</label>
+                                    <label for="cfgLoginBoxTop" id="cfgLoginBoxTopLabel">距页面顶部（Y）</label>
                                     <input type="number" id="cfgLoginBoxTop" min="0"
                                            max="<%=OaonesConst.LOGIN_BOX_MAX_POS%>" step="1"
                                            autocomplete="off" data-lpignore="true" disabled>
@@ -466,8 +514,8 @@
                                     </button>
                                     <span class="cfg-logo-result" id="cfgLoginBoxResult"></span>
                                 </div>
-                                <div class="layout-tip">
-                                    坐标以<b>浏览器可视区域左上角</b>为 0,0，单位是 CSS 像素；
+                                <div class="layout-tip" id="cfgLoginBoxPositionTip">
+                                    当前坐标以<b>浏览器可视区域左上角</b>为 0,0，单位是 CSS 像素；
                                     不勾选时登录框按系统默认布局<b>居中显示</b>，左侧说明区在它左边；
                                     可以直接在右侧浮动的效果预览里拖动登录框到任意点位，拖右下角改宽高。
                                     高度固定时内容超出会在登录框内滚动；
@@ -539,14 +587,14 @@
                                     使用自定义位置与尺寸（不勾选 = 跟随系统默认版式）
                                 </label>
                                 <div class="layout-field">
-                                    <label for="cfgBrandLeft">距页面左侧（X）</label>
+                                    <label for="cfgBrandLeft" id="cfgBrandLeftLabel">距页面左侧（X）</label>
                                     <input type="number" id="cfgBrandLeft" min="0"
                                            max="<%=OaonesConst.LOGIN_BRAND_MAX_POS%>" step="1"
                                            autocomplete="off" data-lpignore="true" disabled>
                                     <span class="unit">px</span>
                                 </div>
                                 <div class="layout-field">
-                                    <label for="cfgBrandTop">距页面顶部（Y）</label>
+                                    <label for="cfgBrandTop" id="cfgBrandTopLabel">距页面顶部（Y）</label>
                                     <input type="number" id="cfgBrandTop" min="0"
                                            max="<%=OaonesConst.LOGIN_BRAND_MAX_POS%>" step="1"
                                            autocomplete="off" data-lpignore="true" disabled>
@@ -574,8 +622,8 @@
                                     </button>
                                     <span class="cfg-logo-result" id="cfgBrandLayoutResult"></span>
                                 </div>
-                                <div class="layout-tip">
-                                    坐标同样以<b>浏览器可视区域左上角</b>为 0,0，单位是 CSS 像素；
+                                <div class="layout-tip" id="cfgBrandPositionTip">
+                                    坐标与登录框使用同一种定位方式，单位为 CSS 像素；
                                     不勾选时左侧文字跟随系统默认版式（在登录框左边）；
                                     可以直接在右侧浮动的效果预览里拖动左侧文字区到任意点位，拖右下角改宽高。
                                     高度固定时内容超出会在文字区内滚动；
@@ -605,6 +653,8 @@
 "use strict";
 (function () {
     var CAN_MAINTAIN = <%=oaonesCanMaintain%>;
+    /** 个人微信 AppID / AppSecret 是否已在「微信设置」配置好；未配置时实际登录页不显示该页签。 */
+    var personalWxConfigured = false;
     /** 服务端默认的有效期（秒）：设置页留空时按它工作，页面提示按它显示 */
     var defaultTtl = 0;
 
@@ -942,6 +992,10 @@
         minHeight: <%=OaonesConst.LOGIN_BOX_MIN_HEIGHT%>, maxHeight: <%=OaonesConst.LOGIN_BOX_MAX_HEIGHT%>,
         maxPos: <%=OaonesConst.LOGIN_BOX_MAX_POS%>
     };
+    /** 登录框与左侧文字共用的定位方式：0 = 左上角相对，1 = 区域中心相对视口中心。 */
+    var LAYOUT_MODE_LEFT_TOP = 0;
+    var LAYOUT_MODE_CENTER = 1;
+    var layoutMode = LAYOUT_MODE_LEFT_TOP;
     /**
      * 布局预览状态：winWidth / winHeight 是“登录页实际会看到的浏览器视口”，
      * scale 是把视口等比缩到设置页预览框里的比例；left/top/width/height 始终存**实际像素**。
@@ -973,6 +1027,106 @@
 
     function clampNumber(value, min, max) {
         return Math.min(max, Math.max(min, value));
+    }
+
+    function isCenterLayoutMode() {
+        return layoutMode === LAYOUT_MODE_CENTER;
+    }
+
+    /**
+     * 输入框 X / Y → 预览中的实际左上角矩形。
+     * 左上角模式直接使用 X / Y；中心模式把“区域中心相对视口中心的偏移”还原为 left / top。
+     */
+    function boxFromLayoutValues(x, y, width, height) {
+        var w = Math.round(width);
+        var h = Math.round(height);
+        var left = Math.round(x);
+        var top = Math.round(y);
+        if (isCenterLayoutMode()) {
+            left = Math.round(layoutView.winWidth / 2 + x - w / 2);
+            top = Math.round(layoutView.winHeight / 2 + y - h / 2);
+        }
+        return { x: Math.round(x), y: Math.round(y), left: left, top: top, width: w, height: h };
+    }
+
+    /** 预览中的实际矩形 → 当前定位方式下应回显 / 保存的 X / Y。 */
+    function layoutValuesFromBox(box) {
+        var width = Math.round(Number(box.width) || 0);
+        var height = Math.round(Number(box.height) || 0);
+        if (isCenterLayoutMode()) {
+            return {
+                x: Math.round(box.left + width / 2 - layoutView.winWidth / 2),
+                y: Math.round(box.top + height / 2 - layoutView.winHeight / 2)
+            };
+        }
+        return { x: Math.round(box.left), y: Math.round(box.top) };
+    }
+
+    function positionModeResult(msg, mode) {
+        var el = byId("cfgLayoutModeResult");
+        el.className = "cfg-logo-result" + (mode ? " " + mode : "");
+        el.textContent = msg || "";
+    }
+
+    /** 两种定位方式共用一套 X / Y 输入框，只切换标签、允许的符号与说明。 */
+    function applyLayoutModeUi() {
+        var center = isCenterLayoutMode();
+        byId("cfgLayoutModeLeftTop").checked = !center;
+        byId("cfgLayoutModeCenter").checked = center;
+        byId("cfgLoginBoxLeftLabel").textContent = center ? "相对中心水平偏移（X）" : "距页面左侧（X）";
+        byId("cfgLoginBoxTopLabel").textContent = center ? "相对中心垂直偏移（Y）" : "距页面顶部（Y）";
+        byId("cfgBrandLeftLabel").textContent = center ? "相对中心水平偏移（X）" : "距页面左侧（X）";
+        byId("cfgBrandTopLabel").textContent = center ? "相对中心垂直偏移（Y）" : "距页面顶部（Y）";
+        byId("cfgLoginBoxLeft").setAttribute("min", center ? String(-LAYOUT_LIMITS.maxPos) : "0");
+        byId("cfgLoginBoxTop").setAttribute("min", center ? String(-LAYOUT_LIMITS.maxPos) : "0");
+        byId("cfgBrandLeft").setAttribute("min", center ? String(-BRAND_LIMITS.maxPos) : "0");
+        byId("cfgBrandTop").setAttribute("min", center ? String(-BRAND_LIMITS.maxPos) : "0");
+        byId("cfgLayoutModeHint").innerHTML = center
+            ? "当前为<b>中心点相对定位</b>：0,0 表示区域中心与视口中心重合；向右 / 向下为正，"
+                + "向左 / 向上为负。登录框和左侧文字共同使用这一方式。"
+            : "当前为<b>左上角相对定位</b>（保留现有方式）：X / Y 是区域左上角相对视口左上角的像素坐标。"
+                + "登录框和左侧文字共同使用这一方式。";
+        byId("cfgLoginBoxPositionTip").innerHTML = center
+            ? "X / Y 是<b>登录框中心相对浏览器视口中心</b>的偏移，单位是 CSS 像素，可为负数；"
+                + "不勾选自定义时仍使用系统默认居中布局。切换预览屏幕时中心点保持不变。"
+            : "坐标以<b>浏览器可视区域左上角</b>为 0,0，单位是 CSS 像素；"
+                + "不勾选自定义时登录框按系统默认布局<b>居中显示</b>。";
+        byId("cfgBrandPositionTip").innerHTML = center
+            ? "X / Y 是<b>文字区中心相对浏览器视口中心</b>的偏移，与登录框使用同一个定位方式；"
+                + "可为负数，切换预览屏幕时中心点保持不变。"
+            : "坐标与登录框一样以<b>浏览器可视区域左上角</b>为 0,0，使用同一个定位方式；"
+                + "不勾选自定义时左侧文字跟随系统默认版式。";
+        byId("cfgLayoutModeLeftTop").disabled = !CAN_MAINTAIN;
+        byId("cfgLayoutModeCenter").disabled = !CAN_MAINTAIN;
+    }
+
+    /** 切换共用定位方式：以画面上现有矩形为基准换算 X / Y，避免切换后位置跳动。 */
+    function setLayoutMode(nextMode, announce) {
+        if (!CAN_MAINTAIN) { return; }
+        nextMode = Number(nextMode) === LAYOUT_MODE_CENTER
+            ? LAYOUT_MODE_CENTER : LAYOUT_MODE_LEFT_TOP;
+        if (nextMode === layoutMode) {
+            applyLayoutModeUi();
+            return;
+        }
+        var cardBox = {
+            left: layoutView.left, top: layoutView.top,
+            width: layoutView.width, height: layoutView.height
+        };
+        var brandBox = {
+            left: brandLayoutView.left, top: brandLayoutView.top,
+            width: brandLayoutView.width, height: brandLayoutView.height
+        };
+        layoutMode = nextMode;
+        writeLayoutInputs(cardBox);
+        writeBrandLayoutInputs(brandBox);
+        applyLayoutModeUi();
+        positionModeResult(isCenterLayoutMode()
+            ? "已选择中心点相对定位（登录框与左侧文字共用）"
+            : "已选择左上角相对定位（登录框与左侧文字共用）");
+        if (announce !== false) {
+            renderUnifiedPreview();
+        }
     }
 
     /** 默认布局（css/login.css 的 .login-page-default）：宽 400、在视口水平 / 垂直居中。 */
@@ -1019,13 +1173,16 @@
         el.textContent = msg || "";
     }
 
-    /** 读四个数字输入框；任一项为空 / 非整数都返回 null（保存时给明确提示，预览保留上一次有效值）。 */
+    /**
+     * 读登录框四个数字输入框；X / Y 按当前定位方式解释成实际矩形。
+     * 空值 / 非整数返回 null；左上角模式不允许负坐标。
+     */
     function readLayoutInputs() {
         var ids = ["cfgLoginBoxLeft", "cfgLoginBoxTop", "cfgLoginBoxWidth", "cfgLoginBoxHeight"];
         var values = [];
         for (var i = 0; i < ids.length; i++) {
             var raw = String(byId(ids[i]).value || "").replace(/^\s+|\s+$/g, "");
-            if (!/^\d+$/.test(raw)) {
+            if (!/^-?\d+$/.test(raw)) {
                 return null;
             }
             var n = Number(raw);
@@ -1034,14 +1191,18 @@
             }
             values.push(Math.round(n));
         }
-        return { left: values[0], top: values[1], width: values[2], height: values[3] };
+        if (!isCenterLayoutMode() && (values[0] < 0 || values[1] < 0)) {
+            return null;
+        }
+        return boxFromLayoutValues(values[0], values[1], values[2], values[3]);
     }
 
     function writeLayoutInputs(box) {
-        byId("cfgLoginBoxLeft").value = String(box.left);
-        byId("cfgLoginBoxTop").value = String(box.top);
-        byId("cfgLoginBoxWidth").value = String(box.width);
-        byId("cfgLoginBoxHeight").value = String(box.height);
+        var values = layoutValuesFromBox(box);
+        byId("cfgLoginBoxLeft").value = String(values.x);
+        byId("cfgLoginBoxTop").value = String(values.y);
+        byId("cfgLoginBoxWidth").value = String(Math.round(box.width));
+        byId("cfgLoginBoxHeight").value = String(Math.round(box.height));
     }
 
     function setLayoutInputsDisabled() {
@@ -1061,13 +1222,13 @@
         el.textContent = msg || "";
     }
 
-    /** 读左侧文字的四个数字输入框；任一项为空 / 非整数都返回 null。 */
+    /** 读左侧文字四个数字输入框；与登录框共用定位方式，左上角模式不允许负坐标。 */
     function readBrandLayoutInputs() {
         var ids = ["cfgBrandLeft", "cfgBrandTop", "cfgBrandWidth", "cfgBrandHeight"];
         var values = [];
         for (var i = 0; i < ids.length; i++) {
             var raw = String(byId(ids[i]).value || "").replace(/^\s+|\s+$/g, "");
-            if (!/^\d+$/.test(raw)) {
+            if (!/^-?\d+$/.test(raw)) {
                 return null;
             }
             var n = Number(raw);
@@ -1076,14 +1237,18 @@
             }
             values.push(Math.round(n));
         }
-        return { left: values[0], top: values[1], width: values[2], height: values[3] };
+        if (!isCenterLayoutMode() && (values[0] < 0 || values[1] < 0)) {
+            return null;
+        }
+        return boxFromLayoutValues(values[0], values[1], values[2], values[3]);
     }
 
     function writeBrandLayoutInputs(box) {
-        byId("cfgBrandLeft").value = String(box.left);
-        byId("cfgBrandTop").value = String(box.top);
-        byId("cfgBrandWidth").value = String(box.width);
-        byId("cfgBrandHeight").value = String(box.height);
+        var values = layoutValuesFromBox(box);
+        byId("cfgBrandLeft").value = String(values.x);
+        byId("cfgBrandTop").value = String(values.y);
+        byId("cfgBrandWidth").value = String(Math.round(box.width));
+        byId("cfgBrandHeight").value = String(Math.round(box.height));
     }
 
     function setBrandLayoutInputsDisabled() {
@@ -1127,7 +1292,7 @@
     function applyBrandLayoutInputs() {
         var box = readBrandLayoutInputs();
         if (!box) {
-            brandLayoutResult("左侧、顶部、宽度、高度四项都要填整数像素", "error");
+            brandLayoutResult("X、Y、宽度、高度四项都要填整数像素（左上角模式不能为负）", "error");
             return;
         }
         brandLayoutView.left = box.left;
@@ -1241,7 +1406,8 @@
             mobile: byId("cfgMobileEnable").checked,
             email: byId("cfgEmailEnable").checked,
             scan: byId("cfgWecomQrEnable").checked || byId("cfgDingtalkQrEnable").checked
-                || byId("cfgFeishuQrEnable").checked
+                || byId("cfgFeishuQrEnable").checked,
+            personalWx: byId("cfgPersonalWxEnable").checked && personalWxConfigured
         };
     }
 
@@ -1259,20 +1425,24 @@
         if (!isFinite(opacity)) { opacity = CARD_ALPHA.defaultValue; }
         var brandOpacity = Number(byId("cfgBrandTransparency").value);
         if (!isFinite(brandOpacity)) { brandOpacity = BRAND_ALPHA.defaultValue; }
+        // preview.jsp 与正式登录页同样按“当前定位方式”解释 X / Y，因此这里传当前方式下的坐标。
+        var cardPosition = layoutValuesFromBox(layoutView);
+        var brandPosition = layoutValuesFromBox(brandLayoutView);
         return {
             brandHtml: brandEditor ? brandEditor.getHtml() : byId("cfgBrandHtml").value,
             logo: previewImageUrl(byId("cfgLogo").value, "loginlogo_"),
             bg: previewImageUrl(byId("cfgBgImage").value, "loginbg_"),
             opacity: clampNumber(Math.round(opacity), CARD_ALPHA.min, CARD_ALPHA.max),
             brandOpacity: clampNumber(Math.round(brandOpacity), BRAND_ALPHA.min, BRAND_ALPHA.max),
+            layoutMode: layoutMode,
             custom: layoutView.custom,
-            left: layoutView.left,
-            top: layoutView.top,
+            left: cardPosition.x,
+            top: cardPosition.y,
             width: layoutView.width,
             height: layoutView.height,
             brandCustom: brandLayoutView.custom,
-            brandLeft: brandLayoutView.left,
-            brandTop: brandLayoutView.top,
+            brandLeft: brandPosition.x,
+            brandTop: brandPosition.y,
             brandWidth: brandLayoutView.width,
             brandHeight: brandLayoutView.height,
             methods: previewMethods(),
@@ -1304,6 +1474,11 @@
      */
     function applyLayoutViewport() {
         var mode = String(byId("cfgLoginBoxViewport").value || "current");
+        // 中心点相对定位不随分辨率改变偏移量：换参考屏幕时保留 X / Y，只按新视口重新换算实际矩形。
+        var centerCard = isCenterLayoutMode() && layoutView.custom
+            ? layoutValuesFromBox(layoutView) : null;
+        var centerBrand = isCenterLayoutMode() && brandLayoutView.custom
+            ? layoutValuesFromBox(brandLayoutView) : null;
         layoutView.viewportMode = mode;
         if (mode === "current") {
             layoutView.winWidth = Math.max(861, document.documentElement.clientWidth || window.innerWidth || 1280);
@@ -1319,8 +1494,27 @@
             layoutView.top = def.top;
             layoutView.width = def.width;
             layoutView.height = def.height;
-            writeLayoutInputs(layoutView);
+        } else if (centerCard) {
+            var cardBox = boxFromLayoutValues(centerCard.x, centerCard.y,
+                layoutView.width, layoutView.height);
+            layoutView.left = cardBox.left;
+            layoutView.top = cardBox.top;
         }
+        if (!brandLayoutView.custom) {
+            var brandDef = defaultBrandBox();
+            brandLayoutView.left = brandDef.left;
+            brandLayoutView.top = brandDef.top;
+            brandLayoutView.width = brandDef.width;
+            brandLayoutView.height = brandDef.height;
+        } else if (centerBrand) {
+            var brandBox = boxFromLayoutValues(centerBrand.x, centerBrand.y,
+                brandLayoutView.width, brandLayoutView.height);
+            brandLayoutView.left = brandBox.left;
+            brandLayoutView.top = brandBox.top;
+        }
+        writeLayoutInputs(layoutView);
+        writeBrandLayoutInputs(brandLayoutView);
+        applyLayoutModeUi();
         sizePreviewStage();
         renderUnifiedPreview();
     }
@@ -1453,7 +1647,7 @@
     function applyLayoutInputs() {
         var box = readLayoutInputs();
         if (!box) {
-            layoutResult("左侧、顶部、宽度、高度四项都要填整数像素", "error");
+            layoutResult("X、Y、宽度、高度四项都要填整数像素（左上角模式不能为负）", "error");
             return;
         }
         layoutView.left = box.left;
@@ -1527,6 +1721,9 @@
 
     /** 回显接口返回的登录框布局：四列都有值才启用，否则按默认布局显示。 */
     function renderLoginBoxLayout(data) {
+        // 定位方式是全局配置，必须先于登录框 / 左侧文字坐标解释。
+        layoutMode = Number(data.login_layout_mode) === LAYOUT_MODE_CENTER
+            ? LAYOUT_MODE_CENTER : LAYOUT_MODE_LEFT_TOP;
         LAYOUT_LIMITS.minWidth = Number(data.login_box_min_width) > 0
             ? Number(data.login_box_min_width) : LAYOUT_LIMITS.minWidth;
         LAYOUT_LIMITS.maxWidth = Number(data.login_box_max_width) > 0
@@ -1546,10 +1743,14 @@
 
         layoutView.custom = !!data.login_box_custom;
         if (layoutView.custom) {
-            layoutView.left = Number(data.login_box_left) || 0;
-            layoutView.top = Number(data.login_box_top) || 0;
-            layoutView.width = Number(data.login_box_width) || 400;
-            layoutView.height = Number(data.login_box_height) || 560;
+            var box = boxFromLayoutValues(Number(data.login_box_left) || 0,
+                Number(data.login_box_top) || 0,
+                Number(data.login_box_width) || 400,
+                Number(data.login_box_height) || 560);
+            layoutView.left = box.left;
+            layoutView.top = box.top;
+            layoutView.width = box.width;
+            layoutView.height = box.height;
         } else {
             var def = defaultLayoutBox();
             layoutView.left = def.left;
@@ -1559,6 +1760,7 @@
         }
         writeLayoutInputs(layoutView);
         byId("cfgLoginBoxCustom").checked = layoutView.custom;
+        applyLayoutModeUi();
         setLayoutInputsDisabled();
         sizePreviewStage();
         renderUnifiedPreview();
@@ -1588,10 +1790,14 @@
 
         brandLayoutView.custom = !!data.brand_custom;
         if (brandLayoutView.custom) {
-            brandLayoutView.left = Number(data.brand_left) || 0;
-            brandLayoutView.top = Number(data.brand_top) || 0;
-            brandLayoutView.width = Number(data.brand_width) || 504;
-            brandLayoutView.height = Number(data.brand_height) || 240;
+            var brandBox = boxFromLayoutValues(Number(data.brand_left) || 0,
+                Number(data.brand_top) || 0,
+                Number(data.brand_width) || 504,
+                Number(data.brand_height) || 240);
+            brandLayoutView.left = brandBox.left;
+            brandLayoutView.top = brandBox.top;
+            brandLayoutView.width = brandBox.width;
+            brandLayoutView.height = brandBox.height;
         } else {
             var def = defaultBrandBox();
             brandLayoutView.left = def.left;
@@ -1601,6 +1807,7 @@
         }
         writeBrandLayoutInputs(brandLayoutView);
         byId("cfgBrandCustom").checked = brandLayoutView.custom;
+        applyLayoutModeUi();
         setBrandLayoutInputsDisabled();
         renderUnifiedPreview();
         brandLayoutResult(brandLayoutView.custom
@@ -1617,6 +1824,12 @@
         setChecked("cfgDingtalkQrEnable", data.dingtalk_qr_enable);
         setChecked("cfgFeishuQrEnable", data.feishu_qr_enable);
         setChecked("cfgPersonalWxEnable", data.personal_wx_enable);
+        personalWxConfigured = data.personal_wx_configured === true;
+        byId("cfgPersonalWxState").textContent = Number(data.personal_wx_enable) === 1
+            ? (personalWxConfigured
+                ? "（微信授权密钥已配置）"
+                : "（微信授权密钥未配置，保存后仍不会对员工显示）")
+            : "";
         defaultTtl = Number(data.qr_ttl_effective) > 0 ? Number(data.qr_ttl_effective) : 0;
         byId("cfgQrTtlDefault").textContent = defaultTtl > 0 ? String(defaultTtl) : "-";
         var ttl = Number(data.qr_ttl_seconds);
@@ -1687,6 +1900,9 @@
         }
         byId("cfgBrandClearBtn").disabled = true;
         brandResult("无维护权限，不展示当前左侧文字");
+        byId("cfgLayoutModeLeftTop").disabled = true;
+        byId("cfgLayoutModeCenter").disabled = true;
+        positionModeResult("无维护权限，不展示当前定位方式");
         // 登录框布局同样是维护动作：全部禁用，并明确说明不展示当前值
         byId("cfgLoginBoxCustom").disabled = true;
         ["cfgLoginBoxLeft", "cfgLoginBoxTop", "cfgLoginBoxWidth", "cfgLoginBoxHeight"].forEach(function (id) {
@@ -1719,11 +1935,11 @@
             + (byId("cfgEmailEnable").checked ? 1 : 0)
             + (byId("cfgWecomQrEnable").checked ? 1 : 0)
             + (byId("cfgDingtalkQrEnable").checked ? 1 : 0)
-            + (byId("cfgFeishuQrEnable").checked ? 1 : 0);
+            + (byId("cfgFeishuQrEnable").checked ? 1 : 0)
+            + (byId("cfgPersonalWxEnable").checked ? 1 : 0);
         if (usable === 0) {
             showToast("账号密码登录、验证登录（手机号 / 邮箱）、扫码登录至少要开启一种"
-                + "（扫码登录要至少允许一个平台）"
-                + "（个人微信尚未接入登录，单独开启会导致没人能登录）", 1, 0);
+                + "（企业应用扫码或个人微信扫码至少允许一种）", 1, 0);
             return;
         }
         var ttl = String(byId("cfgQrTtl").value || "").replace(/^\s+|\s+$/g, "");
@@ -1742,7 +1958,8 @@
         if (layoutView.custom) {
             var box = readLayoutInputs();
             if (!box) {
-                showToast("登录框位置与尺寸要一起设置：左侧、顶部、宽度、高度四项都填整数像素", 1, 0);
+                showToast("登录框位置与尺寸要一起设置：X、Y、宽度、高度四项都填整数像素"
+                    + "（左上角模式不能为负）", 1, 0);
                 return;
             }
             if (box.width < LAYOUT_LIMITS.minWidth || box.width > LAYOUT_LIMITS.maxWidth) {
@@ -1755,14 +1972,21 @@
                     + LAYOUT_LIMITS.maxHeight + " 像素之间", 1);
                 return;
             }
-            if (box.left + box.width > LAYOUT_LIMITS.maxPos
-                    || box.top + box.height > LAYOUT_LIMITS.maxPos) {
-                showToast("登录框右侧 / 底部位置超出允许范围（请检查坐标与宽高）", 1);
+            if (!isCenterLayoutMode()) {
+                if (box.x + box.width > LAYOUT_LIMITS.maxPos
+                        || box.y + box.height > LAYOUT_LIMITS.maxPos) {
+                    showToast("登录框右侧 / 底部位置超出允许范围（请检查坐标与宽高）", 1);
+                    return;
+                }
+            } else if (Math.abs(box.x) > LAYOUT_LIMITS.maxPos
+                    || Math.abs(box.y) > LAYOUT_LIMITS.maxPos) {
+                showToast("登录框中心相对视图中心的偏移超出允许范围（绝对值不能超过 "
+                    + LAYOUT_LIMITS.maxPos + " 像素）", 1);
                 return;
             }
             boxParams = {
-                login_box_left: String(box.left),
-                login_box_top: String(box.top),
+                login_box_left: String(box.x),
+                login_box_top: String(box.y),
                 login_box_width: String(box.width),
                 login_box_height: String(box.height)
             };
@@ -1774,7 +1998,8 @@
         if (brandLayoutView.custom) {
             var brandBox = readBrandLayoutInputs();
             if (!brandBox) {
-                showToast("文字说明位置与尺寸要一起设置：左侧、顶部、宽度、高度四项都填整数像素", 1, 0);
+                showToast("文字说明位置与尺寸要一起设置：X、Y、宽度、高度四项都填整数像素"
+                    + "（左上角模式不能为负）", 1, 0);
                 return;
             }
             if (brandBox.width < BRAND_LIMITS.minWidth || brandBox.width > BRAND_LIMITS.maxWidth) {
@@ -1787,14 +2012,21 @@
                     + BRAND_LIMITS.maxHeight + " 像素之间", 1);
                 return;
             }
-            if (brandBox.left + brandBox.width > BRAND_LIMITS.maxPos
-                    || brandBox.top + brandBox.height > BRAND_LIMITS.maxPos) {
-                showToast("文字说明右侧 / 底部位置超出允许范围（请检查坐标与宽高）", 1);
+            if (!isCenterLayoutMode()) {
+                if (brandBox.x + brandBox.width > BRAND_LIMITS.maxPos
+                        || brandBox.y + brandBox.height > BRAND_LIMITS.maxPos) {
+                    showToast("文字说明右侧 / 底部位置超出允许范围（请检查坐标与宽高）", 1);
+                    return;
+                }
+            } else if (Math.abs(brandBox.x) > BRAND_LIMITS.maxPos
+                    || Math.abs(brandBox.y) > BRAND_LIMITS.maxPos) {
+                showToast("文字说明中心相对视图中心的偏移超出允许范围（绝对值不能超过 "
+                    + BRAND_LIMITS.maxPos + " 像素）", 1);
                 return;
             }
             brandParams = {
-                brand_left: String(brandBox.left),
-                brand_top: String(brandBox.top),
+                brand_left: String(brandBox.x),
+                brand_top: String(brandBox.y),
                 brand_width: String(brandBox.width),
                 brand_height: String(brandBox.height)
             };
@@ -1837,12 +2069,14 @@
             bg_image: byId("cfgBgImage").value,
             // 空串 = 左侧用系统默认说明；有值就是富文本编辑器里的 HTML（原样保存）
             brand_html: brandEditor ? brandEditor.getHtml() : "",
-            // 四个都空 = 恢复默认居中布局；四个都有值 = 按视口左上角像素定位 + 固定宽高
+            // 登录框与左侧文字共用定位方式：0 = 左上角，1 = 中心点相对视口中心
+            login_layout_mode: String(layoutMode),
+            // 四个都空 = 恢复默认居中布局；四个都有值 = 按上方共用定位方式定位 + 固定宽高
             login_box_left: boxParams.login_box_left,
             login_box_top: boxParams.login_box_top,
             login_box_width: boxParams.login_box_width,
             login_box_height: boxParams.login_box_height,
-            // 四个都空 = 恢复默认版式；四个都有值 = 按视口左上角像素定位 + 固定宽高
+            // 四个都空 = 恢复默认版式；四个都有值 = 与登录框使用同一个定位方式 + 固定宽高
             brand_left: brandParams.brand_left,
             brand_top: brandParams.brand_top,
             brand_width: brandParams.brand_width,
@@ -1953,6 +2187,12 @@
     });
 
     /* 登录框布局：勾选 / 输入 / 拖动 / 拖拽缩放 */
+    ["cfgLayoutModeLeftTop", "cfgLayoutModeCenter"].forEach(function (id) {
+        byId(id).addEventListener("change", function () {
+            if (!this.checked) { return; }
+            setLayoutMode(Number(this.value));
+        });
+    });
     byId("cfgLoginBoxCustom").addEventListener("change", function () {
         setLayoutCustom(this.checked, false);
     });
@@ -2041,6 +2281,10 @@
     window.addEventListener("pointerup", endBrandDrag);
     window.addEventListener("pointercancel", endBrandDrag);
     window.addEventListener("resize", function () {
+        var centerCard = isCenterLayoutMode() && layoutView.custom
+            ? layoutValuesFromBox(layoutView) : null;
+        var centerBrand = isCenterLayoutMode() && brandLayoutView.custom
+            ? layoutValuesFromBox(brandLayoutView) : null;
         if (layoutView.viewportMode === "current") {
             layoutView.winWidth = Math.max(861, document.documentElement.clientWidth || window.innerWidth || 1280);
             layoutView.winHeight = Math.max(600, document.documentElement.clientHeight || window.innerHeight || 800);
@@ -2050,9 +2294,27 @@
                 layoutView.top = def.top;
                 layoutView.width = def.width;
                 layoutView.height = def.height;
-                writeLayoutInputs(layoutView);
+            } else if (centerCard) {
+                var cardBox = boxFromLayoutValues(centerCard.x, centerCard.y,
+                    layoutView.width, layoutView.height);
+                layoutView.left = cardBox.left;
+                layoutView.top = cardBox.top;
+            }
+            if (!brandLayoutView.custom) {
+                var brandDef = defaultBrandBox();
+                brandLayoutView.left = brandDef.left;
+                brandLayoutView.top = brandDef.top;
+                brandLayoutView.width = brandDef.width;
+                brandLayoutView.height = brandDef.height;
+            } else if (centerBrand) {
+                var brandBox = boxFromLayoutValues(centerBrand.x, centerBrand.y,
+                    brandLayoutView.width, brandLayoutView.height);
+                brandLayoutView.left = brandBox.left;
+                brandLayoutView.top = brandBox.top;
             }
         }
+        writeLayoutInputs(layoutView);
+        writeBrandLayoutInputs(brandLayoutView);
         sizePreviewStage();
         renderUnifiedPreview();
     });
@@ -2081,6 +2343,7 @@
     });
 
     // 首屏先把预览框按当前窗口摆好（接口回来后会再用配置值回显一次）
+    applyLayoutModeUi();
     sizePreviewStage();
     renderUnifiedPreview();
     loadConfig();

@@ -18,7 +18,8 @@ public interface ScanLoginMapper {
     /**
      * 扫码落地：记录平台、命中的租户、扫码人身份与命中结果。
      *
-     * <p>只写“扫码侧”的字段，不动 PC 侧的 expire_time / browser_key。</p>
+     * <p>只写“扫码侧”的字段，不动 browser_key；扫码成功时同时延长 expire_time，
+     * 给扫码人留出确认时间，避免原二维码倒计时在确认前把票据判过期。</p>
      */
     int markScanned(@Param("table") String table, @Param("e") ScanLogin entity);
 

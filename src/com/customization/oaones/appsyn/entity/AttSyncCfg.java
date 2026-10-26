@@ -13,6 +13,8 @@ package com.customization.oaones.appsyn.entity;
  *   <li>{@code scopeSubs / scopeDepts / scopeUsers}：同步范围三要素（分部 / 部门 / 人员，多选，
  *       <b>三者之间是 OR 并集</b>：分部含其全部下级分部、部门含其全部下级部门），
  *       三者都为空 = 该租户**全部已绑定人员**；{@code scopeText} 是保存时的文案快照（列表直接展示）；</li>
+ *   <li>{@code oaAccountRule}：同一平台账号绑定多个 OA 账户时的处理规则，
+ *       0 = 只同步主账户 / 1 = 所有账户均同步；历史配置按 0 处理；</li>
  *   <li>{@code dataTypes}：数据类型位（1 正常打卡 / 2 补签卡，可多选）；
  *       {@code signPeriods}：打卡时段位（1 签到 / 2 签退，默认两种）；</li>
  *   <li>{@code winMode}：时间口径（0 当天 / 1 前一天 / 2 任意范围 / 3 最近 N 天），
@@ -49,6 +51,14 @@ public class AttSyncCfg {
     private String scopeUsers;
     /** 范围文案快照（保存时落一份，列表直接展示；组织改名后名称现算）。 */
     private String scopeText;
+
+    /**
+     * OA 多账户同步规则：0 = 只同步主账户 / 1 = 所有账户均同步。
+     *
+     * <p>E9 标准 {@code hrmresource.accounttype}：0 / 空 = 主账户，1 = 子账户。
+     * 同一平台账号绑定多个 OA 账户时，这条设置决定哪些 OA 账户参与两个方向的同步。</p>
+     */
+    private Integer oaAccountRule;
 
     /** 数据类型位：1 正常打卡 / 2 补签卡（补卡）（可多选）。 */
     private Integer dataTypes;
@@ -149,6 +159,9 @@ public class AttSyncCfg {
 
     public String getScopeText() { return scopeText; }
     public void setScopeText(String scopeText) { this.scopeText = scopeText; }
+
+    public Integer getOaAccountRule() { return oaAccountRule; }
+    public void setOaAccountRule(Integer oaAccountRule) { this.oaAccountRule = oaAccountRule; }
 
     public Integer getDataTypes() { return dataTypes; }
     public void setDataTypes(Integer dataTypes) { this.dataTypes = dataTypes; }

@@ -326,11 +326,13 @@ public class DingTalkApi {
     }
 
     /** 创建成员（入参为归一化口径，内部转成钉钉字段）。 */
-    public void createUser(JSONObject user) throws Exception {
+    public JSONObject createUser(JSONObject user) throws Exception {
         OaonesLog.step("调用钉钉创建成员 userid="
                 + OaonesUtil.s(user == null ? "" : user.getString("userid")));
         JSONObject resp = post("/topapi/v2/user/create", userBody(user));
         ensureOk(resp, "创建钉钉成员失败");
+        JSONObject result = resp.getJSONObject("result");
+        return result == null ? new JSONObject() : normalizeUser(result);
     }
 
     /** 更新成员（入参为归一化口径，内部转成钉钉字段）。 */
@@ -582,6 +584,10 @@ public class DingTalkApi {
         String telephone = OaonesUtil.s(user.getString("telephone"));
         if (telephone.length() > 0) {
             body.put("telephone", telephone);
+        }
+        String managerUserId = OaonesUtil.s(user.getString("manager_userid"));
+        if (managerUserId.length() > 0) {
+            body.put("manager_userid", managerUserId);
         }
         JSONArray depts = user.getJSONArray("department");
         JSONArray deptIds = new JSONArray();

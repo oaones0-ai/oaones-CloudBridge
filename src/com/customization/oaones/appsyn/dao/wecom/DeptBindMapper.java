@@ -24,6 +24,12 @@ public interface DeptBindMapper {
                            @Param("cfgId") int cfgId,
                            @Param("oaDeptId") int oaDeptId);
 
+    /** 同一租户、OA 部门、平台部门是否已有绑定；有则原地更新，没有则新增。 */
+    Integer findIdByPair(@Param("table") String table,
+                         @Param("cfgId") int cfgId,
+                         @Param("oaDeptId") int oaDeptId,
+                         @Param("wxDeptId") int wxDeptId);
+
     /** 该企微部门是否已存在启用中的绑定（免绑定标记的校验）。 */
     Integer findActiveIdByWxDept(@Param("table") String table,
                                  @Param("cfgId") int cfgId,

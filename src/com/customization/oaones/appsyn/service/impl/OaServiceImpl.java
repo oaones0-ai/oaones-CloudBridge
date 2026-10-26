@@ -20,8 +20,12 @@ import weaver.hrm.company.OrgOperationUtil;
 import weaver.hrm.company.SubCompanyComInfo;
 import weaver.hrm.resource.ResourceComInfo;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -50,7 +54,51 @@ public class OaServiceImpl implements OaService {
             row.put("parent", OaonesUtil.s(sci.getSupsubcomid()));
             result.add(row);
         }
+        fillSubCompanyPaths(result);
         return result;
+    }
+
+    /**
+     * 补齐“父分部 / 子分部”的完整路径。
+     *
+     * <p>路径在分权过滤前按全量缓存计算，因此即使登录人只看到某个下级分部，
+     * 返回行仍可展示上级路径；不额外下发未授权的分部行。</p>
+     */
+    private static void fillSubCompanyPaths(JSONArray rows) {
+        Map<String, JSONObject> byId = new HashMap<String, JSONObject>();
+        for (int i = 0; i < rows.size(); i++) {
+            JSONObject row = rows.getJSONObject(i);
+            if (row != null) {
+                byId.put(OaonesUtil.s(row.getString("id")), row);
+            }
+        }
+        for (int i = 0; i < rows.size(); i++) {
+            JSONObject row = rows.getJSONObject(i);
+            if (row == null) {
+                continue;
+            }
+            List<String> names = new ArrayList<String>();
+            Set<String> seen = new HashSet<String>();
+            JSONObject current = row;
+            while (current != null) {
+                String id = OaonesUtil.s(current.getString("id")).trim();
+                if (id.length() == 0 || !seen.add(id) || seen.size() > 100) {
+                    break;
+                }
+                String name = OaonesUtil.s(current.getString("name")).trim();
+                if (name.length() == 0) {
+                    name = OaonesUtil.s(current.getString("fullname")).trim();
+                }
+                names.add(name.length() == 0 ? ("分部 " + id) : name);
+                String parentId = OaonesUtil.s(current.getString("parent")).trim();
+                if (parentId.length() == 0 || "0".equals(parentId) || parentId.equals(id)) {
+                    break;
+                }
+                current = byId.get(parentId);
+            }
+            Collections.reverse(names);
+            row.put("path", String.join(" / ", names));
+        }
     }
 
     @Override
@@ -285,11 +333,13 @@ public class OaServiceImpl implements OaService {
         if (userName.length() == 0) {
             throw new RuntimeException("新建 OA 人员缺少姓名");
         }
+        boolean tenantOnly = "0".equals(OaonesUtil.s(departmentId).trim())
+                && OaonesUtil.s(subcompanyId).trim().length() > 0;
         JSONObject oaDept = getDepartment(departmentId);
-        if (oaDept == null) {
+        if (oaDept == null && !tenantOnly) {
             throw new RuntimeException("OA 部门不存在，无法新建账号");
         }
-        if ("1".equals(OaonesUtil.s(oaDept.getString("canceled")))) {
+        if (oaDept != null && "1".equals(OaonesUtil.s(oaDept.getString("canceled")))) {
             throw new RuntimeException("OA 部门已封存，无法新建账号");
         }
         Integer exists = findUserIdByLoginId(login);

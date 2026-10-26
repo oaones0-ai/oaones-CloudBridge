@@ -9,7 +9,8 @@
     // 而登录页恰恰是**没有登录会话**的页面，员工点“扫码登录”时必然被挡掉。
     // 因此这里与 appEntry.jsp / WeComCallback.jsp 同一口径：不经 api.jsp，直接调用控制器；
     // 控制器是公共的 com.customization.oaones.appsyn.controller.LoginController
-    // （三个平台的扫码共用一张二维码、一份票据，见 LoginController 类注释）。
+    // （企业应用扫码共用一张二维码；个人微信使用官方二维码，但共用一份票据，
+    // 见 LoginController 类注释）。
     //
     // 安全口径：本入口只回“哪些平台/租户可以扫码、二维码图片地址是什么、扫码进行到哪一步”，
     // 不发任何 Secret、不接受任何“要登录成谁”的参数——登录身份一律由扫码落地页

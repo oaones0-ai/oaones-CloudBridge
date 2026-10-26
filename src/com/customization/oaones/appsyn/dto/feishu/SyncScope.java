@@ -82,7 +82,7 @@ public class SyncScope {
     public boolean wxDeptInScope(String deptId) {
         String key = deptId == null ? "" : deptId.trim();
         for (int i = 0; i < wxDepts.size(); i++) {
-            if (key.equals(String.valueOf(wxDepts.get(i).getLongValue("id")))) {
+            if (key.equals(String.valueOf(wxDepts.get(i).get("id")))) {
                 return true;
             }
         }

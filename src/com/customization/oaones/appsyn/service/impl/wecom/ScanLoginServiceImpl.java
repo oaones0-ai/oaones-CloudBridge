@@ -397,6 +397,9 @@ public class ScanLoginServiceImpl implements ScanLoginService {
         entity.setOutUserName(OaonesUtil.s(detail.getString("wx_name")));
         entity.setOaUserId(oaUserId);
         entity.setState(needConfirm ? STATE_SCANNED : STATE_CONFIRMED);
+        // 二维码只负责“扫到”。身份已经核实成功后，从此刻起重新计算确认有效期，
+        // 避免用户在最后几秒扫码、授权回跳较慢时立刻被判过期。
+        entity.setExpireTime(scanConfirmedExpireAt(row));
         entity.setMsg("");
         entity.setScanIp(ip);
         entity.setScanUa(userAgent);
@@ -649,10 +652,14 @@ public class ScanLoginServiceImpl implements ScanLoginService {
     private JSONObject baseInfo(ScanLogin row) {
         JSONObject data = new JSONObject();
         String platform = OaonesUtil.s(row.getPlatform());
+        long expireAt = row.getExpireTime() == null ? 0L : row.getExpireTime().longValue();
+        long expiresIn = expireAt <= 0 ? 0L
+                : Math.max(0L, (expireAt - System.currentTimeMillis() + 999L) / 1000L);
         data.put("ticket", OaonesUtil.s(row.getTicket()));
         data.put("platform", platform);
         data.put("platform_label", platform.length() == 0 ? "" : QrLoginPlatform.label(platform));
         data.put("expire_at", row.getExpireTime());
+        data.put("expires_in", Long.valueOf(expiresIn));
         data.put("cfg_id", OaonesUtil.nullToEmpty(row.getCfgId()));
         data.put("out_user_id", OaonesUtil.s(row.getOutUserId()));
         data.put("out_user_name", OaonesUtil.s(row.getOutUserName()));
@@ -660,6 +667,13 @@ public class ScanLoginServiceImpl implements ScanLoginService {
         data.put("oa_name", oaName(row.getOaUserId()));
         data.put("landing_url", OaonesUtil.s(row.getLandingUrl()));
         return data;
+    }
+
+    private long scanConfirmedExpireAt(ScanLogin row) {
+        long original = row.getExpireTime() == null ? 0L : row.getExpireTime().longValue();
+        long extended = System.currentTimeMillis()
+                + new LoginConfigServiceImpl().qrTtlSeconds() * 1000L;
+        return Math.max(original, extended);
     }
 
     /** 确认页展示：平台成员 + 企业名 + 即将登录的 OA 账号。 */

@@ -51,6 +51,11 @@
         if (oaonesToastJsUrl != null) {
             oaonesAssetV = Math.max(oaonesAssetV, oaonesToastJsUrl.openConnection().getLastModified());
         }
+        // 统一登录页 / 找回密码弹层的语种资源
+        java.net.URL oaonesLoginI18nJsUrl = application.getResource("/oaones/js/login.i18n.js");
+        if (oaonesLoginI18nJsUrl != null) {
+            oaonesAssetV = Math.max(oaonesAssetV, oaonesLoginI18nJsUrl.openConnection().getLastModified());
+        }
         java.net.URL oaonesHrmLinkJsUrl = application.getResource("/oaones/js/hrmlink.js");
         if (oaonesHrmLinkJsUrl != null) {
             oaonesAssetV = Math.max(oaonesAssetV, oaonesHrmLinkJsUrl.openConnection().getLastModified());
@@ -82,6 +87,11 @@
         if (oaonesSyncPlanJsUrl != null) {
             oaonesAssetV = Math.max(oaonesAssetV, oaonesSyncPlanJsUrl.openConnection().getLastModified());
         }
+        // 同步结果独立页面（/oaones/js/syncResult.js）
+        java.net.URL oaonesSyncResultJsUrl = application.getResource("/oaones/js/syncResult.js");
+        if (oaonesSyncResultJsUrl != null) {
+            oaonesAssetV = Math.max(oaonesAssetV, oaonesSyncResultJsUrl.openConnection().getLastModified());
+        }
         // 会议同步 / 日程同步页面脚本（/oaones/js/mtgSync.js）：两个一级菜单共用一份
         java.net.URL oaonesMtgSyncJsUrl = application.getResource("/oaones/js/mtgSync.js");
         if (oaonesMtgSyncJsUrl != null) {
@@ -106,6 +116,16 @@
         java.net.URL oaonesAuthReportJsUrl = application.getResource("/oaones/js/authReport.js");
         if (oaonesAuthReportJsUrl != null) {
             oaonesAssetV = Math.max(oaonesAssetV, oaonesAuthReportJsUrl.openConnection().getLastModified());
+        }
+        // 系统设置页面脚本（/oaones/js/systemSettings.js）：日志保留统一 / 单独设置
+        java.net.URL oaonesSystemSettingsJsUrl = application.getResource("/oaones/js/systemSettings.js");
+        if (oaonesSystemSettingsJsUrl != null) {
+            oaonesAssetV = Math.max(oaonesAssetV, oaonesSystemSettingsJsUrl.openConnection().getLastModified());
+        }
+        // OA 分部 - 平台租户一对一映射页面脚本（/oaones/js/orgMap.js）
+        java.net.URL oaonesOrgMapJsUrl = application.getResource("/oaones/js/orgMap.js");
+        if (oaonesOrgMapJsUrl != null) {
+            oaonesAssetV = Math.max(oaonesAssetV, oaonesOrgMapJsUrl.openConnection().getLastModified());
         }
     } catch (Exception oaonesAssetIgnore) {
         oaonesAssetV = 0L;

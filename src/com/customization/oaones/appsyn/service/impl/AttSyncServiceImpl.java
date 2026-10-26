@@ -82,9 +82,6 @@ public class AttSyncServiceImpl implements AttSyncService {
      * 2026-10-15 现场反馈）。</p>
      */
     private static final String TENANT_SWITCH_NAME = "__tenant__";
-    /** 日志保留期清理的时间戳（每进程每小时最多清一次）。 */
-    private static volatile long lastCleanAt;
-
     private final ConfigServiceImpl configService = new ConfigServiceImpl();
 
     /* ------------------------------------------------------------------
@@ -109,6 +106,7 @@ public class AttSyncServiceImpl implements AttSyncService {
         entity.setRowType(Integer.valueOf(OaonesConst.ATT_ROW_TENANT));
         entity.setCfgName(TENANT_SWITCH_NAME);
         entity.setDir(Integer.valueOf(OaonesConst.ATT_DIR_BOTH));
+        entity.setOaAccountRule(Integer.valueOf(OaonesConst.ATT_OA_ACCOUNT_PRIMARY));
         entity.setDataTypes(Integer.valueOf(OaonesConst.ATT_DATA_NORMAL));
         entity.setSignPeriods(Integer.valueOf(OaonesConst.ATT_PERIOD_BOTH));
         entity.setWinMode(Integer.valueOf(OaonesConst.ATT_WIN_TODAY));
@@ -224,6 +222,7 @@ public class AttSyncServiceImpl implements AttSyncService {
         if (cfgs.isEmpty()) {
             return out;
         }
+        Map<String, String> userNameMap = scopeUserNames(cfgs);
         List<Integer> ids = new ArrayList<Integer>();
         for (AttSyncCfg cfg : cfgs) {
             if (cfg.getId() != null) {
@@ -250,7 +249,36 @@ public class AttSyncServiceImpl implements AttSyncService {
         }
         for (AttSyncCfg cfg : cfgs) {
             fillTenantApp(cfg, tenantRows);
-            out.add(cfgJson(cfg, itemsMap.get(cfg.getId())));
+            out.add(cfgJson(cfg, itemsMap.get(cfg.getId()), userNameMap));
+        }
+        return out;
+    }
+
+    /** 列表里所有设置已选人员ID → 姓名；一次查询覆盖全部设置，供编辑弹框直接回显姓名。 */
+    private Map<String, String> scopeUserNames(List<AttSyncCfg> cfgs) {
+        Map<String, String> out = new LinkedHashMap<String, String>();
+        Set<Integer> ids = new LinkedHashSet<Integer>();
+        for (AttSyncCfg cfg : cfgs) {
+            ids.addAll(splitIds(cfg.getScopeUsers()));
+        }
+        if (ids.isEmpty()) {
+            return out;
+        }
+        // Oracle 的 IN 列表上限为 1000，按 500 分批，避免多条设置累计后超限。
+        List<Integer> all = new ArrayList<Integer>(ids);
+        for (int from = 0; from < all.size(); from += 500) {
+            int to = Math.min(from + 500, all.size());
+            Map<String, Object> p = OaonesParam.of();
+            p.put("userIds", new ArrayList<Integer>(all.subList(from, to)));
+            List<AttMember> rows = OaonesMyBatis.call(AttSyncMapper.class, m -> m.listUserNames(p));
+            if (rows != null) {
+                for (AttMember row : rows) {
+                    String name = OaonesUtil.s(row.getName());
+                    if (row.getOaUserId() != null && name.length() > 0) {
+                        out.put(String.valueOf(row.getOaUserId()), name);
+                    }
+                }
+            }
         }
         return out;
     }
@@ -276,6 +304,12 @@ public class AttSyncServiceImpl implements AttSyncService {
 
     /** 一条设置行的页面结构。 */
     private JSONObject cfgJson(AttSyncCfg cfg, List<AttPlanItem> items) {
+        List<AttSyncCfg> one = new ArrayList<AttSyncCfg>();
+        one.add(cfg);
+        return cfgJson(cfg, items, scopeUserNames(one));
+    }
+
+    private JSONObject cfgJson(AttSyncCfg cfg, List<AttPlanItem> items, Map<String, String> userNameMap) {
         JSONObject item = new JSONObject();
         item.put("id", cfg.getId());
         item.put("type", cfg.getType());
@@ -288,7 +322,15 @@ public class AttSyncServiceImpl implements AttSyncService {
         item.put("scope_subs", OaonesUtil.s(cfg.getScopeSubs()));
         item.put("scope_depts", OaonesUtil.s(cfg.getScopeDepts()));
         item.put("scope_users", OaonesUtil.s(cfg.getScopeUsers()));
+        JSONObject scopeUserNames = new JSONObject();
+        for (Integer userId : splitIds(cfg.getScopeUsers())) {
+            String name = userNameMap == null ? "" : OaonesUtil.s(userNameMap.get(String.valueOf(userId)));
+            if (name.length() > 0) { scopeUserNames.put(String.valueOf(userId), name); }
+        }
+        item.put("scope_user_names", scopeUserNames);
         item.put("scope_text", OaonesUtil.s(cfg.getScopeText()));
+        item.put("oa_account_rule", oaAccountRule(cfg));
+        item.put("oa_account_rule_text", OaonesConst.attOaAccountRuleText(oaAccountRule(cfg)));
         item.put("data_types", cfg.getDataTypes() == null ? 0 : cfg.getDataTypes().intValue());
         item.put("data_text", OaonesConst.attDataText(cfg.getDataTypes() == null ? 0 : cfg.getDataTypes().intValue()));
         item.put("sign_periods", cfg.getSignPeriods() == null ? OaonesConst.ATT_PERIOD_BOTH
@@ -355,19 +397,37 @@ public class AttSyncServiceImpl implements AttSyncService {
         return OaonesConst.attWinText(mode);
     }
 
+    /** OA 多账户同步规则（历史行 / 未赋值按“只同步主账户”处理）。 */
+    private int oaAccountRule(AttSyncCfg cfg) {
+        return cfg == null || cfg.getOaAccountRule() == null
+                ? OaonesConst.ATT_OA_ACCOUNT_PRIMARY : cfg.getOaAccountRule().intValue();
+    }
+
+    /** 该 OA 账户是否允许参与这条设置的同步。 */
+    private boolean oaAccountAllowed(AttSyncCfg cfg, AttMember member) {
+        return oaAccountRule(cfg) == OaonesConst.ATT_OA_ACCOUNT_ALL
+                || (member != null && member.isPrimaryAccount());
+    }
+
     /** 计划任务文案（含工作日口径）。 */
     private String ruleText(AttSyncCfg cfg, List<AttPlanItem> items) {
         int mode = cfg.getPlanMode() == null ? OaonesConst.ATT_PLAN_MODE_ITEM : cfg.getPlanMode().intValue();
         StringBuilder sb = new StringBuilder();
         if (mode == OaonesConst.ATT_PLAN_MODE_CRON) {
-            sb.append("高级模式（cron）：白天 ").append(OaonesUtil.s(cfg.getDayCron()));
-            sb.append("；夜间 ").append(OaonesUtil.s(cfg.getNightCron()));
-            sb.append("；执行日 ").append(OaonesWorkday.dayTypeText(cfg.getCronDayType() == null
-                    ? 0 : cfg.getCronDayType().intValue()));
+            String dayCron = OaonesUtil.s(cfg.getDayCron());
+            String nightCron = OaonesUtil.s(cfg.getNightCron());
+            if (dayCron.length() == 0 && nightCron.length() == 0) {
+                sb.append("未设置计划任务（仅手工执行）");
+            } else {
+                sb.append("高级模式（cron）：白天 ").append(dayCron);
+                sb.append("；夜间 ").append(nightCron);
+                sb.append("；执行日 ").append(OaonesWorkday.dayTypeText(cfg.getCronDayType() == null
+                        ? 0 : cfg.getCronDayType().intValue()));
+            }
         } else {
             sb.append("按时间段：");
             if (items == null || items.isEmpty()) {
-                sb.append("（还没配时间段，不会自动执行）");
+                sb.append("未设置计划任务（仅手工执行）");
             } else {
                 for (int i = 0; i < items.size(); i++) {
                     AttPlanItem item = items.get(i);
@@ -589,11 +649,16 @@ public class AttSyncServiceImpl implements AttSyncService {
         }
         out.put("runs", runs);
         out.put("labels", labels);
-        String mode = planMode != null && planMode.intValue() == OaonesConst.ATT_PLAN_MODE_CRON
-                ? "高级模式（cron）" : "按时间段";
-        out.put("rule_text", "计划任务（" + mode + "）：" + (runs.isEmpty()
-                ? "当前配置推不出执行时间，请检查时间段 / cron 与工作日口径"
-                : "按当前配置实际会执行的时间见下表"));
+        boolean cronMode = planMode != null && planMode.intValue() == OaonesConst.ATT_PLAN_MODE_CRON;
+        String mode = cronMode ? "高级模式（cron）" : "按时间段";
+        boolean noPlan = cronMode
+                ? dayCron.trim().length() == 0 && nightCron.trim().length() == 0
+                : items.isEmpty();
+        out.put("rule_text", noPlan
+                ? "未设置计划任务：可保存为暂停状态，并通过“立即执行一次”手工运行"
+                : "计划任务（" + mode + "）：" + (runs.isEmpty()
+                    ? "当前配置推不出执行时间，请检查时间段 / cron 与工作日口径"
+                    : "按当前配置实际会执行的时间见下表"));
         return out;
     }
 
@@ -832,6 +897,11 @@ public class AttSyncServiceImpl implements AttSyncService {
         if (dir < OaonesConst.ATT_DIR_BOTH || dir > OaonesConst.ATT_DIR_OA2THIRD) {
             throw new RuntimeException("同步方向不正确");
         }
+        int oaAccountRule = params.getIntValue("oa_account_rule");
+        if (oaAccountRule != OaonesConst.ATT_OA_ACCOUNT_PRIMARY
+                && oaAccountRule != OaonesConst.ATT_OA_ACCOUNT_ALL) {
+            throw new RuntimeException("OA多账户同步规则不正确");
+        }
         int dataTypes = params.getIntValue("data_types");
         if ((dataTypes & (OaonesConst.ATT_DATA_NORMAL | OaonesConst.ATT_DATA_REMEDY)) == 0) {
             throw new RuntimeException("请至少勾选一种数据类型（正常打卡 / 补签卡）");
@@ -893,13 +963,18 @@ public class AttSyncServiceImpl implements AttSyncService {
         String dayCron = checkCron(params.getString("day_cron"), "白天");
         String nightCron = checkCron(params.getString("night_cron"), "夜间");
         List<AttPlanItem> items = parseItems(params.getJSONArray("items"), id);
-        if (planMode == OaonesConst.ATT_PLAN_MODE_ITEM) {
+        if (planMode == OaonesConst.ATT_PLAN_MODE_ITEM && !items.isEmpty()) {
             checkItems(items);
-        } else if (dayCron.length() == 0 && nightCron.length() == 0) {
-            throw new RuntimeException("高级模式至少要填一个 cron 表达式（白天 / 夜间留空表示该时段不自动同步）");
         }
 
         int enabled = params.getIntValue("enabled") == 1 ? 1 : 0;
+        if (enabled == 1
+                && (planMode == OaonesConst.ATT_PLAN_MODE_ITEM
+                    ? items.isEmpty()
+                    : dayCron.length() == 0 && nightCron.length() == 0)) {
+            throw new RuntimeException("启用状态的同步设置必须配置计划任务；"
+                    + "如果只需要手工执行，请先保存为暂停状态，执行时再点“立即执行一次”");
+        }
         String freshCheckMsg = null;
         if (enabled == 1) {
             // 前置条件不放行就不能开启（需求 3.1.2）：租户必须指定考勤应用，且这个应用校验通过
@@ -938,6 +1013,7 @@ public class AttSyncServiceImpl implements AttSyncService {
         entity.setScopeDepts(join(deptIds));
         entity.setScopeUsers(join(userIds));
         entity.setScopeText(scopeText(cfgId, subIds, deptIds, userIds));
+        entity.setOaAccountRule(Integer.valueOf(oaAccountRule));
         entity.setDataTypes(Integer.valueOf(dataTypes));
         entity.setSignPeriods(Integer.valueOf(periods));
         entity.setWinMode(Integer.valueOf(winMode));
@@ -1024,6 +1100,17 @@ public class AttSyncServiceImpl implements AttSyncService {
         }
         assertCfgRight(cfg.getCfgid(), operatorId);
         if (enabled == 1) {
+            List<AttPlanItem> items = itemsOf(id);
+            int planMode = cfg.getPlanMode() == null
+                    ? OaonesConst.ATT_PLAN_MODE_ITEM : cfg.getPlanMode().intValue();
+            boolean hasPlan = planMode == OaonesConst.ATT_PLAN_MODE_CRON
+                    ? OaonesUtil.s(cfg.getDayCron()).length() > 0
+                        || OaonesUtil.s(cfg.getNightCron()).length() > 0
+                    : items != null && !items.isEmpty();
+            if (!hasPlan) {
+                throw new RuntimeException("该设置还没有配置计划任务，不能直接启用；"
+                        + "请先编辑并设置按时间段或 cron，保存后再启用");
+            }
             // 前置条件与保存时同一口径：考勤应用在租户卡片上维护，校验状态也取租户行的
             int type = cfg.getType() == null ? 0 : cfg.getType().intValue();
             int cfgId = cfg.getCfgid() == null ? 0 : cfg.getCfgid().intValue();
@@ -1600,7 +1687,6 @@ public class AttSyncServiceImpl implements AttSyncService {
     public JSONObject syncRound() {
         JSONObject out = new JSONObject();
         JSONArray runs = new JSONArray();
-        cleanLogsIfNeeded();
         List<AttSyncCfg> cfgs = enabledCfgs();
         Date now = new Date();
         for (AttSyncCfg cfg : cfgs) {
@@ -1628,30 +1714,6 @@ public class AttSyncServiceImpl implements AttSyncService {
         p.put("limit", Integer.valueOf(OaonesProps.attSyncBatch()));
         List<AttSyncCfg> rows = OaonesMyBatis.call(AttSyncMapper.class, m -> m.listEnabledCfg(p));
         return rows == null ? new ArrayList<AttSyncCfg>() : rows;
-    }
-
-    /** 日志按保留天数清理（每进程每小时最多清一次；不影响正在执行的批次）。 */
-    private void cleanLogsIfNeeded() {
-        int keepDays = OaonesProps.attLogKeepDays();
-        if (keepDays <= 0) {
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (now - lastCleanAt < 60L * 60L * 1000L) {
-            return;
-        }
-        lastCleanAt = now;
-        try {
-            String beforeDate = OaonesUtil.shiftDate(
-                    OaonesUtil.formatDateTime(now).substring(0, 10), -keepDays);
-            Map<String, Object> p = OaonesParam.of();
-            p.put("beforeDate", beforeDate);
-            OaonesMyBatis.run(AttSyncMapper.class, m -> m.cleanLogItem(p));
-            OaonesMyBatis.run(AttSyncMapper.class, m -> m.cleanLog(p));
-            OaonesLog.step("[attSync] 已清理 " + beforeDate + " 之前的考勤同步日志（保留 " + keepDays + " 天）");
-        } catch (Throwable t) {
-            OaonesLog.error("[attSync] 清理考勤同步日志失败", t);
-        }
     }
 
     /** 一次执行的时间窗。 */
@@ -1745,6 +1807,7 @@ public class AttSyncServiceImpl implements AttSyncService {
             Cred cred = credential(cfg);
             List<AttMember> members = members(cfg);
             batch.logId = beginBatch(cfg, win, trigger, operatorName);
+            batch.note("OA多账户同步规则：" + OaonesConst.attOaAccountRuleText(oaAccountRule(cfg)));
             int dir = cfg.getDir() == null ? OaonesConst.ATT_DIR_BOTH : cfg.getDir().intValue();
             if (dir == OaonesConst.ATT_DIR_BOTH || dir == OaonesConst.ATT_DIR_THIRD2OA) {
                 runPull(cfg, cred, members, batch);
@@ -1971,12 +2034,23 @@ public class AttSyncServiceImpl implements AttSyncService {
             batch.note("没有勾选任何数据类型，本次不拉取平台打卡");
             return;
         }
-        Map<String, AttMember> byWx = new LinkedHashMap<String, AttMember>();
+        // 同一平台账号可被多个 OA 账户绑定：这里必须保留候选列表，不能再用 Map<账号, 单人>
+        // 覆盖；否则“所有账户均同步”实际只会同步最后一个人。
+        Map<String, List<AttMember>> byWx = new LinkedHashMap<String, List<AttMember>>();
+        Map<Integer, AttMember> byOa = new LinkedHashMap<Integer, AttMember>();
         List<String> wxUsers = new ArrayList<String>();
         for (AttMember member : members) {
+            if (member.getOaUserId() != null) {
+                byOa.put(member.getOaUserId(), member);
+            }
             String wx = OaonesUtil.s(member.getWxUserId());
             if (wx.length() > 0 && member.getBindState() != null && member.getBindState().intValue() == 1) {
-                byWx.put(wx, member);
+                List<AttMember> bound = byWx.get(wx);
+                if (bound == null) {
+                    bound = new ArrayList<AttMember>();
+                    byWx.put(wx, bound);
+                }
+                bound.add(member);
                 if (!wxUsers.contains(wx)) {
                     wxUsers.add(wx);
                 }
@@ -2029,59 +2103,71 @@ public class AttSyncServiceImpl implements AttSyncService {
         Set<String> batchKeys = new HashSet<String>();
         Map<String, List<AttPunch>> groups = new LinkedHashMap<String, List<AttPunch>>();
         for (AttPunch punch : punches) {
-            AttMember member = byWx.get(OaonesUtil.s(punch.getWxUserId()));
+            List<AttMember> bound = byWx.get(OaonesUtil.s(punch.getWxUserId()));
             long signMs = OaonesUtil.parseDateTime(punch.getSignTime());
             int dataType = punch.getDataType() == null ? OaonesConst.ATT_DATA_NORMAL : punch.getDataType().intValue();
-            boolean remedy = dataType == OaonesConst.ATT_DATA_REMEDY;
-            if (member == null) {
+            if (bound == null || bound.isEmpty()) {
                 writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, null, punch, OaonesConst.ATT_SKIP_NO_BIND,
                         "平台账号 " + OaonesUtil.s(punch.getWxUserId()) + " 在 OA 里没有有效的人员绑定");
                 continue;
             }
-            if (member.getStatus() != null && member.getStatus().intValue() >= 4) {
-                writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
-                        OaonesConst.ATT_SKIP_LEFT, "OA 侧人员已离职 / 已失效（status=" + member.getStatus() + "）");
-                continue;
+            boolean remedy = dataType == OaonesConst.ATT_DATA_REMEDY;
+            for (AttMember member : bound) {
+                String key = dedupKey(member.getOaUserId(), punch, dataType);
+                // 只同步主账户：子账户的绑定保留，但本次动作明确记“跳过”，不静默丢弃。
+                if (!oaAccountAllowed(cfg, member)) {
+                    if (batchKeys.add(key)) {
+                        writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
+                                OaonesConst.ATT_SKIP_OA_SUB_ACCOUNT,
+                                "平台账号 " + OaonesUtil.s(punch.getWxUserId())
+                                        + " 绑定的该 OA 账户是子账户，当前规则只把平台打卡写入主账户");
+                    }
+                    continue;
+                }
+                if (member.getStatus() != null && member.getStatus().intValue() >= 4) {
+                    writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
+                            OaonesConst.ATT_SKIP_LEFT, "OA 侧人员已离职 / 已失效（status=" + member.getStatus() + "）");
+                    continue;
+                }
+                if (signMs <= 0L) {
+                    writeFail(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
+                            "打卡时间为空或解析失败，保留平台原值：" + OaonesUtil.s(punch.getSignTime()));
+                    continue;
+                }
+                if (signMs < batch.win.from || signMs > batch.win.to) {
+                    writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
+                            OaonesConst.ATT_SKIP_OUT_OF_WINDOW,
+                            "打卡时间 " + OaonesUtil.s(punch.getSignTime()) + " 不在本次时间窗内");
+                    continue;
+                }
+                if ((remedy && !wantRemedy) || (!remedy && !wantNormal)) {
+                    writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
+                            OaonesConst.ATT_SKIP_TYPE_OFF,
+                            "本条是" + (remedy ? "补签卡（补卡）" : "正常打卡") + "，该类型没有勾选");
+                    continue;
+                }
+                if (!periodChecked(cfg, punch.getSignType())) {
+                    writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
+                            OaonesConst.ATT_SKIP_TYPE_OFF,
+                            "打卡时段（签到 / 签退）没有勾选：" + signTypeText(punch.getSignType()));
+                    continue;
+                }
+                if (!batchKeys.add(key)) {
+                    continue;   // 同一批里重复返回的同一条打卡
+                }
+                if (existsLink(cfg, OaonesConst.ATT_DIR_THIRD2OA, member.getOaUserId(), punch, dataType)) {
+                    writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
+                            OaonesConst.ATT_SKIP_SYNCED, "这条打卡此前已经写入过 OA（按人员 + 打卡时间 + 类型去重）");
+                    continue;
+                }
+                String groupKey = member.getOaUserId() + "|" + OaonesUtil.s(punch.getSignDate());
+                List<AttPunch> group = groups.get(groupKey);
+                if (group == null) {
+                    group = new ArrayList<AttPunch>();
+                    groups.put(groupKey, group);
+                }
+                group.add(punch);
             }
-            if (signMs <= 0L) {
-                writeFail(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
-                        "打卡时间为空或解析失败，保留平台原值：" + OaonesUtil.s(punch.getSignTime()));
-                continue;
-            }
-            if (signMs < batch.win.from || signMs > batch.win.to) {
-                writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
-                        OaonesConst.ATT_SKIP_OUT_OF_WINDOW,
-                        "打卡时间 " + OaonesUtil.s(punch.getSignTime()) + " 不在本次时间窗内");
-                continue;
-            }
-            if ((remedy && !wantRemedy) || (!remedy && !wantNormal)) {
-                writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
-                        OaonesConst.ATT_SKIP_TYPE_OFF,
-                        "本条是" + (remedy ? "补签卡（补卡）" : "正常打卡") + "，该类型没有勾选");
-                continue;
-            }
-            if (!periodChecked(cfg, punch.getSignType())) {
-                writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
-                        OaonesConst.ATT_SKIP_TYPE_OFF,
-                        "打卡时段（签到 / 签退）没有勾选：" + signTypeText(punch.getSignType()));
-                continue;
-            }
-            String key = dedupKey(member.getOaUserId(), punch, dataType);
-            if (!batchKeys.add(key)) {
-                continue;   // 同一批里重复返回的同一条打卡
-            }
-            if (existsLink(cfg, OaonesConst.ATT_DIR_THIRD2OA, member.getOaUserId(), punch, dataType)) {
-                writeSkip(cfg, batch, OaonesConst.ATT_DIR_THIRD2OA, member, punch,
-                        OaonesConst.ATT_SKIP_SYNCED, "这条打卡此前已经写入过 OA（按人员 + 打卡时间 + 类型去重）");
-                continue;
-            }
-            String groupKey = member.getOaUserId() + "|" + OaonesUtil.s(punch.getSignDate());
-            List<AttPunch> group = groups.get(groupKey);
-            if (group == null) {
-                group = new ArrayList<AttPunch>();
-                groups.put(groupKey, group);
-            }
-            group.add(punch);
         }
         // 「先删后插」按（人员 + 打卡日期）成组做：平台这次返回了谁的哪一天，就把那一天
         // 本平台来源的记录整组重写（既幂等，又不会误删时间窗以外的数据），与 E9 标准考勤导入同口径
@@ -2089,7 +2175,11 @@ public class AttSyncServiceImpl implements AttSyncService {
         for (Map.Entry<String, List<AttPunch>> entry : groups.entrySet()) {
             List<AttPunch> group = entry.getValue();
             AttPunch first = group.get(0);
-            AttMember member = byWx.get(OaonesUtil.s(first.getWxUserId()));
+            int split = entry.getKey().indexOf('|');
+            if (split <= 0) {
+                continue;
+            }
+            AttMember member = byOa.get(Integer.valueOf(entry.getKey().substring(0, split)));
             if (member == null) {
                 continue;
             }
@@ -2281,6 +2371,12 @@ public class AttSyncServiceImpl implements AttSyncService {
             long signMs = OaonesUtil.parseDateTime(punch.getSignDatetime());
             AttMember member = byOa.get(punch.getOaUserId());
             if (member == null) {
+                continue;
+            }
+            if (!oaAccountAllowed(cfg, member)) {
+                writeSkipOa(cfg, batch, member, punch, OaonesConst.ATT_SKIP_OA_SUB_ACCOUNT,
+                        "当前设置 “" + OaonesConst.attOaAccountRuleText(oaAccountRule(cfg))
+                                + "”，该 OA 账户是子账户");
                 continue;
             }
             if (member.getStatus() != null && member.getStatus().intValue() >= 4) {
@@ -2513,6 +2609,7 @@ public class AttSyncServiceImpl implements AttSyncService {
         batch.trigger = OaonesConst.ATT_TRIGGER_RETRY;
         batch.logId = beginBatch(cfg, win, OaonesConst.ATT_TRIGGER_RETRY, operatorName(operatorId));
         batch.note("重推：按「平台 + 租户 + 人员 + 打卡时间 + 类型」定位，不受当前时间窗限制");
+        batch.note("OA多账户同步规则：" + OaonesConst.attOaAccountRuleText(oaAccountRule(cfg)));
         if (preError.length() > 0) {
             batch.note(preError);
             batch.fail++;
@@ -2540,6 +2637,12 @@ public class AttSyncServiceImpl implements AttSyncService {
         AttMember member = memberOf(cfg, row.getOaUserId());
         if (member == null) {
             batch.note("重推失败：OA 侧找不到该人员（可能已删除）");
+            batch.fail++;
+            return;
+        }
+        if (!oaAccountAllowed(cfg, member)) {
+            batch.note("重推失败：" + OaonesConst.ATT_SKIP_OA_SUB_ACCOUNT
+                    + "（当前规则：" + OaonesConst.attOaAccountRuleText(oaAccountRule(cfg)) + "）");
             batch.fail++;
             return;
         }
@@ -2608,6 +2711,12 @@ public class AttSyncServiceImpl implements AttSyncService {
         AttMember member = memberOf(cfg, row.getOaUserId());
         if (member == null) {
             batch.note("重推失败：OA 侧找不到该人员（可能已删除）");
+            batch.fail++;
+            return;
+        }
+        if (!oaAccountAllowed(cfg, member)) {
+            batch.note("重推失败：" + OaonesConst.ATT_SKIP_OA_SUB_ACCOUNT
+                    + "（当前规则：" + OaonesConst.attOaAccountRuleText(oaAccountRule(cfg)) + "）");
             batch.fail++;
             return;
         }
@@ -2813,12 +2922,13 @@ public class AttSyncServiceImpl implements AttSyncService {
         batch.skip++;
     }
 
-    /** 导入方向是否已经有映射（去重；平台给出记录ID 时优先按它判）。 */
+    /** 导入方向是否已经有映射（去重；平台给出记录ID 时按「OA人员 + 记录ID」判）。 */
     private boolean existsLink(AttSyncCfg cfg, int dir, Integer oaUserId, AttPunch punch, int dataType) {
         Map<String, Object> p = OaonesParam.of();
         p.put("type", cfg.getType());
         p.put("cfgid", cfg.getCfgid());
         p.put("dir", Integer.valueOf(dir));
+        p.put("oaUserId", oaUserId);
         String recordId = OaonesUtil.s(punch.getWxRecordId());
         if (recordId.length() > 0) {
             p.put("wxRecordId", recordId);
@@ -2827,7 +2937,6 @@ public class AttSyncServiceImpl implements AttSyncService {
                 return true;
             }
         }
-        p.put("oaUserId", oaUserId);
         p.put("signDate", OaonesUtil.s(punch.getSignTime()).length() >= 10
                 ? punch.getSignTime().substring(0, 10) : OaonesUtil.s(punch.getSignDate()));
         p.put("signTime", OaonesUtil.s(punch.getSignTime()).length() >= 19

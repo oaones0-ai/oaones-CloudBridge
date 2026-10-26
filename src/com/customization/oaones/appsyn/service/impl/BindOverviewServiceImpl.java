@@ -23,7 +23,7 @@ import java.util.Map;
  * <ul>
  *   <li><b>平台租户</b>：全部平台租户（企微 / 钉钉 / 飞书）都列出，包含没有绑定关系的租户；
  *       本页是公共只读总览，因此不按“维护人”分权过滤，但**不返回任何 Secret / 密钥类字段**；</li>
- *   <li><b>有效绑定</b>：分部 yx=0、部门 yx=1、人员 bind_state=1；</li>
+ *   <li><b>有效绑定</b>：部门 yx=1、人员 bind_state=1；</li>
  *   <li><b>平台侧对象</b>：部门 / 成员名称取快照表（快照未刷新时留空，页面上退化为ID）；</li>
  *   <li><b>只读</b>：本服务只有查询，没有任何写库动作。</li>
  * </ul>
@@ -45,29 +45,25 @@ public class BindOverviewServiceImpl implements BindOverviewService {
 
         List<BindOverviewRow> cfgRows = OaonesMyBatis.call(BindOverviewMapper.class,
                 mapper -> mapper.listCfgs(params));
-        List<BindOverviewRow> subRows = OaonesMyBatis.call(BindOverviewMapper.class,
-                mapper -> mapper.listSubRows(params));
         List<BindOverviewRow> deptRows = OaonesMyBatis.call(BindOverviewMapper.class,
                 mapper -> mapper.listDeptRows(params));
         List<BindOverviewRow> userRows = OaonesMyBatis.call(BindOverviewMapper.class,
                 mapper -> mapper.listUserRows(params));
 
         JSONObject data = new JSONObject();
-        JSONArray subs = rowJson(subRows, "sub");
         JSONArray depts = rowJson(deptRows, "dept");
         JSONArray users = rowJson(userRows, "user");
         // 分组用的租户列表：按平台/租户筛选；带关键字时只保留有关键字命中的租户
         // （否则每个没命中的租户都会占一行“该租户暂无…记录”，关键字搜索时会很吵）
-        List<BindOverviewRow> groups = groupCfgs(cfgRows, platformValue, cfgValue, kw, subs, depts, users);
+        List<BindOverviewRow> groups = groupCfgs(cfgRows, platformValue, cfgValue, kw, depts, users);
         data.put("cfgs", cfgJson(groups));
         // 租户下拉候选：全部平台租户（不含租户/关键字条件，否则选中某个租户后下拉里就只剩它自己；
         // 平台维度的收窄由页面按下拉所选平台过滤，不需要等接口）
         data.put("cfg_options", cfgJson(cfgRows));
-        data.put("subs", subs);
         data.put("depts", depts);
         data.put("users", users);
         // 统计行与页面展示同一口径：都按当前筛选条件（筛选后无租户时租户数为 0）
-        data.put("count", countJson(groups, subs, depts, users));
+        data.put("count", countJson(groups, depts, users));
         JSONObject filter = new JSONObject();
         filter.put("platform", platform == null ? "" : platform.trim());
         filter.put("cfg_id", cfgId == null ? "" : cfgId.trim());
@@ -84,8 +80,8 @@ public class BindOverviewServiceImpl implements BindOverviewService {
      * 不带关键字时列出全部（含没有任何绑定关系的租户），便于确认“租户是不是真的没绑”。</p>
      */
     private List<BindOverviewRow> groupCfgs(List<BindOverviewRow> cfgs, Integer platformValue,
-                                            Integer cfgValue, String keyword, JSONArray subs,
-                                            JSONArray depts, JSONArray users) {
+                                            Integer cfgValue, String keyword, JSONArray depts,
+                                            JSONArray users) {
         List<BindOverviewRow> result = new ArrayList<BindOverviewRow>();
         if (cfgs == null) {
             return result;
@@ -98,7 +94,7 @@ public class BindOverviewServiceImpl implements BindOverviewService {
             if (cfgValue != null && !cfgValue.equals(cfg.getId())) {
                 continue;
             }
-            if (keywordOn && !hitAny(subs, cfg) && !hitAny(depts, cfg) && !hitAny(users, cfg)) {
+            if (keywordOn && !hitAny(depts, cfg) && !hitAny(users, cfg)) {
                 continue;
             }
             result.add(cfg);
@@ -188,20 +184,7 @@ public class BindOverviewServiceImpl implements BindOverviewService {
             json.put("oa_name", oaText(row.getOaName()));
             json.put("oa_canceled", OaonesUtil.nullToEmpty(row.getOaCanceled()));
 
-            if ("sub".equals(kind)) {
-                json.put("oa_parent_id", OaonesUtil.nullToEmpty(row.getOaParentId()));
-                json.put("oa_parent_name", oaText(row.getOaParentName()));
-                // 分部在平台侧对应的部门：优先取绑定记录上的部门，老数据为空时退化为租户根部门
-                String ref = deptRef(row.getWxDeptKey(), row.getWxDeptId());
-                String name = OaonesUtil.s(row.getWxDeptName());
-                if (ref.length() == 0) {
-                    ref = rootDeptRef(row);
-                    name = OaonesUtil.s(row.getRootDeptName());
-                }
-                json.put("platform_dept_ref", ref);
-                json.put("platform_dept_name", name);
-                json.put("bind_time", createdTime(row));
-            } else if ("dept".equals(kind)) {
+            if ("dept".equals(kind)) {
                 json.put("oa_parent_id", OaonesUtil.nullToEmpty(row.getOaParentId()));
                 json.put("oa_parent_name", oaText(row.getOaParentName()));
                 json.put("oa_sub_id", OaonesUtil.nullToEmpty(row.getOaSubId()));
@@ -229,8 +212,7 @@ public class BindOverviewServiceImpl implements BindOverviewService {
         return result;
     }
 
-    private JSONObject countJson(List<BindOverviewRow> cfgs, JSONArray subs, JSONArray depts,
-                                 JSONArray users) {
+    private JSONObject countJson(List<BindOverviewRow> cfgs, JSONArray depts, JSONArray users) {
         int wecom = 0;
         int dingtalk = 0;
         int feishu = 0;
@@ -254,7 +236,6 @@ public class BindOverviewServiceImpl implements BindOverviewService {
         count.put("tenant_wecom", wecom);
         count.put("tenant_dingtalk", dingtalk);
         count.put("tenant_feishu", feishu);
-        count.put("sub", subs.size());
         count.put("dept", depts.size());
         count.put("user", users.size());
         return count;

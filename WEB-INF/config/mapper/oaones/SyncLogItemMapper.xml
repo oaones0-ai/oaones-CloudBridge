@@ -10,7 +10,7 @@
 
     <select id="list" resultType="com.customization.oaones.appsyn.entity.wecom.SyncLogItem">
         select top ${limit}
-               id, log_id, cfgid, direction, item_type, op, oa_id, oa_name,
+               id, log_id, requestid, cfgid, direction, item_type, op, oa_id, oa_name,
                wx_id, wx_name, parent_id, parent_name, seq, message,
                modedatacreater, modedatacreatedate, modedatacreatetime
         from ${syncLogItemTable}
@@ -30,12 +30,12 @@
 
     <insert id="insert">
         insert into ${table}
-            (log_id, cfgid, direction, item_type, op, oa_id, oa_name,
+            (log_id, requestid, cfgid, direction, item_type, op, oa_id, oa_name,
              wx_id, wx_name, parent_id, parent_name, seq, message,
              modedatacreater, modedatacreatedate,
              modedatacreatetime, modedatamodifier, modedatamodifydatetime)
         values
-            (#{e.logId}, #{e.cfgid}, #{e.direction}, #{e.itemType}, #{e.op},
+            (#{e.logId}, #{e.requestid}, #{e.cfgid}, #{e.direction}, #{e.itemType}, #{e.op},
              #{e.oaId}, #{e.oaName}, #{e.wxId}, #{e.wxName}, #{e.parentId},
              #{e.parentName}, #{e.seq}, #{e.message},
              #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},

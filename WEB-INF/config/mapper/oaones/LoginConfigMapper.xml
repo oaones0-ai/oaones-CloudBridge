@@ -12,6 +12,8 @@
   空 = 登录页不显示 logo（超时后的重新登录弹框里一律不显示，见 login.jsp 的 popup 模式）。
   bg_image = 登录页**整页背景图**（同一套上传口径，文件名前缀 loginbg_）；空 = 用系统默认底色。
   brand_html = 登录页**左侧**的富文本（HTML）：非空时左侧按它显示（设置什么显示什么），空 = 系统默认说明。
+  login_layout_mode = 登录框与左侧文字共用的定位方式（0 = 视口左上角像素，1 = 区域中心相对视口中心
+                      的偏移；历史空值 / 0 = 左上角）；
   login_box_left / top / width / height = 登录框按视口左上角像素定位与固定宽高（四列都空 = 默认居中布局）；
   login_box_opacity = 登录框背景透明度（0~100，0 = 不透明；空 = 0），只改白色底色，不影响文字与输入框；
   brand_left / top / width / height = 登录页左侧文字按视口左上角像素定位与固定宽高（四列都空 = 默认版式）；
@@ -23,7 +25,7 @@
     <select id="findFirst" resultType="com.customization.oaones.appsyn.entity.wecom.LoginConfig">
         select top 1 id, password_enable, mobile_enable, email_enable, wecom_qr_enable,
                dingtalk_qr_enable, feishu_qr_enable, personal_wx_enable, qr_ttl_seconds,
-               logo, bg_image, brand_html,
+               logo, bg_image, brand_html, login_layout_mode,
                login_box_left, login_box_top, login_box_width, login_box_height, login_box_opacity,
                brand_left, brand_top, brand_width, brand_height, brand_opacity,
                gopage_seconds, remark,
@@ -36,7 +38,7 @@
     <insert id="insert">
         insert into ${table}
             (password_enable, mobile_enable, email_enable, wecom_qr_enable, dingtalk_qr_enable, feishu_qr_enable,
-             personal_wx_enable, qr_ttl_seconds, logo, bg_image, brand_html,
+             personal_wx_enable, qr_ttl_seconds, logo, bg_image, brand_html, login_layout_mode,
              login_box_left, login_box_top, login_box_width, login_box_height, login_box_opacity,
              brand_left, brand_top, brand_width, brand_height, brand_opacity,
              gopage_seconds,
@@ -46,7 +48,7 @@
         values
             (#{e.passwordEnable}, #{e.mobileEnable}, #{e.emailEnable}, #{e.wecomQrEnable}, #{e.dingtalkQrEnable},
              #{e.feishuQrEnable}, #{e.personalWxEnable}, #{e.qrTtlSeconds}, #{e.logo}, #{e.bgImage},
-             #{e.brandHtml},
+             #{e.brandHtml}, #{e.loginLayoutMode},
              #{e.loginBoxLeft}, #{e.loginBoxTop}, #{e.loginBoxWidth}, #{e.loginBoxHeight},
              #{e.loginBoxOpacity},
              #{e.brandLeft}, #{e.brandTop}, #{e.brandWidth}, #{e.brandHeight}, #{e.brandOpacity},
@@ -69,6 +71,7 @@
             logo = #{e.logo},
             bg_image = #{e.bgImage},
             brand_html = #{e.brandHtml},
+            login_layout_mode = #{e.loginLayoutMode},
             login_box_left = #{e.loginBoxLeft},
             login_box_top = #{e.loginBoxTop},
             login_box_width = #{e.loginBoxWidth},

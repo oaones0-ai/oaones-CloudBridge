@@ -63,7 +63,7 @@
         <b>点任意一行的“查看”</b>可看这一次调用的请求报文、返回报文与异常堆栈
         （接口地址与报文<b>按原文完整展示</b>，不脱敏、不截断；报文长时点弹框右上角“全屏”查看）。
         <span class="rule">日志按接口调用逐条记录，量大时请先用时间与平台缩小范围。</span>
-        日志保留天数由 <code>oaones.properties#api.log.keep.days</code> 控制（默认 30 天，0 表示永久保留）。</div>
+        日志保留天数在后台 <b>系统设置 → 日志保留</b> 中维护（默认永久保留，按天设置）。</div>
     <p class="notice" id="apiLogTip" style="display:none;color:var(--oa-warning);"></p>
     <jsp:include page="/oaones/apiLog/apiLogPanel.jsp"/>
 </div>

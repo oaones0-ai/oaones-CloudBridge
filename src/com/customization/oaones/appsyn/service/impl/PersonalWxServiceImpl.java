@@ -11,13 +11,19 @@ import com.customization.oaones.appsyn.common.OaonesMyBatis;
 import com.customization.oaones.appsyn.common.OaonesProps;
 import com.customization.oaones.appsyn.common.OaonesScanToken;
 import com.customization.oaones.appsyn.common.OaonesUtil;
+import com.customization.oaones.appsyn.common.QrLoginPlatform;
+import com.customization.oaones.appsyn.common.ScanLoginState;
 import com.customization.oaones.appsyn.dao.PersonalWxMapper;
+import com.customization.oaones.appsyn.dao.wecom.ScanLoginMapper;
 import com.customization.oaones.appsyn.dto.PersonalWxOaRow;
 import com.customization.oaones.appsyn.entity.PersonalWxBind;
 import com.customization.oaones.appsyn.entity.PersonalWxConfig;
+import com.customization.oaones.appsyn.entity.wecom.ScanLogin;
 import com.customization.oaones.appsyn.service.OaService;
 import com.customization.oaones.appsyn.service.PersonalWxService;
 import com.customization.oaones.appsyn.service.impl.OaServiceImpl;
+import com.customization.oaones.appsyn.service.impl.wecom.LoginConfigServiceImpl;
+import com.customization.oaones.appsyn.service.wecom.ScanLoginService;
 
 import java.net.URLDecoder;
 import java.util.HashMap;
@@ -83,6 +89,14 @@ public class PersonalWxServiceImpl implements PersonalWxService {
             throw new RuntimeException("你不是「微信设置」的维护人，无权操作（仅系统管理员与 "
                     + "oaones.properties#pw.admin.ids 中列出的人员可维护）");
         }
+    }
+
+    @Override
+    public boolean configured() {
+        PersonalWxConfig cfg = readConfigRow();
+        return cfg != null
+                && OaonesUtil.s(cfg.getAppId()).trim().length() > 0
+                && OaonesUtil.s(cfg.getAppSecret()).trim().length() > 0;
     }
 
     /* ------------------------------------------------------------------
@@ -430,6 +444,280 @@ public class PersonalWxServiceImpl implements PersonalWxService {
         data.put("callback_url", callback);
         data.put("expire_at", OaonesScanToken.expireAt(state));
         return data;
+    }
+
+    /* ------------------------------------------------------------------
+     * 个人微信登录：复用统一登录票据，只把“换身份”的入口换成个人微信绑定表
+     * ------------------------------------------------------------------ */
+
+    @Override
+    public JSONObject loginQrStart(String ticket, String callbackBase) {
+        String scanTicket = OaonesUtil.s(ticket).trim();
+        if (scanTicket.length() == 0) {
+            throw new RuntimeException("登录二维码票据为空，请在电脑上刷新登录页后重试");
+        }
+        ScanLogin row = findScanTicket(scanTicket);
+        if (row == null || row.getExpireTime() == null
+                || row.getExpireTime() <= System.currentTimeMillis()) {
+            throw new RuntimeException("登录二维码已失效，请在电脑上刷新后重试");
+        }
+        PersonalWxConfig cfg = readConfigRow();
+        String appId = OaonesUtil.s(cfg == null ? "" : cfg.getAppId()).trim();
+        String appSecret = OaonesUtil.s(cfg == null ? "" : cfg.getAppSecret()).trim();
+        if (appId.length() == 0 || appSecret.length() == 0) {
+            throw new RuntimeException("尚未维护微信授权密钥（AppID / AppSecret），个人微信登录不可用；"
+                    + "请联系管理员在「微信设置」页补充");
+        }
+        String callback = loginCallbackUrl(callbackBase);
+        String state = ScanLoginState.encode(scanTicket, QrLoginPlatform.PERSONAL_WX, "");
+        String extra = OaonesUtil.s(OaonesProps.pwOauthExtraParams()).trim();
+        String authUrl;
+        try {
+            authUrl = OaonesProps.pwOauthBase() + OaonesProps.pwOauthPath()
+                    + "?appid=" + OaonesUtil.urlEncode(appId)
+                    + "&redirect_uri=" + OaonesUtil.urlEncode(callback)
+                    + "&response_type=code"
+                    + "&scope=" + OaonesUtil.urlEncode(OaonesProps.pwOauthScope())
+                    + "&state=" + OaonesUtil.urlEncode(state)
+                    + (extra.length() == 0 ? "" : "&" + extra)
+                    + "#wechat_redirect";
+        } catch (Exception e) {
+            throw new RuntimeException("生成个人微信登录授权地址失败：" + e.getMessage());
+        }
+        OaonesLog.step("生成个人微信登录二维码 ticket=" + scanTicket + " callback=" + callback);
+        JSONObject data = new JSONObject();
+        data.put("ticket", scanTicket);
+        data.put("auth_url", authUrl);
+        data.put("callback_url", callback);
+        data.put("expire_at", row.getExpireTime());
+        return data;
+    }
+
+    @Override
+    public JSONObject loginScanStep(String ticket, String code, String baseUrl,
+                                    String ip, String userAgent) {
+        String scanTicket = OaonesUtil.s(ticket).trim();
+        ScanLogin row = findScanTicket(scanTicket);
+        if (row == null) {
+            return loginMode("closed", "二维码不存在或已失效，请在电脑上刷新二维码后重新扫码");
+        }
+        int state = OaonesUtil.i(OaonesUtil.nullToEmpty(row.getState()),
+                ScanLoginService.STATE_WAITING);
+        if (state == ScanLoginService.STATE_USED) {
+            return loginMode("closed", "本次扫码登录已经完成，请在电脑上继续操作");
+        }
+        if (state == ScanLoginService.STATE_EXPIRED) {
+            return loginMode("closed", "二维码已过期，请在电脑上刷新后重新扫码");
+        }
+        if (state == ScanLoginService.STATE_FAILED) {
+            if (row.getExpireTime() != null && row.getExpireTime() <= System.currentTimeMillis()) {
+                markLoginExpired(scanTicket);
+                return loginMode("closed", "二维码已过期，请在电脑上刷新后重新扫码");
+            }
+            OaonesMyBatis.run(ScanLoginMapper.class,
+                    mapper -> mapper.resetToWaiting(OaonesProps.scanLoginTable(), scanTicket));
+            state = ScanLoginService.STATE_WAITING;
+        }
+        if (state == ScanLoginService.STATE_CONFIRMED) {
+            return loginMode("done", "已确认登录，请回到电脑上继续");
+        }
+        if (state == ScanLoginService.STATE_SCANNED) {
+            return loginConfirmView(row, true);
+        }
+        if (row.getExpireTime() != null && row.getExpireTime() <= System.currentTimeMillis()) {
+            markLoginExpired(scanTicket);
+            return loginMode("closed", "二维码已过期，请在电脑上刷新后重新扫码");
+        }
+        String authCode = OaonesUtil.s(code).trim();
+        if (authCode.length() == 0) {
+            try {
+                JSONObject oauth = loginQrStart(scanTicket, baseUrl);
+                JSONObject data = loginMode("oauth", "");
+                data.put("auth_url", OaonesUtil.s(oauth.getString("auth_url")));
+                return data;
+            } catch (Exception e) {
+                return failLoginScan(scanTicket, e.getMessage(), ip, userAgent);
+            }
+        }
+        try {
+            return resolvePersonalWxLogin(row, authCode, ip, userAgent);
+        } catch (Exception e) {
+            String msg = e.getMessage() == null || e.getMessage().trim().length() == 0
+                    ? "个人微信登录身份核实失败，请重新扫码" : e.getMessage();
+            OaonesLog.error("个人微信扫码登录失败 ticket=" + scanTicket, e);
+            return failLoginScan(scanTicket, msg, ip, userAgent);
+        }
+    }
+
+    private JSONObject resolvePersonalWxLogin(ScanLogin row, String code,
+                                              String ip, String userAgent) {
+        PersonalWxConfig cfg = readConfigRow();
+        String appId = OaonesUtil.s(cfg == null ? "" : cfg.getAppId()).trim();
+        String appSecret = OaonesUtil.s(cfg == null ? "" : cfg.getAppSecret()).trim();
+        if (appId.length() == 0 || appSecret.length() == 0) {
+            throw new RuntimeException("微信授权密钥尚未维护（AppID / AppSecret），无法使用个人微信登录；"
+                    + "请联系管理员在「微信设置」页补充");
+        }
+        JSONObject token;
+        try {
+            token = new PersonalWxApi(appId, appSecret).exchangeCode(code);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage() == null
+                    ? "个人微信授权失败，请重新扫码" : e.getMessage());
+        }
+        String openid = OaonesUtil.s(token.getString("openid")).trim();
+        if (openid.length() == 0) {
+            throw new RuntimeException("微信未返回 openid，无法完成个人微信登录");
+        }
+        PersonalWxBind bind = findBindByOpenid(openid);
+        if (bind == null || bind.getOaUserId() == null || bind.getOaUserId().intValue() <= 0) {
+            throw new RuntimeException("这个个人微信还没有绑定 OA 账号，无法登录；"
+                    + "请先登录 OA，在“个人账号中心 → 个人微信”用本人微信完成绑定，"
+                    + "或联系管理员在「微信设置」页绑定后再试");
+        }
+        int oaUserId = bind.getOaUserId().intValue();
+        PersonalWxOaRow oaUser = assertLoginablePersonalWx(oaUserId);
+        String nickname = OaonesUtil.s(bind.getNickname()).trim();
+        boolean needConfirm = OaonesProps.loginQrConfirm() == 1;
+        ScanLogin entity = new ScanLogin();
+        entity.setTicket(row.getTicket());
+        entity.setPlatform(QrLoginPlatform.PERSONAL_WX);
+        entity.setCfgId(null);
+        entity.setOutUserId(maskOpenid(openid));
+        entity.setOutUserName(nickname);
+        entity.setOaUserId(Integer.valueOf(oaUserId));
+        entity.setState(Integer.valueOf(needConfirm
+                ? ScanLoginService.STATE_SCANNED : ScanLoginService.STATE_CONFIRMED));
+        // 扫码成功后重新计算确认有效期：个人微信官方二维码的有效期与本系统票据不同，
+        // 不能因为用户恰好在原票据倒计时末尾扫码，就让刚完成的身份核实立即失效。
+        long originalExpireAt = row.getExpireTime() == null ? 0L : row.getExpireTime().longValue();
+        long confirmExpireAt = System.currentTimeMillis()
+                + new LoginConfigServiceImpl().qrTtlSeconds() * 1000L;
+        entity.setExpireTime(Long.valueOf(Math.max(originalExpireAt, confirmExpireAt)));
+        entity.setMsg("");
+        entity.setScanIp(ip);
+        entity.setScanUa(userAgent);
+        entity.setModedatamodifier(Integer.valueOf(oaUserId));
+        entity.setModedatamodifydatetime(OaonesUtil.now());
+        OaonesMyBatis.run(ScanLoginMapper.class,
+                mapper -> mapper.markScanned(OaonesProps.scanLoginTable(), entity));
+        if (!needConfirm) {
+            OaonesMyBatis.run(ScanLoginMapper.class, mapper ->
+                    mapper.markConfirmed(OaonesProps.scanLoginTable(), row.getTicket(),
+                            randomLoginToken(), System.currentTimeMillis()));
+        }
+        OaonesLog.step("个人微信扫码登录已识别身份 ticket=" + row.getTicket()
+                + " oaUserId=" + oaUserId + " nickname=" + nickname
+                + " needConfirm=" + needConfirm);
+        row.setPlatform(QrLoginPlatform.PERSONAL_WX);
+        row.setOutUserId(maskOpenid(openid));
+        row.setOutUserName(nickname);
+        row.setOaUserId(Integer.valueOf(oaUserId));
+        row.setState(Integer.valueOf(needConfirm
+                ? ScanLoginService.STATE_SCANNED : ScanLoginService.STATE_CONFIRMED));
+        JSONObject data = loginConfirmView(row, needConfirm);
+        data.put("need_confirm", Boolean.valueOf(needConfirm));
+        data.put("mode", needConfirm ? "confirm" : "done");
+        data.put("msg", needConfirm ? "" : "已确认登录，请回到电脑上继续");
+        data.put("oa_user_name", OaonesUtil.s(oaUser.getLastname()));
+        return data;
+    }
+
+    private PersonalWxOaRow assertLoginablePersonalWx(int oaUserId) {
+        PersonalWxOaRow user = getOaUserRow(oaUserId);
+        if (user == null) {
+            throw new RuntimeException("绑定的 OA 账号不存在或已被删除，无法登录；请联系管理员核对绑定关系");
+        }
+        if (oaUserId == OaonesConst.SYS_ADMIN_USER_ID) {
+            throw new RuntimeException("系统管理员账号不支持个人微信扫码登录，请使用账号密码登录");
+        }
+        if (isSubAccount(user)) {
+            throw new RuntimeException("子账户（次账号）不支持个人微信登录，请使用该人员的主账户");
+        }
+        int status = user.getStatus() == null ? -1 : user.getStatus().intValue();
+        if (status >= 4) {
+            throw new RuntimeException("绑定的 OA 账号状态为「" + statusText(status)
+                    + "」，不能扫码登录；如有疑问请联系管理员");
+        }
+        return user;
+    }
+
+    private JSONObject loginConfirmView(ScanLogin row, boolean needConfirm) {
+        JSONObject data = new JSONObject();
+        data.put("ticket", OaonesUtil.s(row.getTicket()));
+        data.put("platform", QrLoginPlatform.PERSONAL_WX);
+        data.put("platform_label", QrLoginPlatform.label(QrLoginPlatform.PERSONAL_WX));
+        data.put("cfg_name", "");
+        data.put("out_user_id", OaonesUtil.s(row.getOutUserId()));
+        data.put("out_user_name", OaonesUtil.s(row.getOutUserName()));
+        data.put("oa_user_id", OaonesUtil.nullToEmpty(row.getOaUserId()));
+        data.put("oa_name", oaUserName(OaonesUtil.i(OaonesUtil.nullToEmpty(row.getOaUserId()), 0)));
+        data.put("mode", needConfirm ? "confirm" : "done");
+        return data;
+    }
+
+    private JSONObject failLoginScan(String ticket, String msg, String ip, String userAgent) {
+        final String scanTicket = OaonesUtil.s(ticket).trim();
+        String reason = OaonesUtil.s(msg).trim();
+        if (reason.length() == 0) {
+            reason = "个人微信登录失败，请在电脑上刷新二维码后重试";
+        }
+        final String failureReason = reason;
+        try {
+            OaonesMyBatis.run(ScanLoginMapper.class, mapper ->
+                    mapper.markFailed(OaonesProps.scanLoginTable(), scanTicket, failureReason,
+                            QrLoginPlatform.PERSONAL_WX, ip, userAgent));
+        } catch (Throwable t) {
+            OaonesLog.error("写入个人微信扫码登录失败状态失败 ticket=" + scanTicket, t);
+        }
+        return loginMode("failed", reason);
+    }
+
+    private void markLoginExpired(String ticket) {
+        OaonesMyBatis.run(ScanLoginMapper.class,
+                mapper -> mapper.markExpired(OaonesProps.scanLoginTable(), ticket));
+    }
+
+    private ScanLogin findScanTicket(String ticket) {
+        String value = OaonesUtil.s(ticket).trim();
+        if (value.length() == 0) {
+            return null;
+        }
+        return OaonesMyBatis.call(ScanLoginMapper.class,
+                mapper -> mapper.findByTicket(OaonesProps.scanLoginTable(), value));
+    }
+
+    private JSONObject loginMode(String mode, String msg) {
+        JSONObject data = new JSONObject();
+        data.put("mode", mode);
+        data.put("msg", OaonesUtil.s(msg));
+        return data;
+    }
+
+    private String loginCallbackUrl(String callbackBase) {
+        String base = OaonesUtil.s(OaonesProps.pwCallbackBase()).trim();
+        if (base.length() == 0) {
+            base = OaonesUtil.s(callbackBase).trim();
+        }
+        if (base.length() == 0) {
+            throw new RuntimeException("无法确定个人微信登录回调地址，请配置 pw.bind.callback.base");
+        }
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        String path = OaonesUtil.s(OaonesProps.loginScanPath()).trim();
+        if (path.length() == 0) {
+            path = "/oaones/login/scan.jsp";
+        }
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        return base + path;
+    }
+
+    private String randomLoginToken() {
+        return java.util.UUID.randomUUID().toString().replace("-", "")
+                + java.util.UUID.randomUUID().toString().replace("-", "");
     }
 
     @Override

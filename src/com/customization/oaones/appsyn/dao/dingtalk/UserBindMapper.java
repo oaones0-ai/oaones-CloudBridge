@@ -48,6 +48,11 @@ public interface UserBindMapper {
                                  @Param("cfgId") int cfgId,
                                  @Param("oaUserId") int oaUserId);
 
+    /** 指定 OA 人员在租户下绑定的平台成员ID（仅启用绑定）。 */
+    String findActiveWxUserIdByOaUser(@Param("table") String table,
+                                      @Param("cfgId") int cfgId,
+                                      @Param("oaUserId") int oaUserId);
+
     /** 该 OA 人员是否已标记免绑定（bind_state=0）。 */
     Integer findNoBindIdByOaUser(@Param("table") String table,
                                  @Param("cfgId") int cfgId,

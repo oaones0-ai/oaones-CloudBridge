@@ -7,16 +7,17 @@ package com.customization.oaones.appsyn.entity.wecom;
  * <p>一行 = 统一登录页的一套设置：开哪些登录方式（账号密码 / 验证登录 / 扫码登录）、
  * 扫码二维码有效期。其中“验证登录”有两种验证方式（手机号 / 邮箱），
  * 分别落在 {@code mobile_enable} 与 {@code email_enable} 两列上。
- * 扫码登录是**一个**页面里的**一张**二维码，按平台列分别是
- * “允不允许企业微信 / 钉钉 / 飞书扫码”（见 {@code QrLoginPlatform}），
- * 个人微信只保留配置项（未接入）。
+ * 企业微信 / 钉钉 / 飞书共用一个页面里的一张本站二维码；
+ * 个人微信使用微信开放平台官方二维码并有独立页签（见 {@code QrLoginPlatform}）。
  * 另有三个可选的**外观**项：{@code logo}（登录页右侧登录框上方的图片）、
  * {@code bgImage}（整页背景图，前端按窗口自动缩放）、
  * {@code brandHtml}（登录页**左侧**的富文本，设置什么显示什么；都为空时登录页用系统默认样式）。
- * 登录框还可按**视口左上角像素**自定义位置与宽高（{@code loginBoxLeft/Top/Width/Height}，
- * 四列要么都有值、要么都为 NULL = 默认居中布局）；{@code loginBoxOpacity} 控制登录框背景的
- * 透明度（0 = 不透明，100 = 完全透明，NULL = 0）；左侧文字同样可按视口像素自定义位置与宽高
- * （{@code brandLeft/Top/Width/Height}，四列要么都有值、要么都为 NULL = 跟随系统默认版式）；
+ * 登录框还可自定义位置与宽高（{@code loginBoxLeft/Top/Width/Height}，
+ * 四列要么都有值、要么都为 NULL = 默认居中布局）；{@code loginLayoutMode} 是登录框与左侧文字
+ * 共用的定位方式（0 = 视口左上角，1 = 区域相对视口中心的偏移），两者始终使用同一个基准；
+ * {@code loginBoxOpacity} 控制登录框背景的透明度（0 = 不透明，100 = 完全透明，NULL = 0）；
+ * 左侧文字同样可自定义位置与宽高（{@code brandLeft/Top/Width/Height}，
+ * 四列要么都有值、要么都为 NULL = 跟随系统默认版式）；
  * {@code brandOpacity} 控制左侧文字区白色底板的透明度（0 = 不透明，100 = 完全透明，NULL = 100）。
  * 桌面启动台自动跳转秒数落在 {@code gopageSeconds}。</p>
  */
@@ -35,7 +36,7 @@ public class LoginConfig {
     private Integer dingtalkQrEnable;
     /** 飞书扫码登录：0 关 / 1 开（对应列 {@code feishu_qr_enable}）。 */
     private Integer feishuQrEnable;
-    /** 个人微信登录：0 关 / 1 开（仅保留配置项，尚未接入）。 */
+    /** 个人微信登录：0 关 / 1 开（使用微信开放平台官方二维码）。 */
     private Integer personalWxEnable;
     /** 扫码二维码有效期（秒）；空/0 时用 oaones.properties 的 login.qr.ttl。 */
     private Integer qrTtlSeconds;
@@ -54,11 +55,17 @@ public class LoginConfig {
      */
     private String brandHtml;
     /**
-     * 登录框左上角 X（CSS 像素，相对浏览器可视区域左上角）；四列都为空 = 默认居中布局。
+     * 登录框与左侧文字共用的定位方式：0 = 视口左上角（历史默认），1 = 相对视口中心的偏移。
+     * 中心模式下左 / 上字段分别表示区域中心相对视口中心的 X / Y 偏移，允许负数。
+     */
+    private Integer loginLayoutMode;
+    /**
+     * 登录框 X（CSS 像素）：左上角模式下为左边缘，中心模式下为区域中心相对视口中心的水平偏移；
+     * 四列都为空 = 默认居中布局。
      * 坐标允许 0，因此“未设置”统一用 {@code null} 表示，不能用 0 代替。
      */
     private Integer loginBoxLeft;
-    /** 登录框左上角 Y（CSS 像素，相对浏览器可视区域左上角）。 */
+    /** 登录框 Y（CSS 像素）：左上角模式下为上边缘，中心模式下为区域中心相对视口中心的垂直偏移。 */
     private Integer loginBoxTop;
     /** 登录框宽度（px）；空 = 默认宽度。 */
     private Integer loginBoxWidth;
@@ -70,11 +77,12 @@ public class LoginConfig {
      */
     private Integer loginBoxOpacity;
     /**
-     * 登录页左侧文字（{@code .login-brand}）左上角 X（CSS 像素，相对浏览器可视区域左上角）；
+     * 登录页左侧文字（{@code .login-brand}）X（CSS 像素）：与登录框共用 {@link #loginLayoutMode}；
+     * 左上角模式表示左边缘，中心模式表示区域中心相对视口中心的水平偏移。
      * 四列都为空 = 跟随系统默认版式。坐标允许 0，因此“未设置”统一用 {@code null}。
      */
     private Integer brandLeft;
-    /** 登录页左侧文字左上角 Y（CSS 像素）。 */
+    /** 登录页左侧文字 Y（CSS 像素）：左上角模式表示上边缘，中心模式表示中心点的垂直偏移。 */
     private Integer brandTop;
     /** 登录页左侧文字宽度（px）；空 = 跟随系统默认版式。 */
     private Integer brandWidth;
@@ -136,6 +144,9 @@ public class LoginConfig {
 
     public String getBrandHtml() { return brandHtml; }
     public void setBrandHtml(String brandHtml) { this.brandHtml = brandHtml; }
+
+    public Integer getLoginLayoutMode() { return loginLayoutMode; }
+    public void setLoginLayoutMode(Integer loginLayoutMode) { this.loginLayoutMode = loginLayoutMode; }
 
     public Integer getLoginBoxLeft() { return loginBoxLeft; }
     public void setLoginBoxLeft(Integer loginBoxLeft) { this.loginBoxLeft = loginBoxLeft; }

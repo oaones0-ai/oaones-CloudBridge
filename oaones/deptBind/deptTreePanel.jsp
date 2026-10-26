@@ -438,12 +438,14 @@ function deptTreeWxCellHtml(node) {
         ? "<span class='tag manual' title='同一" + P_SHORT + "部门可被多个 OA 部门绑定（多对一），当前有 "
             + share + " 个 OA 部门绑定到该" + P_SHORT + "部门'>已被 " + share + " 个 OA 部门绑定</span>"
         : "";
+    var defaultHtml = String(node.binding.sync_default) === "1"
+        ? "<span class='tag system'>人员同步默认部门</span>" : "";
     return "<span class='tag bound'>部门已绑定</span>"
         + "<span class='map-wx-acct'>"
         + "<span class='map-user-name'>" + esc(wxName || (P_SHORT + "部门 " + wxDeptId)) + "</span>"
         + "<span class='map-wx-sub'>（" + esc(wxDeptId) + "）</span>"
         + "</span>"
-        + shareHtml;
+        + defaultHtml + shareHtml;
 }
 
 /** 带收起箭头的“分组行”（分部/部门）左侧单元格：箭头 + 名称 + 未绑定部门数徽标。 */

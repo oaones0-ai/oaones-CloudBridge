@@ -10,6 +10,7 @@ import com.customization.oaones.appsyn.common.OaonesProps;
 import com.customization.oaones.appsyn.common.OaonesUtil;
 import com.customization.oaones.appsyn.dao.wecom.LoginConfigMapper;
 import com.customization.oaones.appsyn.entity.wecom.LoginConfig;
+import com.customization.oaones.appsyn.service.impl.PersonalWxServiceImpl;
 import com.customization.oaones.appsyn.service.wecom.LoginConfigService;
 import weaver.general.GCONST;
 
@@ -32,8 +33,8 @@ import java.util.Random;
  * 两个开关 <b>mobile_enable</b> / <b>email_enable</b> 决定该页签里出现哪些验证方式：
  * 只开手机号就只出现手机号，只开邮箱就只出现邮箱，两个都开时页签内可以切换。</p>
  *
- * <p>保存：校验通过后更新那一行，没有行则插入；个人微信只存开关不做登录实现，
- * 因此不参与“至少要有一路可用登录方式”的校验。</p>
+ * <p>保存：校验通过后更新那一行，没有行则插入。个人微信使用独立官方二维码，
+ * 但属于可用的扫码登录方式之一，参与“至少要有一路可用登录方式”的校验。</p>
  *
  * <p><b>登录页外观</b>有三项（都为空时登录页用系统默认外观）：
  * ① {@code logo}——登录框内部上方的小图；② {@code bg_image}——**整页背景图**（前端按窗口自动缩放）；
@@ -43,8 +44,8 @@ import java.util.Random;
  * 点了“保存设置”才写库，与“先上传图标、再保存应用”同一口径。
  * 弹框模式（{@code login.jsp?popup=1}，超时后的“重新登录”）里三项都不显示（页面本来就是极简形态）。</p>
  *
- * <p>另有“登录框位置与尺寸”与“文字说明位置与尺寸”（各自四列都非空才启用，按视口左上角像素绝对定位，
- * 文字说明即登录页左侧文字区）与
+ * <p>另有“登录框位置与尺寸”与“文字说明位置与尺寸”（各自四列都非空才启用；两者共用
+ * {@code login_layout_mode}，可选视口左上角像素或区域中心相对视口中心的偏移）与
  * “登录框背景透明度”与“左侧文字背景透明度”（均为 0 = 不透明，100 = 完全透明，只改白色底板）与
  * “桌面启动台自动跳转秒数”（{@link #gopageSeconds()}：0 = 不跳，空 = 回退 properties）。</p>
  *
@@ -83,6 +84,9 @@ public class LoginConfigServiceImpl implements LoginConfigService {
     /** 桌面启动台自动跳转秒数范围：0 = 不自动跳，最长 120 秒（2 分钟）。 */
     private static final int MIN_GOPAGE_SECONDS = 0;
     private static final int MAX_GOPAGE_SECONDS = OaonesConst.LOGIN_GOPAGE_MAX_SECONDS;
+    /** 登录框与左侧文字共用的定位方式：0 = 视口左上角，1 = 区域中心相对视口中心。 */
+    private static final int LAYOUT_MODE_LEFT_TOP = 0;
+    private static final int LAYOUT_MODE_CENTER = 1;
 
     /** 生成图片落盘文件名用的字符集（与「应用中心」的图标同一口径：小写十六进制）。 */
     private static final String LOGIN_NAME_HEX = "0123456789abcdef";
@@ -114,6 +118,8 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         // 登录页的整页背景图与左侧富文本（都为空时登录页用系统默认外观）
         data.put("bg_image", OaonesUtil.s(all.getString("bg_image")));
         data.put("brand_html", OaonesUtil.s(all.getString("brand_html")));
+        // 登录框与左侧文字共用的定位方式（0 = 左上角，1 = 中心点相对偏移）
+        data.put("login_layout_mode", all.getIntValue("login_layout_mode"));
         // 登录框自定义位置与尺寸（四列都有值才算启用；未启用时页面走默认居中布局）
         boolean boxCustom = all.getBooleanValue("login_box_custom");
         data.put("login_box_custom", boxCustom);
@@ -136,12 +142,17 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         data.put("gopage_seconds", all.getIntValue("gopage_effective"));
         // 实际生效的二维码有效期（秒）：登录页倒计时的起始值按它显示（留空回退 properties，最长 180 秒）
         data.put("qr_ttl_effective", all.getIntValue("qr_ttl_effective"));
-        // 扫码登录是同一张二维码：任何一个平台开着，登录页就有扫码登录可用
-        boolean qr = all.getIntValue("wecom_qr_enable") == 1
+        // 企业应用扫码共用本站生成的一张二维码；个人微信使用微信官方 qrconnect 二维码，
+        // 两者票据 / 轮询 / 登录会话机制一致，但页面入口和二维码来源分开。
+        boolean enterpriseQr = all.getIntValue("wecom_qr_enable") == 1
                 || all.getIntValue("dingtalk_qr_enable") == 1
                 || all.getIntValue("feishu_qr_enable") == 1;
+        boolean personalWxEnabled = all.getIntValue("personal_wx_enable") == 1;
+        boolean personalWxReady = personalWxEnabled && all.getBooleanValue("personal_wx_configured");
+        data.put("enterprise_qr_enable", enterpriseQr);
+        data.put("personal_wx_available", personalWxReady);
+        boolean qr = enterpriseQr || personalWxReady;
         data.put("qr_enable", qr);
-        // 登录页只用“已实现的登录方式”算可用组合，个人微信单开不算；
         // “验证登录”页签在手机号 / 邮箱任一开启时出现
         boolean password = all.getIntValue("password_enable") == 1;
         boolean mobile = all.getIntValue("mobile_enable") == 1;
@@ -163,11 +174,17 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         int dingtalk = flag(params, "dingtalk_qr_enable");
         int feishu = flag(params, "feishu_qr_enable");
         int personalWx = flag(params, "personal_wx_enable");
-        // 登录设置是**一条独立一级菜单里的共享配置**（三个平台的扫码共用同一行、同一张二维码）：
-        // 可用性按“账号密码 / 验证登录（手机号或邮箱）/ 扫码登录（企业微信 / 钉钉 / 飞书任一平台）”一起判断。
-        if (password + mobile + email + wecom + dingtalk + feishu == 0) {
+        // 登录设置是**一条独立一级菜单里的共享配置**：
+        // 可用性按“账号密码 / 验证登录 / 企业应用扫码 / 个人微信扫码”一起判断。
+        if (password + mobile + email + wecom + dingtalk + feishu + personalWx == 0) {
             throw new RuntimeException("账号密码登录、验证登录（手机号 / 邮箱）、扫码登录至少要开启一种"
-                    + "（扫码登录要至少允许一个平台；个人微信尚未接入登录，单独开启会导致没人能登录）");
+                    + "（扫码登录要至少允许一个平台）");
+        }
+        // 只开个人微信且密钥未配时会形成“所有人都进不来”的配置，保存阶段直接拦下。
+        if (password + mobile + email + wecom + dingtalk + feishu == 0
+                && personalWx == 1 && !new PersonalWxServiceImpl().configured()) {
+            throw new RuntimeException("只开启个人微信登录时，必须先在「微信设置」页维护 AppID / AppSecret，"
+                    + "否则登录页无法生成微信二维码");
         }
         int ttl = OaonesUtil.i(OaonesUtil.nullToEmpty(params.getString("qr_ttl_seconds")), 0);
         if (ttl <= 0) {
@@ -176,6 +193,23 @@ public class LoginConfigServiceImpl implements LoginConfigService {
             throw new RuntimeException("扫码二维码有效期必须在 " + MIN_TTL_SECONDS + " ~ "
                     + MAX_TTL_SECONDS + " 秒之间（留空表示使用系统默认值）");
         }
+        LoginConfig row = readRow();
+        // 定位方式是登录框与左侧文字共用的全局选择：不带参数时保持原值；
+        // 历史数据 / 空值按左上角定位，和升级前的登录页表现完全一致。
+        int layoutMode = row == null || row.getLoginLayoutMode() == null
+                ? LAYOUT_MODE_LEFT_TOP : row.getLoginLayoutMode().intValue();
+        if (layoutMode != LAYOUT_MODE_LEFT_TOP && layoutMode != LAYOUT_MODE_CENTER) {
+            layoutMode = LAYOUT_MODE_LEFT_TOP;
+        }
+        if (params != null && params.containsKey("login_layout_mode")) {
+            Integer requestedMode = optionalInt(params, "login_layout_mode", "定位方式",
+                    LAYOUT_MODE_CENTER);
+            if (requestedMode == null) {
+                throw new RuntimeException("定位方式必须二选一：0 = 左上角相对定位，1 = 中心点相对定位");
+            }
+            layoutMode = requestedMode.intValue();
+        }
+        boolean centerLayout = layoutMode == LAYOUT_MODE_CENTER;
         // 登录框位置与尺寸是一个整体：不带这四个参数 = 保持原值（别的入口只改开关时不会丢布局），
         // 四个都带空串 = 恢复默认居中布局，四个都有值 = 自定义绝对定位；
         // 只填一部分（例如只填 left / top 没填 width / height）直接拒绝，避免存出半套配置。
@@ -187,14 +221,18 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         Integer boxWidth = null;
         Integer boxHeight = null;
         if (boxProvided) {
-            boxLeft = optionalInt(params, "login_box_left", "登录框左侧位置", MAX_BOX_POS);
-            boxTop = optionalInt(params, "login_box_top", "登录框顶部位置", MAX_BOX_POS);
+            boxLeft = centerLayout
+                    ? optionalSignedInt(params, "login_box_left", "登录框水平偏移", MAX_BOX_POS)
+                    : optionalInt(params, "login_box_left", "登录框左侧位置", MAX_BOX_POS);
+            boxTop = centerLayout
+                    ? optionalSignedInt(params, "login_box_top", "登录框垂直偏移", MAX_BOX_POS)
+                    : optionalInt(params, "login_box_top", "登录框顶部位置", MAX_BOX_POS);
             boxWidth = optionalInt(params, "login_box_width", "登录框宽度", MAX_BOX_WIDTH);
             boxHeight = optionalInt(params, "login_box_height", "登录框高度", MAX_BOX_HEIGHT);
             int provided = (boxLeft == null ? 0 : 1) + (boxTop == null ? 0 : 1)
                     + (boxWidth == null ? 0 : 1) + (boxHeight == null ? 0 : 1);
             if (provided != 0 && provided != 4) {
-                throw new RuntimeException("登录框位置与尺寸要一起设置：左侧、顶部、宽度、高度四项都填，"
+                throw new RuntimeException("登录框位置与尺寸要一起设置：X、Y、宽度、高度四项都填，"
                         + "或四项都留空（留空 = 恢复系统默认居中布局）");
             }
             if (provided == 4) {
@@ -206,18 +244,18 @@ public class LoginConfigServiceImpl implements LoginConfigService {
                     throw new RuntimeException("登录框高度必须在 " + MIN_BOX_HEIGHT + " ~ "
                             + MAX_BOX_HEIGHT + " 像素之间");
                 }
-                if ((long) boxLeft + boxWidth > MAX_BOX_POS) {
+                if (!centerLayout && (long) boxLeft + boxWidth > MAX_BOX_POS) {
                     throw new RuntimeException("登录框右侧位置超出允许范围（左侧位置 + 宽度需小于 "
                             + MAX_BOX_POS + " 像素）");
                 }
-                if ((long) boxTop + boxHeight > MAX_BOX_POS) {
+                if (!centerLayout && (long) boxTop + boxHeight > MAX_BOX_POS) {
                     throw new RuntimeException("登录框底部位置超出允许范围（顶部位置 + 高度需小于 "
                             + MAX_BOX_POS + " 像素）");
                 }
             }
         }
         // 登录页左侧文字的位置与尺寸也是一个整体：不带参数 = 保持原值，四个都带空串 = 恢复默认版式，
-        // 四个都有值 = 按视口左上角像素绝对定位 + 固定宽高；只填一部分直接拒绝。
+        // 四个都有值 = 按当前定位方式绝对定位 + 固定宽高；只填一部分直接拒绝。
         boolean brandLayoutProvided = params != null && (params.containsKey("brand_left")
                 || params.containsKey("brand_top") || params.containsKey("brand_width")
                 || params.containsKey("brand_height"));
@@ -226,14 +264,18 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         Integer brandWidth = null;
         Integer brandHeight = null;
         if (brandLayoutProvided) {
-            brandLeft = optionalInt(params, "brand_left", "左侧文字左侧位置", MAX_BRAND_POS);
-            brandTop = optionalInt(params, "brand_top", "左侧文字顶部位置", MAX_BRAND_POS);
+            brandLeft = centerLayout
+                    ? optionalSignedInt(params, "brand_left", "左侧文字水平偏移", MAX_BRAND_POS)
+                    : optionalInt(params, "brand_left", "左侧文字左侧位置", MAX_BRAND_POS);
+            brandTop = centerLayout
+                    ? optionalSignedInt(params, "brand_top", "左侧文字垂直偏移", MAX_BRAND_POS)
+                    : optionalInt(params, "brand_top", "左侧文字顶部位置", MAX_BRAND_POS);
             brandWidth = optionalInt(params, "brand_width", "左侧文字宽度", MAX_BRAND_WIDTH);
             brandHeight = optionalInt(params, "brand_height", "左侧文字高度", MAX_BRAND_HEIGHT);
             int provided = (brandLeft == null ? 0 : 1) + (brandTop == null ? 0 : 1)
                     + (brandWidth == null ? 0 : 1) + (brandHeight == null ? 0 : 1);
             if (provided != 0 && provided != 4) {
-                throw new RuntimeException("文字说明位置与尺寸要一起设置：左侧、顶部、宽度、高度四项都填，"
+                throw new RuntimeException("文字说明位置与尺寸要一起设置：X、Y、宽度、高度四项都填，"
                         + "或四项都留空（留空 = 恢复系统默认版式）");
             }
             if (provided == 4) {
@@ -245,11 +287,11 @@ public class LoginConfigServiceImpl implements LoginConfigService {
                     throw new RuntimeException("文字说明高度必须在 " + MIN_BRAND_HEIGHT + " ~ "
                             + MAX_BRAND_HEIGHT + " 像素之间");
                 }
-                if ((long) brandLeft + brandWidth > MAX_BRAND_POS) {
+                if (!centerLayout && (long) brandLeft + brandWidth > MAX_BRAND_POS) {
                     throw new RuntimeException("文字说明右侧位置超出允许范围（左侧位置 + 宽度需小于 "
                             + MAX_BRAND_POS + " 像素）");
                 }
-                if ((long) brandTop + brandHeight > MAX_BRAND_POS) {
+                if (!centerLayout && (long) brandTop + brandHeight > MAX_BRAND_POS) {
                     throw new RuntimeException("文字说明底部位置超出允许范围（顶部位置 + 高度需小于 "
                             + MAX_BRAND_POS + " 像素）");
                 }
@@ -294,7 +336,6 @@ public class LoginConfigServiceImpl implements LoginConfigService {
                         + MAX_GOPAGE_SECONDS + " 秒之间（0 = 不自动跳转；留空 = 用系统默认值）");
             }
         }
-        LoginConfig row = readRow();
         LoginConfig entity = row == null ? new LoginConfig() : row;
         // 登录页外观（logo / 整页背景图 / 左侧富文本）：**只有请求里带了对应参数才改动**——
         // 别的入口（如只改开关的调用）不带它们时保持原值，不会把已上传的图或已写好的文字抹掉；
@@ -321,6 +362,7 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         entity.setLogo(newLogo);
         entity.setBgImage(newBg);
         entity.setBrandHtml(newBrand);
+        entity.setLoginLayoutMode(Integer.valueOf(layoutMode));
         if (boxProvided) {
             entity.setLoginBoxLeft(boxLeft);
             entity.setLoginBoxTop(boxTop);
@@ -386,6 +428,7 @@ public class LoginConfigServiceImpl implements LoginConfigService {
                     ? (brandLeft == null ? "(已恢复默认版式)" : brandLeft + "," + brandTop + " "
                         + brandWidth + "×" + brandHeight)
                     : "(未改动)")
+                + " layoutMode=" + (centerLayout ? "center" : "left-top")
                 + " loginBoxOpacity=" + (opacityProvided
                     ? String.valueOf(boxOpacity) + "%" : "(未改动)")
                 + " brandOpacity=" + (brandOpacityProvided
@@ -830,6 +873,31 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         return Integer.valueOf((int) value);
     }
 
+    /**
+     * 允许负数的可选整数参数（中心点相对定位的 X / Y 偏移）。
+     * 空串仍表示未设置；0 与正负数都保留，不能把未设置当成 0。
+     */
+    private Integer optionalSignedInt(JSONObject params, String key, String label, int max) {
+        String raw = OaonesUtil.s(params == null ? "" : params.getString(key)).trim();
+        if (raw.length() == 0) {
+            return null;
+        }
+        if (!raw.matches("-?\\d+")) {
+            throw new RuntimeException(label + "请填整数（当前：" + raw + "）");
+        }
+        long value;
+        try {
+            value = Long.parseLong(raw);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException(label + "数值过大（当前：" + raw + "）");
+        }
+        if (value < -max || value > max) {
+            throw new RuntimeException(label + "必须在 -" + max + " ~ " + max
+                    + " 之间（当前：" + raw + "）");
+        }
+        return Integer.valueOf((int) value);
+    }
+
     /** 写入失败时的可执行提示：最常见的原因就是没跑升级脚本/没建建模表。 */
     private String writeError(Throwable t) {
         OaonesLog.error("保存统一登录设置失败", t);
@@ -838,7 +906,8 @@ public class LoginConfigServiceImpl implements LoginConfigService {
                 + "（老库还要执行 oaones0006.sql 补 email_enable 列、执行 oaones0007.sql 补 logo 列、"
                 + "执行 oaones0009.sql 补登录框布局与启动台跳转秒数列、"
                 + "执行 oaones0010.sql 补登录框透明度列、执行 oaones0011.sql 补左侧文字布局列、"
-                + "执行 oaones0012.sql 补左侧文字背景透明度列）"
+                + "执行 oaones0012.sql 补左侧文字背景透明度列、"
+                + "执行 oaones0020_login_layout_mode.sql 补登录框与左侧文字共用定位方式列）"
                 + (t.getMessage() == null ? "" : "（数据库返回：" + t.getMessage() + "）");
     }
 
@@ -853,6 +922,8 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         json.put("dingtalk_qr_enable", row == null || row.getDingtalkQrEnable() == null ? 0 : row.getDingtalkQrEnable());
         json.put("feishu_qr_enable", row == null || row.getFeishuQrEnable() == null ? 0 : row.getFeishuQrEnable());
         json.put("personal_wx_enable", row == null || row.getPersonalWxEnable() == null ? 0 : row.getPersonalWxEnable());
+        // 只下发“密钥是否已配置”，不下发 AppID / Secret；设置页据此提示个人微信登录能否真正使用。
+        json.put("personal_wx_configured", Boolean.valueOf(new PersonalWxServiceImpl().configured()));
         // 二维码有效期：配了就用它、留空回退 properties，超出 30~180 秒按边界截断，
         // 回给页面的是**实际生效**的秒数（页面上不会出现越界数字）
         int configuredTtl = row == null || row.getQrTtlSeconds() == null ? 0 : row.getQrTtlSeconds();
@@ -865,6 +936,10 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         // 登录页外观的另外两项：整页背景图（空 = 默认底色）与左侧富文本（空 = 系统默认左侧说明）
         json.put("bg_image", OaonesUtil.s(row == null ? "" : row.getBgImage()));
         json.put("brand_html", OaonesUtil.s(row == null ? "" : row.getBrandHtml()));
+        int layoutMode = row == null || row.getLoginLayoutMode() == null
+                ? LAYOUT_MODE_LEFT_TOP : row.getLoginLayoutMode().intValue();
+        json.put("login_layout_mode", layoutMode == LAYOUT_MODE_CENTER
+                ? LAYOUT_MODE_CENTER : LAYOUT_MODE_LEFT_TOP);
         // 登录框布局：四列都非空才算启用；否则回空串，设置页按默认布局回显
         boolean boxCustom = row != null && row.getLoginBoxLeft() != null && row.getLoginBoxTop() != null
                 && row.getLoginBoxWidth() != null && row.getLoginBoxHeight() != null;

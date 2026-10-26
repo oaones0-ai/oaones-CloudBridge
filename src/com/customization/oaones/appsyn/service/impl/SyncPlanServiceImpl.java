@@ -9,6 +9,8 @@ import com.customization.oaones.appsyn.common.OaonesMyBatis;
 import com.customization.oaones.appsyn.common.OaonesProps;
 import com.customization.oaones.appsyn.common.OaonesUtil;
 import com.customization.oaones.appsyn.dao.SyncPlanMapper;
+import com.customization.oaones.appsyn.dao.OrgMapMapper;
+import com.customization.oaones.appsyn.entity.OrgMap;
 import com.customization.oaones.appsyn.entity.SyncPlanCfg;
 import com.customization.oaones.appsyn.service.OaService;
 import com.customization.oaones.appsyn.service.SyncPlanService;
@@ -195,18 +197,39 @@ public class SyncPlanServiceImpl implements SyncPlanService {
             // 没填 / 停用时也把间隔存成默认值（切回“轮询间隔”方式即有一个可用的值）
             intervalMin = OaonesConst.SYNC_PLAN_DEF_MINUTES;
         }
-        // 成员“没有找到部门”的口径：OA→平台 用 nodept_policy（0 不同步 / 1 直接挂在租户下）；
-        // 平台→OA 用 default_dept_id（指定默认部门）。
-        int policy = OaonesUtil.i(OaonesUtil.s(params.getString("nodept_policy")), 0) == 1
-                ? OaonesConst.SYNC_NODEPT_ATTACH_TENANT : OaonesConst.SYNC_NODEPT_SKIP;
+        // 两个方向统一三种口径：0 不同步 / 1 按源部门层级新增 / 2 使用默认部门。
+        int policy = OaonesUtil.i(OaonesUtil.s(params.getString("nodept_policy")),
+                OaonesConst.SYNC_NODEPT_SKIP);
+        if (policy != OaonesConst.SYNC_NODEPT_CREATE
+                && policy != OaonesConst.SYNC_NODEPT_DEFAULT_DEPT) {
+            policy = OaonesConst.SYNC_NODEPT_SKIP;
+        }
         String defaultDeptId = OaonesUtil.s(params.getString("default_dept_id")).trim();
         String defaultDeptName = "";
-        if (direction == OaonesConst.DIR_WX_TO_OA && defaultDeptId.length() > 0) {
+        if (policy != OaonesConst.SYNC_NODEPT_DEFAULT_DEPT) {
+            defaultDeptId = "";
+        } else if (OaonesConst.SYNC_DEFAULT_TENANT.equals(defaultDeptId)) {
+            defaultDeptName = "租户本身";
+        } else if (direction == OaonesConst.DIR_WX_TO_OA) {
+            if (defaultDeptId.length() == 0) {
+                throw new RuntimeException("请选择默认 OA 部门，或选择直接落到租户本身");
+            }
             JSONObject dept = oaService().getDepartment(defaultDeptId);
             if (dept == null) {
                 throw new RuntimeException("指定的默认部门不存在（ID " + defaultDeptId + "），请重新选择");
             }
             defaultDeptName = OaonesUtil.s(dept.getString("name"));
+        } else {
+            if (defaultDeptId.length() == 0) {
+                throw new RuntimeException("请选择默认平台部门，或选择直接落到租户本身");
+            }
+            Map<String, String> platformDepts = wxDeptNamesOf(type, String.valueOf(cfgId));
+            String deptName = platformDepts.get(defaultDeptId);
+            if (deptName == null) {
+                throw new RuntimeException("指定的默认平台部门不存在（ID " + defaultDeptId
+                        + "），请先更新部门快照或重新选择");
+            }
+            defaultDeptName = deptName;
         }
         /* ---------------- 同步范围（本轮新增） ----------------
            像页面上的“同步方向 / 同步范围”一样设置同步范围：计划任务与“立即执行一次”
@@ -218,13 +241,18 @@ public class SyncPlanServiceImpl implements SyncPlanService {
         String oaDeptIds = csv(params.getString("oa_dept_ids"));
         String wxDeptId = OaonesUtil.s(params.getString("wx_dept_id")).trim();
         boolean useScope = scopeSet == 1;
-        if (useScope && cfgId <= 0) {
-            // 全局默认配置作用于本平台多个租户：平台侧部门是租户独有的，不能在这里指定
-            wxDeptId = "";
-        }
         if (useScope && direction == OaonesConst.DIR_WX_TO_OA && cfgId <= 0) {
-            throw new RuntimeException("“全局默认配置”作用于多个租户，无法指定平台侧的同步范围；"
+            throw new RuntimeException("“全局默认配置”作用于多个租户，无法指定平台侧来源部门；"
                     + "请选择具体租户后再设置范围（全局默认配置按全量同步执行）");
+        }
+        // 同步范围只选“源侧”：A 只保存 OA 分部/部门；B 只保存平台部门。
+        if (direction == OaonesConst.DIR_OA_TO_WX) {
+            wxDeptId = "";
+            oaDeptIds = csv(oaDeptIds);
+        } else {
+            oaSubIds = "";
+            oaDeptIds = "";
+            wxDeptId = csv(wxDeptId);
         }
         String scopeText = "";
         if (useScope) {
@@ -232,16 +260,12 @@ public class SyncPlanServiceImpl implements SyncPlanService {
             if (direction == OaonesConst.DIR_OA_TO_WX
                     && oaSubIds.length() == 0 && oaDeptIds.length() == 0) {
                 throw new RuntimeException("请先选择同步范围：OA → 平台 方向至少要选一个 OA 分部或 OA 部门"
-                        + "（选中即含其下级；平台侧部门留空 = 该租户的 root 节点）");
+                        + "（选中即含其下级；人员按现有部门映射写入）");
             }
             if (direction == OaonesConst.DIR_WX_TO_OA) {
-                if (cfgId > 0 && oaSubIds.length() == 0) {
-                    throw new RuntimeException("请先选择 OA 落点分部：平台 → OA 方向把该平台范围"
-                            + "（含下级部门）同步到该落点分部下的 OA 部门");
-                }
-                if (oaSubIds.indexOf(',') >= 0 || oaDeptIds.indexOf(',') >= 0) {
-                    throw new RuntimeException("平台 → OA 方向的 OA 落点是单选：只能选一个落点分部"
-                            + "与一个落点部门（落点部门也可以不选）");
+                if (cfgId > 0 && wxDeptId.length() == 0) {
+                    throw new RuntimeException("请先选择平台侧的同步范围：平台 → OA 方向"
+                            + "至少要选一个平台部门（选中即含其下级；人员按现有部门映射写入 OA）");
                 }
             }
             if (cfgId > 0) {
@@ -269,40 +293,7 @@ public class SyncPlanServiceImpl implements SyncPlanService {
                 throw new RuntimeException("规则所属的平台 / 租户 / 方向与当前编辑的不一致，请刷新页面后重试");
             }
         }
-        // 范围变了（方向/分部/部门/平台部门任一变化）= 这条映射关系是新的，重新做一次“首次检测”
-        // （新增规则：existed == null，按“新的映射关系”处理）
-        boolean scopeChanged = existed == null
-                || valueOf(existed.getScopeSet()) != scopeSet
-                || !OaonesUtil.s(existed.getOaSubIds()).equals(oaSubIds)
-                || !OaonesUtil.s(existed.getOaDeptIds()).equals(oaDeptIds)
-                || !OaonesUtil.s(existed.getWxDeptId()).equals(wxDeptId);
-        int bindForced = existed == null ? 0 : valueOf(existed.getBindForced());
-        if (scopeChanged) {
-            bindForced = 0;
-        }
-        boolean force = OaonesUtil.i(OaonesUtil.s(params.getString("force")), 0) == 1;
-        if (useScope && bindForced != 1 && !force) {
-            // 首次检测：范围内（含下级）已有部门绑定 / 成员绑定时，先让用户确认是否强制同步（不保存）
-            JSONArray conflicts = scopeConflicts(type, scopeCfgId, direction, oaSubIds, oaDeptIds, wxDeptId,
-                    scopeText);
-            if (!conflicts.isEmpty()) {
-                JSONObject data = new JSONObject();
-                data.put("need_confirm", true);
-                data.put("type", type);
-                data.put("cfg_id", cfgId);
-                data.put("direction", direction);
-                data.put("scope_set", scopeSet);
-                data.put("oa_sub_ids", oaSubIds);
-                data.put("oa_dept_ids", oaDeptIds);
-                data.put("wx_dept_id", wxDeptId);
-                data.put("scope_text", scopeText);
-                data.put("conflicts", conflicts);
-                data.put("message", "该同步范围内（含下级）已有 " + conflicts.size()
-                        + " 处部门/成员绑定关系。确认强制同步后才会保存该设置，"
-                        + "并按这条映射关系立即同步一次（之后由计划任务按 cron 执行）。");
-                return data;
-            }
-        }
+        // 现有部门映射是本次同步的输入，不应再被当作“冲突”要求强制确认。
         String now = OaonesUtil.now();
         int operator = OaonesUtil.i(operatorId, 0);
 
@@ -314,10 +305,15 @@ public class SyncPlanServiceImpl implements SyncPlanService {
         entity.setPlanMode(Integer.valueOf(planMode));
         entity.setIntervalMin(Integer.valueOf(intervalMin));
         entity.setCron(cron);
-        entity.setNodeptPolicy(direction == OaonesConst.DIR_OA_TO_WX
-                ? policy : OaonesConst.SYNC_NODEPT_SKIP);
-        entity.setDefaultDeptId(direction == OaonesConst.DIR_WX_TO_OA ? defaultDeptId : "");
-        entity.setDefaultDeptName(direction == OaonesConst.DIR_WX_TO_OA ? defaultDeptName : "");
+        if (direction == OaonesConst.DIR_WX_TO_OA
+                && (policy == OaonesConst.SYNC_NODEPT_CREATE
+                || (policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT
+                && OaonesConst.SYNC_DEFAULT_TENANT.equals(defaultDeptId)))) {
+            assertTenantOaSubMapping(type, String.valueOf(cfgId));
+        }
+        entity.setNodeptPolicy(Integer.valueOf(policy));
+        entity.setDefaultDeptId(defaultDeptId);
+        entity.setDefaultDeptName(defaultDeptName);
         entity.setScopeSet(scopeSet);
         entity.setOaSubIds(oaSubIds);
         entity.setOaDeptIds(oaDeptIds);
@@ -397,19 +393,19 @@ public class SyncPlanServiceImpl implements SyncPlanService {
                     new com.customization.oaones.appsyn.service.impl.dingtalk.SyncScopeServiceImpl()
                             .resolve(cfgId, direction, oaSubIds, oaDeptIds, wxDeptId);
             fillScope(index, scope.getOaSubs(), scope.getOaDepts(), scope.getOaDeptsSelected(),
-                    scope.getWxDepts(), scope.getScopeText(), scope.getWxScopeText());
+                    scope.getWxDepts(), scope.getScopeText(), scope.getWxScopeText(), direction);
         } else if (type == OaonesConst.TYPE_FEISHU) {
             com.customization.oaones.appsyn.dto.feishu.SyncScope scope =
                     new com.customization.oaones.appsyn.service.impl.feishu.SyncScopeServiceImpl()
                             .resolve(cfgId, direction, oaSubIds, oaDeptIds, wxDeptId);
             fillScope(index, scope.getOaSubs(), scope.getOaDepts(), scope.getOaDeptsSelected(),
-                    scope.getWxDepts(), scope.getScopeText(), scope.getWxScopeText());
+                    scope.getWxDepts(), scope.getScopeText(), scope.getWxScopeText(), direction);
         } else {
             com.customization.oaones.appsyn.dto.wecom.SyncScope scope =
                     new com.customization.oaones.appsyn.service.impl.wecom.SyncScopeServiceImpl()
                             .resolve(cfgId, direction, oaSubIds, oaDeptIds, wxDeptId);
             fillScope(index, scope.getOaSubs(), scope.getOaDepts(), scope.getOaDeptsSelected(),
-                    scope.getWxDepts(), scope.getScopeText(), scope.getWxScopeText());
+                    scope.getWxDepts(), scope.getScopeText(), scope.getWxScopeText(), direction);
         }
         return index;
     }
@@ -417,14 +413,15 @@ public class SyncPlanServiceImpl implements SyncPlanService {
     /** 把各平台 SyncScope 的解析结果填进统一口径（只取 id 集合与文案）。 */
     private void fillScope(ScopeIndex index, List<JSONObject> subs, List<JSONObject> depts,
                            List<JSONObject> deptSelected, List<JSONObject> wxDepts,
-                           String scopeText, String wxScopeText) {
+                           String scopeText, String wxScopeText, int direction) {
         index.oaSubIds.addAll(idsOf(subs));
         index.oaDeptSelectedIds.addAll(idsOf(deptSelected));
         index.oaDeptIds.addAll(idsOf(depts));
         index.wxDeptIds.addAll(idsOf(wxDepts));
         String left = OaonesUtil.s(scopeText);
         String right = OaonesUtil.s(wxScopeText);
-        index.text = right.length() == 0 ? left : (left.length() == 0 ? right : left + " ⇄ " + right);
+        index.text = (direction == OaonesConst.DIR_OA_TO_WX ? left : right)
+                + " ⇄ 按租户部门映射写入人员";
     }
 
     private Set<String> idsOf(List<JSONObject> rows) {
@@ -442,7 +439,7 @@ public class SyncPlanServiceImpl implements SyncPlanService {
     }
 
     /**
-     * “首次检测”：该同步范围内（<b>含下级</b>）是否已有部门绑定 / 成员绑定 / 分部绑定。
+     * “首次检测”：该同步范围内（<b>含下级</b>）是否已有部门绑定 / 成员绑定。
      *
      * <p>保存设置时调用：检测到（返回非空）就由页面弹框告知用户并询问是否<b>强制同步</b>；
      * 用户确认强制同步后再保存，并按这条映射关系立即同步一次。</p>
@@ -498,16 +495,6 @@ public class SyncPlanServiceImpl implements SyncPlanService {
                     + nameOf(memberNames, key) + "」(ID " + key + ") 下有 "
                     + entry.getValue().intValue() + " 个成员已建立人员绑定");
         }
-        // 3) 分部绑定：OA→平台 时，所选 OA 分部不得已被别的租户占用（分部 ⇄ 租户 一对一）
-        if (oaToWx) {
-            for (String subId : index.oaSubIds) {
-                Integer boundCfg = subBindCfgIdOf(type, subId);
-                if (boundCfg != null && boundCfg.intValue() > 0) {
-                    conflicts.add("分部绑定：OA 分部「" + subName(subId) + "」(ID " + subId
-                            + ") 已绑定平台租户 " + boundCfg);
-                }
-            }
-        }
         if (!conflicts.isEmpty()) {
             OaonesLog.step("同步设置首次检测：范围内已有绑定 cfgId=" + cfgId + " direction=" + direction
                     + " 范围=" + OaonesUtil.s(scopeText) + " 检测到 " + conflicts.size() + " 处");
@@ -555,13 +542,6 @@ public class SyncPlanServiceImpl implements SyncPlanService {
     private String nameOf(Map<String, String> names, String id) {
         String name = names.get(OaonesUtil.s(id));
         return name == null || name.length() == 0 ? OaonesUtil.s(id) : name;
-    }
-
-    /** OA 分部名称。 */
-    private String subName(String subId) {
-        JSONObject sub = oaService().getSubCompany(subId);
-        String name = sub == null ? "" : OaonesUtil.s(sub.getString("name"));
-        return name.length() == 0 ? subId : name;
     }
 
     /**
@@ -660,6 +640,23 @@ public class SyncPlanServiceImpl implements SyncPlanService {
         params.put("oa_sub_ids", OaonesUtil.s(plan.getString("oa_sub_ids")));
         params.put("oa_dept_ids", OaonesUtil.s(plan.getString("oa_dept_ids")));
         params.put("wx_dept_id", OaonesUtil.s(plan.getString("wx_dept_id")));
+        if (scopeSetOf(plan) != 1) {
+            params.put("scope_all", "1");
+            if (direction == OaonesConst.DIR_OA_TO_WX) {
+                StringBuilder allSubs = new StringBuilder();
+                JSONArray subs = oaService().listSubCompaniesFromCache();
+                for (int i = 0; i < subs.size(); i++) {
+                    String id = OaonesUtil.s(subs.getJSONObject(i).getString("id"));
+                    if (id.length() == 0) { continue; }
+                    if (allSubs.length() > 0) { allSubs.append(','); }
+                    allSubs.append(id);
+                }
+                params.put("oa_sub_ids", allSubs.toString());
+            }
+        }
+        params.put("nodept_policy", String.valueOf(OaonesUtil.i(
+                OaonesUtil.s(plan.getString("nodept_policy")), OaonesConst.SYNC_NODEPT_SKIP)));
+        params.put("default_dept_id", OaonesUtil.s(plan.getString("default_dept_id")));
         params.put("force", "1");
         JSONObject res;
         if (type == OaonesConst.TYPE_DINGTALK) {
@@ -700,9 +697,10 @@ public class SyncPlanServiceImpl implements SyncPlanService {
         out.put("fail", fail);
         out.put("dept_count", deptCount);
         out.put("user_count", userCount);
-        out.put("nodept_count", 0);
-        out.put("nodept_dept", "");
-        out.put("msg", "按范围同步完成：同步 " + deptCount + " 个部门、" + userCount + " 个成员（成功 "
+        out.put("nodept_count", data.getIntValue("nodept_count"));
+        out.put("nodept_dept", OaonesUtil.s(data.getString("nodept_dept")));
+        out.put("msg", "按源组织与部门映射同步完成：同步 " + deptCount + " 个部门、"
+                + userCount + " 个成员（成功 "
                 + success + "，跳过 " + skip + "，失败 " + fail + "）");
         return out;
     }
@@ -764,17 +762,21 @@ public class SyncPlanServiceImpl implements SyncPlanService {
                 .listBoundRows(cfgId);
     }
 
-    private Integer subBindCfgIdOf(int type, String subId) {
-        if (type == OaonesConst.TYPE_DINGTALK) {
-            return new com.customization.oaones.appsyn.service.impl.dingtalk.SubBindServiceImpl()
-                    .cfgIdOfSub(subId);
+    /**
+     * 平台 → OA 选择“新增部门”时，租户必须先通过“OA 分部 - 平台租户”映射关联到 OA 分部。
+     * 没有这条映射就无法确定新 OA 部门应归属哪个 OA 租户/分部，禁止自动创建。
+     */
+    private void assertTenantOaSubMapping(int type, String cfgId) {
+        int cfg = OaonesUtil.i(cfgId, 0);
+        if (cfg <= 0) {
+            throw new RuntimeException("选择“新增部门”前请先保存具体租户设置，并建立租户与 OA 分部的映射");
         }
-        if (type == OaonesConst.TYPE_FEISHU) {
-            return new com.customization.oaones.appsyn.service.impl.feishu.SubBindServiceImpl()
-                    .cfgIdOfSub(subId);
+        OrgMap mapping = OaonesMyBatis.call(OrgMapMapper.class,
+                mapper -> mapper.findByCfg(OaonesProps.subTenantMapTable(), type, cfg));
+        if (mapping == null || mapping.getOaSubId() == null || mapping.getOaSubId().intValue() <= 0) {
+            throw new RuntimeException("平台 → OA 选择“新增部门”时，必须先把该租户映射到 OA 分部；"
+                    + "请先到分部映射中设置租户与 OA 分部的绑定关系");
         }
-        return new com.customization.oaones.appsyn.service.impl.wecom.SubBindServiceImpl()
-                .cfgIdOfSub(subId);
     }
 
     @Override
@@ -1210,24 +1212,8 @@ public class SyncPlanServiceImpl implements SyncPlanService {
      */
     private JSONObject runPlatformSync(int type, String cfgId, int direction, String operatorId,
                                        JSONObject plan) {
-        // 设置里配了同步范围（scope_set = 1）：按这条“映射关系”执行（OA 分部/部门 ⇄ 平台部门）
-        if (scopeSetOf(plan) == 1) {
-            JSONObject scoped = runScopedSync(type, cfgId, direction, plan, operatorId);
-            if (scoped != null) {
-                return scoped;
-            }
-        }
-        // 没配范围（历史行 / 全局默认配置）：沿用原来的全量同步
-        if (type == OaonesConst.TYPE_DINGTALK) {
-            return new com.customization.oaones.appsyn.service.impl.dingtalk.SyncServiceImpl()
-                    .run(cfgId, direction, operatorId);
-        }
-        if (type == OaonesConst.TYPE_FEISHU) {
-            return new com.customization.oaones.appsyn.service.impl.feishu.SyncServiceImpl()
-                    .run(cfgId, direction, operatorId);
-        }
-        return new com.customization.oaones.appsyn.service.impl.wecom.SyncServiceImpl()
-                .run(cfgId, direction, operatorId);
+        // 同步中心的全部规则统一走“源组织 + 部门映射”引擎；未配置范围时按全部源组织执行。
+        return runScopedSync(type, cfgId, direction, plan, operatorId);
     }
 
     /** 设置行转页面 JSON（同时给出平台/方向/口径的展示文案）。 */
@@ -1317,7 +1303,7 @@ public class SyncPlanServiceImpl implements SyncPlanService {
         List<String> src = new ArrayList<String>();
         List<String> dst = new ArrayList<String>();
         if (oaFirst) {
-            // A：源 = OA 侧（分部 / 部门，一行一个组织），目标 = 平台侧（一个节点）
+            // A：只选 OA 源组织；人员目标按租户现有部门映射确定。
             if (scoped) {
                 for (String id : splitIds(row.getOaSubIds())) {
                     src.add("分部「" + scopeName(subById, id) + "」");
@@ -1328,16 +1314,16 @@ public class SyncPlanServiceImpl implements SyncPlanService {
             } else {
                 src.add("全部 OA 部门");
             }
-            dst.add(platformLine(row, type, platform, wxNameCache));
+            dst.add("按租户部门映射写入" + platform + "人员（同一 OA 部门取第一条映射）");
         } else {
-            // B：源 = 平台侧（一个节点），目标 = OA 落点（一条路径，只占一行）
+            // B：只选平台源部门；OA 目标按租户现有部门映射确定。
             src.add(platformLine(row, type, platform, wxNameCache));
-            dst.add(landingLine(row, subById, deptById));
+            dst.add("按租户部门映射写入 OA 人员（同一平台部门取第一条映射）");
         }
         json.put("scope_src_text", joinLines(src));
         json.put("scope_dst_text", joinLines(dst));
         json.put("scope_src_side", oaFirst ? "OA 侧" : platform + "侧");
-        json.put("scope_dst_side", oaFirst ? platform + "侧" : "OA 落点");
+        json.put("scope_dst_side", oaFirst ? platform + "映射目标" : "OA 映射目标");
     }
 
     /**
@@ -1424,13 +1410,16 @@ public class SyncPlanServiceImpl implements SyncPlanService {
 
     /** 成员“没有找到部门”的口径文案。 */
     private String nodeptText(int direction, int policy, String deptName, String deptId) {
-        if (direction == OaonesConst.DIR_OA_TO_WX) {
-            return policy == OaonesConst.SYNC_NODEPT_ATTACH_TENANT ? "直接挂在租户下" : "不同步";
+        if (policy == OaonesConst.SYNC_NODEPT_CREATE) {
+            return "新增部门";
         }
-        if (deptId.length() == 0) {
-            return "未指定默认部门（仅回写人员基础信息）";
+        if (policy == OaonesConst.SYNC_NODEPT_DEFAULT_DEPT) {
+            if (OaonesConst.SYNC_DEFAULT_TENANT.equals(deptId)) {
+                return "默认部门：租户本身";
+            }
+            return "默认部门「" + (deptName.length() == 0 ? deptId : deptName) + "」";
         }
-        return "指定默认部门「" + (deptName.length() == 0 ? deptId : deptName) + "」";
+        return "不同步";
     }
 
     /** 平台文案：0 企业微信 / 1 钉钉 / 2 飞书。 */

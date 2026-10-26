@@ -181,7 +181,7 @@ public final class MsgProps {
     }
 
     public static int logKeepDays() {
-        return propInt("msg.log.keep.days", 90);
+        return propInt("msg.log.keep.days", 0);
     }
 
     public static int taskKeepDays() {

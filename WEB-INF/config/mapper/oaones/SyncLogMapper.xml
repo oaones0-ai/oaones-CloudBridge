@@ -9,7 +9,7 @@
 
     <select id="list" resultType="com.customization.oaones.appsyn.entity.wecom.SyncLog">
         select top ${limit}
-               id, cfgid, corpname, direction, totalcount, successcount, failcount,
+               id, requestid, cfgid, corpname, direction, totalcount, successcount, failcount,
                skipcount, deptcount, usercount, nodeptcount, nodeptdept,
                starttime, endtime, runstatus, detail, modedatacreater
         from ${syncLogTable}
@@ -40,13 +40,13 @@
 
     <insert id="insert">
         insert into ${table}
-            (cfgid, corpname, direction, totalcount, successcount, failcount,
+            (requestid, cfgid, corpname, direction, totalcount, successcount, failcount,
              skipcount, deptcount, usercount, nodeptcount, nodeptdept,
              starttime, endtime, runstatus, detail, MODEUUID,
              modedatacreater, modedatacreatedate,
              modedatacreatetime, modedatamodifier, modedatamodifydatetime)
         values
-            (#{e.cfgid}, #{e.corpname}, #{e.direction}, #{e.totalcount}, #{e.successcount},
+            (#{e.requestid}, #{e.cfgid}, #{e.corpname}, #{e.direction}, #{e.totalcount}, #{e.successcount},
              #{e.failcount}, #{e.skipcount}, #{e.deptcount}, #{e.usercount},
              #{e.nodeptcount}, #{e.nodeptdept}, #{e.starttime}, #{e.endtime}, #{e.runstatus},
              #{e.detail}, #{e.modeuuid}, #{e.modedatacreater},

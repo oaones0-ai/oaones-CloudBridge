@@ -38,7 +38,7 @@
              #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
     </insert>
 
-    <!-- 扫码落地：只写扫码侧字段（平台/租户/扫码人/命中结果/状态），不动 PC 侧的 browser_key 与 expire_time -->
+    <!-- 扫码落地：写扫码侧字段并延长确认有效期；browser_key 仍只由 PC 创建时写入 -->
     <update id="markScanned">
         update ${table}
         set platform = #{e.platform},
@@ -47,6 +47,7 @@
             out_user_name = #{e.outUserName},
             oa_user_id = #{e.oaUserId},
             state = #{e.state},
+            expire_time = #{e.expireTime},
             msg = #{e.msg},
             scan_ip = #{e.scanIp},
             scan_ua = #{e.scanUa},

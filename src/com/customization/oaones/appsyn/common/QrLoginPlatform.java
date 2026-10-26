@@ -1,13 +1,15 @@
 package com.customization.oaones.appsyn.common;
 
 /**
- * 扫码登录的“扫码平台”：企业微信 / 钉钉 / 飞书。
+ * 扫码登录的“扫码平台”：企业微信 / 钉钉 / 飞书 / 个人微信。
  *
  * <p>统一登录页（{@code /oaones/login/login.jsp}）上只有**一张**二维码：
  * 二维码内容只是本模块的扫码落地页（{@code /oaones/login/scan.jsp?t=票据}），
  * 不带“是哪家平台 / 哪家企业”的信息；扫码方打开该页后，由 OA 侧按扫码客户端的
  * User-Agent 判断平台，再用该平台的租户配置依次换成员身份，因此同一张二维码
- * 三个平台的客户端都能扫（各平台能否扫由“登录设置”里对应的开关决定）。
+ * 三个企业应用的客户端都能扫（各平台能否扫由“登录设置”里对应的开关决定）。
+ * 个人微信使用微信开放平台的 {@code qrconnect} 二维码，单独一个登录页签；
+ * 它与企业应用共用登录票据和一次性令牌，但不共用那张本站生成的二维码。
  * 因此新增一个平台只需要三处：本类加常量与 UA 识别、
  * {@code ScanLoginServiceImpl} 里补“授权地址 + 换取身份”两个方法、
  * 以及 properties 里补该平台的接入参数（见 README“扫码登录的平台接入”）。</p>
@@ -26,11 +28,18 @@ public final class QrLoginPlatform {
      * 用的是飞书租户的 App ID / App Secret，不跨连接器复用凭证。</p>
      */
     public static final String FEISHU = "feishu";
+    /**
+     * 个人微信（普通微信客户端）。
+     *
+     * <p>个人微信没有企业 / 租户维度，使用“微信设置”里的全局 AppID / AppSecret，
+     * 通过微信开放平台网页授权拿到 openid，再按个人微信绑定关系定位 OA 账号。</p>
+     */
+    public static final String PERSONAL_WX = "personalwx";
 
     private QrLoginPlatform() {
     }
 
-    /** 支持扫码登录的全部平台（统一登录页按它遍历平台开关与租户）。 */
+    /** 使用本站统一二维码的三个企业应用平台（遍历租户时用这个列表，不含个人微信）。 */
     public static java.util.List<String> all() {
         java.util.List<String> list = new java.util.ArrayList<String>();
         list.add(WECOM);
@@ -41,15 +50,20 @@ public final class QrLoginPlatform {
 
     /** 是不是本模块认识的扫码平台（用于校验页面/state 里带回来的平台值）。 */
     public static boolean known(String platform) {
-        return WECOM.equals(platform) || DINGTALK.equals(platform) || FEISHU.equals(platform);
+        return WECOM.equals(platform) || DINGTALK.equals(platform)
+                || FEISHU.equals(platform) || PERSONAL_WX.equals(platform);
     }
 
     /**
      * 登录设置里“该平台允许不允许扫码”的开关名（一行共享配置里的列名）。
      *
-     * <p>命名口径：{@code <平台>_qr_enable}，三个平台共用同一行配置、同一张二维码。</p>
+     * <p>三个企业应用平台用 {@code <平台>_qr_enable}；个人微信沿用历史列名
+     * {@code personal_wx_enable}，避免数据库变更。</p>
      */
     public static String enableKey(String platform) {
+        if (PERSONAL_WX.equals(platform)) {
+            return "personal_wx_enable";
+        }
         return OaonesUtil.s(platform) + "_qr_enable";
     }
 
@@ -76,6 +90,11 @@ public final class QrLoginPlatform {
         if (ua.indexOf("lark") >= 0 || ua.indexOf("feishu") >= 0) {
             return FEISHU;
         }
+        // 普通微信（个人微信）：回调页在微信内置浏览器里打开，UA 带 MicroMessenger；
+        // 企业微信必须先判（上面的 wxwork），否则会被当成个人微信。
+        if (ua.indexOf("micromessenger") >= 0) {
+            return PERSONAL_WX;
+        }
         return "";
     }
 
@@ -90,17 +109,21 @@ public final class QrLoginPlatform {
         if (FEISHU.equals(platform)) {
             return "飞书";
         }
+        if (PERSONAL_WX.equals(platform)) {
+            return "个人微信";
+        }
         return "未知客户端";
     }
 
     /**
-     * “登录设置”里**已经开启扫码**的平台标签（顺序固定：企业微信 / 钉钉 / 飞书）。
+     * “登录设置”里**已经开启企业应用扫码**的平台标签（顺序固定：企业微信 / 钉钉 / 飞书）。
      *
      * <p>统一登录页（{@code /oaones/login/login.jsp}）与手机扫码落地页
      * （{@code /oaones/login/scan.jsp}）的提示文案都按它出：**没开启的平台不出现在文案里**
      * （后台没启用飞书时不提飞书、没启用钉钉时不提钉钉，企微同理），
      * 与“扫码页签在至少开启一个平台时出现”（{@code LoginConfigServiceImpl#publicSettings}）
-     * 同一口径——页面与控制器里都不再写死“企业微信 / 钉钉 / 飞书”三家的名字。</p>
+     * 同一口径——页面与控制器里都不再写死“企业微信 / 钉钉 / 飞书”三家的名字。
+     * 个人微信有独立页签，不参与这张企业二维码的客户端名单。</p>
      *
      * <p>入参是 {@code /oaones/login/loginAction.jsp?action=login.settings} 回的公开设置
      * （{@code LoginConfigServiceImpl#publicSettings()}）；入参为 {@code null} 时一律视为未开启，
@@ -139,5 +162,10 @@ public final class QrLoginPlatform {
      */
     public static boolean supported(String platform) {
         return WECOM.equals(platform);
+    }
+
+    /** 个人微信登录开关（历史列名 personal_wx_enable）。 */
+    public static boolean personalWxEnabled(com.alibaba.fastjson.JSONObject settings) {
+        return enabled(settings, PERSONAL_WX);
     }
 }

@@ -34,9 +34,7 @@ public interface DeptBindService {
     /**
      * 自动绑定（按部门编号/名称匹配的结果）批量绑定部门。
      *
-     * <p>与 {@link #batchSave} 的唯一区别：整批都要满足“OA 部门所属分部已绑定飞书租户”，
-     * 任一行的分部未绑定则拒绝整批（自动绑定以分部绑定为前置条件）；
-     * 手动绑定（{@link #batchSave} / {@link #save}）不受该条件限制。</p>
+     * <p>自动绑定与手动批量绑定使用同一套校验规则。</p>
      */
     JSONObject autoBatchSave(JSONObject params, String operatorId);
 }

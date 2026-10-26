@@ -1,4 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="com.api.system.language.service.LanguageService" %>
 <%@ page import="weaver.general.Util" %>
 <%@ include file="/oaones/assets.jsp" %>
 <%
@@ -26,50 +27,85 @@
     // “启用忘记密码功能”）时，平台接口直接返回“忘记密码功能未启用”，本页原样显示，不绕过该开关。
     request.setCharacterEncoding("UTF-8");
     response.setHeader("Cache-Control", "no-store");
-    int oaonesFpLang = Util.getIntValue(request.getParameter("langid"), 7);
+    // 与统一登录页同一语种口径：外层的 languageid / langid 优先，其次 languageidweaver Cookie，
+    // 最后回退到泛微系统默认语种。
+    String oaonesFpLangParam = Util.null2String(request.getParameter("languageid"));
+    if (oaonesFpLangParam.length() == 0) {
+        oaonesFpLangParam = Util.null2String(request.getParameter("langid"));
+    }
+    int oaonesFpLang = oaonesFpLangParam.matches("\\d+")
+            ? Util.getIntValue(oaonesFpLangParam, 0) : 0;
+    if (oaonesFpLang <= 0) {
+        javax.servlet.http.Cookie[] oaonesFpCookies = request.getCookies();
+        for (int oaonesFpCookieIndex = 0;
+                oaonesFpCookies != null && oaonesFpCookieIndex < oaonesFpCookies.length;
+                oaonesFpCookieIndex++) {
+            if ("languageidweaver".equals(oaonesFpCookies[oaonesFpCookieIndex].getName())) {
+                oaonesFpLang = Util.getIntValue(
+                        oaonesFpCookies[oaonesFpCookieIndex].getValue(), 0);
+                break;
+            }
+        }
+    }
+    java.util.List<String> oaonesFpActiveLangIds = Util.getActiveLanguageIds();
+    if (oaonesFpActiveLangIds == null
+            || !oaonesFpActiveLangIds.contains(String.valueOf(oaonesFpLang))) {
+        int oaonesFpFallback = LanguageService.getDefaultLang();
+        if (oaonesFpActiveLangIds != null && oaonesFpActiveLangIds.size() > 0
+                && !oaonesFpActiveLangIds.contains(String.valueOf(oaonesFpFallback))) {
+            oaonesFpFallback = Util.getIntValue(oaonesFpActiveLangIds.get(0), 7);
+        }
+        oaonesFpLang = oaonesFpFallback;
+    }
+    String oaonesFpLanguageTag = oaonesFpLang == 7 ? "zh-CN"
+            : (oaonesFpLang == 9 ? "zh-TW" : "en");
 %>
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="<%=oaonesFpLanguageTag%>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>找回密码</title>
     <link rel="stylesheet" href="/oaones/css/style.css?v=<%=oaonesAssetV%>">
     <link rel="stylesheet" href="/oaones/css/login.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/js/login.i18n.js?v=<%=oaonesAssetV%>"></script>
 </head>
-<body class="fp-page">
+<body class="fp-page" data-page-title-key="fpPageTitle">
 
 <div class="fp-wrap">
     <div class="fp-step-tip" id="fpSteps">
-        <span class="fp-step active" id="fpStepTag1">1 身份校验</span>
-        <span class="fp-step" id="fpStepTag2">2 验证身份</span>
-        <span class="fp-step" id="fpStepTag3">3 重设密码</span>
+        <span class="fp-step active" id="fpStepTag1" data-i18n="fpStepIdentity">1 身份校验</span>
+        <span class="fp-step" id="fpStepTag2" data-i18n="fpStepVerify">2 验证身份</span>
+        <span class="fp-step" id="fpStepTag3" data-i18n="fpStepReset">3 重设密码</span>
     </div>
 
     <%-- ① 身份校验：登录名 + 图形验证码 + 找回方式（找回方式由平台按“忘记密码”设置下发） --%>
     <div class="fp-step-pane" id="fpPane1">
         <div class="login-field">
-            <label for="fp1_loginid">登录名</label>
+            <label for="fp1_loginid" data-i18n="fpLoginid">登录名</label>
             <input type="text" id="fp1_loginid" data-fpkey="loginid" autocomplete="username"
-                   data-lpignore="true" placeholder="请输入登录名 / 编号 / 手机号 / 企业邮箱" maxlength="100">
+                   data-lpignore="true" placeholder="请输入登录名 / 编号 / 手机号 / 企业邮箱"
+                   data-i18n-placeholder="fpLoginidPlaceholder" maxlength="100">
         </div>
         <div class="login-field">
-            <label for="fp1_type">找回方式</label>
+            <label for="fp1_type" data-i18n="fpRecoveryMethod">找回方式</label>
             <select id="fp1_type" data-fpkey="type">
-                <option value="">加载中…</option>
+                <option value="" data-i18n="fpLoading">加载中…</option>
             </select>
         </div>
         <div class="login-field">
-            <label for="fp1_validatecode">验证码</label>
+            <label for="fp1_validatecode" data-i18n="captcha">验证码</label>
             <div class="login-captcha">
                 <input type="text" id="fp1_validatecode" data-fpkey="validatecode" autocomplete="off"
-                       data-lpignore="true" placeholder="请输入验证码" maxlength="10">
-                <img id="fp1CodeImg" alt="验证码" title="看不清？点击换一张">
+                       data-lpignore="true" placeholder="请输入验证码"
+                       data-i18n-placeholder="captchaPlaceholder" maxlength="10">
+                <img id="fp1CodeImg" alt="验证码" title="看不清？点击换一张"
+                     data-i18n-alt="captchaAlt" data-i18n-title="refreshCaptchaTitle">
             </div>
         </div>
         <div class="fp-ops">
-            <button type="button" class="btn" id="fpNext1">下一步</button>
-            <button type="button" class="btn secondary" id="fpCancel1">取消</button>
+            <button type="button" class="btn" id="fpNext1" data-i18n="fpNext">下一步</button>
+            <button type="button" class="btn secondary" id="fpCancel1" data-i18n="fpCancel">取消</button>
         </div>
     </div>
 
@@ -78,8 +114,8 @@
         <p class="fp-tip" id="fpSendTip"></p>
         <div id="fpCheckFields"></div>
         <div class="fp-ops">
-            <button type="button" class="btn" id="fpNext2">验证</button>
-            <button type="button" class="btn secondary" id="fpRestart2">重新开始</button>
+            <button type="button" class="btn" id="fpNext2" data-i18n="fpVerify">验证</button>
+            <button type="button" class="btn secondary" id="fpRestart2" data-i18n="fpRestart">重新开始</button>
         </div>
     </div>
 
@@ -88,16 +124,16 @@
         <p class="fp-tip" id="fpRuleTip"></p>
         <div id="fpPwdFields"></div>
         <div class="fp-ops">
-            <button type="button" class="btn" id="fpSave">保存新密码</button>
-            <button type="button" class="btn secondary" id="fpCancel3">取消</button>
+            <button type="button" class="btn" id="fpSave" data-i18n="fpSavePassword">保存新密码</button>
+            <button type="button" class="btn secondary" id="fpCancel3" data-i18n="fpCancel">取消</button>
         </div>
     </div>
 
     <%-- 成功：提示用新密码登录，并通知外层的登录页关掉弹层 --%>
     <div class="fp-step-pane" id="fpPane4" style="display:none;">
-        <p class="fp-tip ok" id="fpDoneTip">密码已重置，请用新密码登录。</p>
+        <p class="fp-tip ok" id="fpDoneTip" data-i18n="fpDoneTip">密码已重置，请用新密码登录。</p>
         <div class="fp-ops">
-            <button type="button" class="btn" id="fpDone">返回登录</button>
+            <button type="button" class="btn" id="fpDone" data-i18n="fpBackLogin">返回登录</button>
         </div>
     </div>
 
@@ -105,7 +141,7 @@
     <div class="fp-step-pane" id="fpUnavail" style="display:none;">
         <p class="fp-tip fail" id="fpUnavailTip"></p>
         <div class="fp-ops">
-            <button type="button" class="btn" id="fpUnavailClose">关闭</button>
+            <button type="button" class="btn" id="fpUnavailClose" data-i18n="close">关闭</button>
         </div>
     </div>
 
@@ -127,6 +163,10 @@
         + "?from=_forgort&isView=1&validatetype=0&validatenum=4&seriesnum_=";
     /** 当前语言（平台按它回提示文案） */
     var LANG_ID = "<%=oaonesFpLang%>";
+    var I18N = window.OaonesLoginI18n;
+    function t(key, vars) {
+        return I18N ? I18N.t(key, vars) : key;
+    }
 
     /** 本次找回的上下文：账号 id、找回方式、验证码掩码后的收件人、重发倒计时与 RSA 开关 */
     var state = {id: "", type: "", target: "", ttl: 60, left: 0, timer: 0, openRSA: "0"};
@@ -185,7 +225,7 @@
     function ok(res) { return !!res && String(res.status) === "1"; }
     /** 失败时把平台给的文案显示出来（没有就退化成本步骤的通用文案） */
     function fail(res, fallback) {
-        setMsg((res && res.message) || fallback || "操作失败，请稍后重试", "fail");
+        setMsg((res && res.message) || fallback || t("fpGenericFail"), "fail");
     }
 
     /* ------------------------------------------------------------------
@@ -304,19 +344,22 @@
                 // 短信 / 邮件这一档要再输一次图形验证码：平台会给这张码图单独发一张新的
                 html += '<div class="login-captcha">'
                     + '<input type="text" id="' + esc(inputId) + '" data-fpkey="validatecode"'
-                    + ' autocomplete="off" data-lpignore="true" placeholder="请输入验证码" maxlength="10">'
-                    + '<img id="' + esc(prefix) + 'Code" class="fp-inline-code" alt="验证码"'
-                    + ' title="看不清？点击换一张"></div>';
+                    + ' autocomplete="off" data-lpignore="true" placeholder="'
+                    + esc(t("captchaPlaceholder")) + '" maxlength="10">'
+                    + '<img id="' + esc(prefix) + 'Code" class="fp-inline-code" alt="'
+                    + esc(t("captchaAlt")) + '" title="' + esc(t("refreshCaptchaTitle")) + '"></div>';
             } else if (key === "phoneCode" || key === "emailCode") {
                 html += '<div class="login-captcha">'
                     + '<input type="text" id="' + esc(inputId) + '" data-fpkey="' + esc(key) + '"'
-                    + ' autocomplete="off" data-lpignore="true" placeholder="请输入收到的验证码" maxlength="10">'
+                    + ' autocomplete="off" data-lpignore="true" placeholder="'
+                    + esc(t("fpReceivedCodePlaceholder")) + '" maxlength="10">'
                     + '<button type="button" class="btn secondary" id="' + esc(prefix) + 'Resend"'
-                    + (needResend ? "" : ' style="display:none;"') + ">重新发送</button></div>";
+                    + (needResend ? "" : ' style="display:none;"') + ">"
+                    + esc(t("fpResend")) + "</button></div>";
             } else if (key === "newpswd" || key === "cfmpswd") {
                 html += '<input type="password" id="' + esc(inputId) + '" data-fpkey="' + esc(key) + '"'
                     + ' autocomplete="new-password" data-lpignore="true" maxlength="100"'
-                    + ' placeholder="请输入新密码">';
+                    + ' placeholder="' + esc(t("fpNewPasswordPlaceholder")) + '">';
             } else {
                 html += '<input type="text" id="' + esc(inputId) + '" data-fpkey="' + esc(key) + '"'
                     + ' autocomplete="off" data-lpignore="true" maxlength="100">';
@@ -351,15 +394,14 @@
             var sel = byId("fp1_type");
             if (!ok(res)) {
                 // 平台没开“启用忘记密码功能”时就是这里：原样显示平台文案，不绕过该开关
-                var why = (res && res.message) ? String(res.message) : "读取找回密码表单失败";
-                showUnavailable(why + "。请联系系统管理员重置密码，或在平台登录页用其它方式登录。");
+                var why = (res && res.message) ? String(res.message) : t("fpFormReadFailed");
+                showUnavailable(why + t("fpUnavailableSuffix"));
                 return;
             }
             var typeItem = findItem(res.conditions, "type");
             var pairs = optionPairs(typeItem);
             if (pairs.length === 0) {
-                showUnavailable("当前没有可用的找回方式（短信 / 邮件通道或密保问题都没启用），"
-                    + "请联系系统管理员重置密码。");
+                showUnavailable(t("fpNoRecoveryMethods"));
                 return;
             }
             var html = "";
@@ -370,7 +412,7 @@
             refreshCode();
         }).catch(function (e) {
             busy(false);
-            setMsg("读取找回密码表单失败：" + e.message, "fail");
+            setMsg(t("fpFormReadFailedDetail", {message: e.message}), "fail");
         });
     }
 
@@ -378,9 +420,9 @@
         var loginid = val("fp1_loginid");
         var code = val("fp1_validatecode");
         var type = val("fp1_type");
-        if (loginid.length === 0) { setMsg("请输入登录名", "fail"); byId("fp1_loginid").focus(); return; }
-        if (type.length === 0) { setMsg("请选择找回方式", "fail"); return; }
-        if (code.length === 0) { setMsg("请输入验证码", "fail"); byId("fp1_validatecode").focus(); return; }
+        if (loginid.length === 0) { setMsg(t("fpLoginidRequired"), "fail"); byId("fp1_loginid").focus(); return; }
+        if (type.length === 0) { setMsg(t("fpRecoveryMethodRequired"), "fail"); return; }
+        if (code.length === 0) { setMsg(t("fpCodeRequired"), "fail"); byId("fp1_validatecode").focus(); return; }
         clearMsg();
         busy(true);
         form1 = {loginid: loginid, validatecode: code, type: type};
@@ -388,7 +430,7 @@
         api("forgotPasswordCheckMsg", form1).then(function (res) {
             if (!ok(res)) {
                 busy(false);
-                fail(res, "账号校验不通过，请检查登录名与验证码");
+                fail(res, t("fpAccountCheckFailed"));
                 refreshCode();
                 byId("fp1_validatecode").value = "";
                 return;
@@ -397,7 +439,7 @@
             return api("forgotPasswordToNext", merge({id: state.id}, form1)).then(function (r2) {
                 if (!ok(r2)) {
                     busy(false);
-                    fail(r2, "发送验证码失败，请稍后重试");
+                    fail(r2, t("fpSendCodeFailed"));
                     refreshCode();
                     return;
                 }
@@ -409,7 +451,7 @@
             });
         }).catch(function (e) {
             busy(false);
-            setMsg("找回密码请求失败：" + e.message, "fail");
+            setMsg(t("fpRequestFailed", {message: e.message}), "fail");
         });
     }
 
@@ -422,7 +464,7 @@
         api(name, {validatecode: form1.validatecode, loginid: form1.loginid}).then(function (res) {
             busy(false);
             if (!ok(res)) {
-                fail(res, "读取验证表单失败");
+                fail(res, t("fpVerifyFormReadFailed"));
                 refreshCode();
                 return;
             }
@@ -430,13 +472,11 @@
             var byMail = state.type === "emailCode";
             byId("fpSendTip").className = "fp-tip";
             if (bySms) {
-                byId("fpSendTip").textContent = "验证码已发送到手机号 " + (state.target || "")
-                    + "，请在有效期内输入；短信验证码与下方图形验证码都要填。";
+                byId("fpSendTip").textContent = t("fpCodeSentMobile", {target: state.target || ""});
             } else if (byMail) {
-                byId("fpSendTip").textContent = "验证码已发送到邮箱 " + (state.target || "")
-                    + "，请在有效期内输入；邮件验证码与下方图形验证码都要填。";
+                byId("fpSendTip").textContent = t("fpCodeSentEmail", {target: state.target || ""});
             } else {
-                byId("fpSendTip").textContent = "请选择密保问题并填写答案（答案不区分大小写由平台判断）。";
+                byId("fpSendTip").textContent = t("fpSecurityQuestionTip");
             }
             renderItems("fpCheckFields", "fp2", res.conditions, bySms || byMail);
             showStep(2);
@@ -445,7 +485,7 @@
             if (first) { first.focus(); }
         }).catch(function (e) {
             busy(false);
-            setMsg("读取验证表单失败：" + e.message, "fail");
+            setMsg(t("fpVerifyFormReadFailedDetail", {message: e.message}), "fail");
         });
     }
 
@@ -459,11 +499,11 @@
             if (state.left <= 0) {
                 stopTimer();
                 btn.disabled = false;
-                btn.textContent = "重新发送";
+                btn.textContent = t("fpResend");
                 return;
             }
             btn.disabled = true;
-            btn.textContent = state.left + " 秒后可重发";
+            btn.textContent = t("fpResendAfter", {seconds: state.left});
             state.left--;
         };
         tick();
@@ -475,7 +515,7 @@
     function resend() {
         var now = formParamsOf("fpCheckFields");
         if (!now.validatecode) {
-            setMsg("请输入验证码", "fail");
+            setMsg(t("fpCodeRequired"), "fail");
             return;
         }
         clearMsg();
@@ -484,19 +524,19 @@
             {validatecode: now.validatecode})).then(function (res) {
             busy(false);
             if (!ok(res)) {
-                fail(res, "重新发送失败，请稍后重试");
+                fail(res, t("fpResendFailed"));
                 refreshInlineCode();
                 return;
             }
             state.target = String(res.id == null ? "" : res.id);
             state.ttl = parseInt(res.forgotpasswordExpiration, 10);
             if (!(state.ttl > 0)) { state.ttl = 60; }
-            setMsg("验证码已重新发送，请查收。（收件人 " + state.target + "）", "ok");
+            setMsg(t("fpCodeResent", {target: state.target}), "ok");
             refreshInlineCode();
             startResend();
         }).catch(function (e) {
             busy(false);
-            setMsg("重新发送失败：" + e.message, "fail");
+            setMsg(t("fpResendRequestFailed", {message: e.message}), "fail");
         });
     }
 
@@ -513,7 +553,7 @@
         });
         if (miss) {
             var el = byId("fpCheckFields").querySelector('[data-fpkey="' + miss + '"]');
-            setMsg("请把本步的验证信息填完整", "fail");
+            setMsg(t("fpIncomplete"), "fail");
             if (el) { el.focus(); }
             return;
         }
@@ -527,14 +567,14 @@
         api(name, params).then(function (res) {
             if (!ok(res)) {
                 busy(false);
-                fail(res, "验证不通过，请重新输入");
+                fail(res, t("fpVerifyFailed"));
                 refreshInlineCode();
                 return;
             }
             return api("resetPasswordForm", params).then(function (r2) {
                 busy(false);
                 if (!ok(r2)) {
-                    fail(r2, "读取新密码表单失败");
+                    fail(r2, t("fpNewPasswordFormReadFailed"));
                     refreshInlineCode();
                     return;
                 }
@@ -545,8 +585,10 @@
                 if (!(pwdRule.minpasslen > 0)) { pwdRule.minpasslen = 1; }
                 pwdRule.passwordComplexity = String(other.passwordComplexity == null ? "0" : other.passwordComplexity);
                 byId("fpRuleTip").className = "fp-tip";
-                byId("fpRuleTip").textContent = "新密码长度不少于 " + pwdRule.minpasslen + " 位"
-                    + complexityTip(pwdRule.passwordComplexity) + "。";
+                byId("fpRuleTip").textContent = t("fpPasswordRule", {
+                    length: pwdRule.minpasslen,
+                    complexity: complexityTip(pwdRule.passwordComplexity)
+                });
                 renderItems("fpPwdFields", "fp3", r2.conditions, false);
                 showStep(3);
                 var first = byId("fpPwdFields").querySelector("input");
@@ -554,15 +596,15 @@
             });
         }).catch(function (e) {
             busy(false);
-            setMsg("验证请求失败：" + e.message, "fail");
+            setMsg(t("fpVerifyRequestFailed", {message: e.message}), "fail");
         });
     }
 
     function complexityTip(complexity) {
-        if (String(complexity) === "1") { return "，且需包含大写字母、小写字母与数字"; }
-        if (String(complexity) === "2") { return "，且需包含字母、数字与特殊字符"; }
-        if (String(complexity) === "3") { return "，且需包含字母与数字"; }
-        if (String(complexity) === "4") { return "，且需包含大写字母、小写字母、数字与特殊字符"; }
+        if (String(complexity) === "1") { return t("fpComplexity1"); }
+        if (String(complexity) === "2") { return t("fpComplexity2"); }
+        if (String(complexity) === "3") { return t("fpComplexity3"); }
+        if (String(complexity) === "4") { return t("fpComplexity4"); }
         return "";
     }
 
@@ -590,14 +632,16 @@
         var now = formParamsOf("fpPwdFields");
         var pwd = now.newpswd || "";
         var cfm = now.cfmpswd || "";
-        if (pwd.length === 0) { setMsg("请输入新密码", "fail"); return; }
-        if (pwd !== cfm) { setMsg("两次输入的新密码不一致，请重新输入", "fail"); return; }
+        if (pwd.length === 0) { setMsg(t("fpNewPasswordRequired"), "fail"); return; }
+        if (pwd !== cfm) { setMsg(t("fpPasswordMismatch"), "fail"); return; }
         if (pwd.length < pwdRule.minpasslen) {
-            setMsg("密码长度不能小于 " + pwdRule.minpasslen, "fail");
+            setMsg(t("fpPasswordTooShort", {length: pwdRule.minpasslen}), "fail");
             return;
         }
         if (!checkComplexity(pwd, pwdRule.passwordComplexity)) {
-            setMsg("新密码不符合复杂度要求" + complexityTip(pwdRule.passwordComplexity), "fail");
+            setMsg(t("fpPasswordComplexity", {
+                complexity: complexityTip(pwdRule.passwordComplexity)
+            }), "fail");
             return;
         }
         clearMsg();
@@ -609,11 +653,11 @@
             if (isWeak && !forceWeak) {
                 if (String(weak.weakPasswordDisable) === "1") {
                     busy(false);
-                    setMsg("该密码比较容易被猜到，为了系统安全请重新设置一个更复杂的密码", "fail");
+                    setMsg(t("fpWeakPasswordRejected"), "fail");
                     return;
                 }
                 busy(false);
-                if (window.confirm("该密码比较容易被猜到，确定保存吗？")) {
+                if (window.confirm(t("fpWeakPasswordConfirm"))) {
                     savePassword(true);
                 }
                 return;
@@ -639,7 +683,7 @@
             return api("saveResetPassword", params).then(afterSave, saveError);
         }).catch(function (e) {
             busy(false);
-            setMsg("密码加密失败（" + e.message + "），请刷新页面后重试", "fail");
+            setMsg(t("fpEncryptFailed", {message: e.message}), "fail");
         });
     }
 
@@ -647,7 +691,7 @@
         busy(false);
         if (!ok(res)) {
             // saveResetPassword 失败时平台会把原因放在 message（如密码策略、密码重复等）
-            fail(res, "保存新密码失败，请稍后重试");
+            fail(res, t("fpSaveFailed"));
             return;
         }
         showStep(4);
@@ -656,7 +700,7 @@
 
     function saveError(e) {
         busy(false);
-        setMsg("保存新密码失败：" + e.message, "fail");
+        setMsg(t("fpSaveFailedDetail", {message: e.message}), "fail");
     }
 
     /* ------------------------------------------------------------------
@@ -673,9 +717,9 @@
                 s.src = "/js/rsa/jsencrypt.js";
                 s.async = true;
                 s.onload = function () {
-                    if (window.JSEncrypt) { resolve(); } else { reject(new Error("加密组件加载异常")); }
+                    if (window.JSEncrypt) { resolve(); } else { reject(new Error(t("rsaComponentFailed"))); }
                 };
-                s.onerror = function () { reject(new Error("加密组件加载失败")); };
+                s.onerror = function () { reject(new Error(t("rsaComponentLoadFailed"))); };
                 document.head.appendChild(s);
             });
             rsaScriptPromise.catch(function () { rsaScriptPromise = null; });
@@ -691,14 +735,14 @@
                 return r.json();
             });
         }).then(function (keys) {
-            if (!keys || !keys.rsa_pub) { throw new Error("未取到 RSA 公钥"); }
+            if (!keys || !keys.rsa_pub) { throw new Error(t("rsaPublicKeyFailed")); }
             var salt = keys.rsa_code == null ? "" : String(keys.rsa_code);
             var flag = keys.rsa_flag == null ? "" : String(keys.rsa_flag);
             var encrypt = new window.JSEncrypt();
             encrypt.setPublicKey(keys.rsa_pub);
             var one = function (v) {
                 var out = encrypt.encrypt(v + salt);
-                if (!out) { throw new Error("无法加密（新密码可能过长）"); }
+                if (!out) { throw new Error(t("rsaNewPasswordTooLong")); }
                 return out + flag;
             };
             return {newpswd: one(pwd), cfmpswd: one(cfm)};
@@ -749,6 +793,7 @@
     }
 
     (function init() {
+        if (I18N) { I18N.setLanguage(LANG_ID); }
         showStep(1);
         initStep1();
     })();

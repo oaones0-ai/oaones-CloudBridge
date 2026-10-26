@@ -88,6 +88,7 @@
         subIds: [],
         deptIds: [],
         wxDeptId: "",
+        wxDeptIds: [],
         /** A（OA→平台）时 OA 侧可多选；B（平台→OA）时 OA 是落点：分部单选必选、部门单选可不选 */
         subSingle: false,
         deptSingle: false,
@@ -415,8 +416,13 @@
             var dstCell = orgCell(r, "scope_dst_text", "目标组织");
             var status = String(r.enabled) === "1"
                 ? "<span class='tag bound'>已启用</span>" : "<span class='tag unbound'>已停用</span>";
+            var resultPlatform = window.OAONES_SYNC_PLATFORM
+                || (Number(state.type) === 1 ? "dingtalk" : (Number(state.type) === 2 ? "feishu" : "wecom"));
             var detailBtn = Number(r.last_log_id) > 0
-                ? (" <button class='link' data-plan-detail='" + esc(r.last_log_id) + "'>结果详情</button>") : "";
+                ? (" <a class='link' target='_blank' rel='noopener' href='/oaones/syncCenter/syncResult.jsp?platform="
+                    + esc(resultPlatform) + "&cfg_id=" + encodeURIComponent(r.cfg_id)
+                    + "&log_id=" + encodeURIComponent(r.last_log_id)
+                    + "' title='在独立的同步结果页查看该批次逐条部门/人员数据'>结果详情</a>") : "";
             var action = "";
             if (global) {
                 // 历史遗留的“全局默认配置”行：本页不再有“配置范围 = 全局默认配置”的表单入口，
@@ -539,7 +545,8 @@
         byId("planCron").value = row && row.cron ? row.cron : "";
         byId("planEnabled").checked = !row || String(row.enabled) === "1";
         byId("planRemark").value = row && row.remark ? row.remark : "";
-        var policy = row && String(row.nodept_policy) === "1" ? "1" : "0";
+        var policy = row && ["1", "2"].indexOf(String(row.nodept_policy)) >= 0
+            ? String(row.nodept_policy) : "0";
         var radios = document.getElementsByName("planNodeptPolicy");
         for (var i = 0; i < radios.length; i++) {
             radios[i].checked = (radios[i].value === policy);
@@ -550,7 +557,8 @@
         // 上面已把 row 指向那一条，保存后即成为该租户自己的设置）
         state.subIds = splitIds(row && row.oa_sub_ids);
         state.deptIds = splitIds(row && row.oa_dept_ids);
-        state.wxDeptId = row && row.wx_dept_id ? String(row.wx_dept_id) : "";
+        state.wxDeptIds = splitIds(row && row.wx_dept_id);
+        state.wxDeptId = state.wxDeptIds.join(",");
         byId("planScopeEnabled").checked = !!(row && Number(row.scope_set) === 1);
         renderScopeRow();
         renderNodeptRow();
@@ -571,11 +579,25 @@
         if (emptyEl) { emptyEl.style.display = ""; }
     }
 
-    /** A（OA→平台）显示“不同步 / 直接挂在租户下”，B（平台→OA）显示“默认部门”弹框。 */
+    /** 两个方向统一显示三种口径；选择“默认部门”时再显示默认部门选择框。 */
     function renderNodeptRow() {
-        var isA = String(byId("planDirection").value) === "0";
-        byId("planNodeptRowA").style.display = isA ? "" : "none";
-        byId("planNodeptRowB").style.display = isA ? "none" : "";
+        byId("planNodeptRowA").style.display = "";
+        var policy = selectedNodeptPolicy();
+        byId("planNodeptRowB").style.display = policy === "2" ? "" : "none";
+        byId("planNodeptWarn").style.display = policy === "1" ? "" : "none";
+        byId("planDefaultDeptLabel").textContent = String(byId("planDirection").value) === "0"
+            ? "默认" + state.platformLabel + "部门" : "默认 OA 部门";
+        byId("planDeptModalTitle").textContent = String(byId("planDirection").value) === "0"
+            ? "选择默认" + state.platformLabel + "部门" : "选择默认 OA 部门";
+        renderDeptInput();
+    }
+
+    function selectedNodeptPolicy() {
+        var radios = document.getElementsByName("planNodeptPolicy");
+        for (var i = 0; i < radios.length; i++) {
+            if (radios[i].checked) { return radios[i].value; }
+        }
+        return "0";
     }
 
     /** 表单可编辑状态 + 提示（配置范围只有“当前租户配置”一档，表单按上面的“目标租户”维护）。 */
@@ -591,6 +613,7 @@
         for (var j = 0; j < modeRadios.length; j++) { modeRadios[j].disabled = readOnly; }
         byId("planDeptPicker").classList.toggle("disabled", readOnly);
         renderScopeRow();
+        renderNodeptRow();
         var tip = byId("planTip");
         if (!tip) { return; }
         if (!state.cfgId) {
@@ -647,6 +670,7 @@
         state.subIds = [];
         state.deptIds = [];
         state.wxDeptId = "";
+        state.wxDeptIds = [];
         byId("planScopeEnabled").checked = false;
         renderScopeRow();
         hideCronPreview();
@@ -677,20 +701,23 @@
         // 按范围同步的必填校验（与后端同一口径，先在前端提示，避免白跑一趟接口）
         if (scopeEnabled) {
             if (direction === "0" && state.subIds.length === 0 && state.deptIds.length === 0) {
-                showToast("请选择同步范围：OA → 平台 方向至少要选一个 OA 分部或 OA 部门（含下级）；"
-                    + "平台侧部门留空 = 该租户的 root 节点", 1, 8000);
-                return;
-            }
-            if (direction === "1" && state.subIds.length === 0) {
-                showToast("请选择 OA 落点分部：平台 → OA 方向把平台侧范围（含下级部门）同步到该落点分部下的 OA 部门",
+                showToast("请选择同步范围：OA → 平台 方向至少要选一个 OA 分部或 OA 部门（含下级）",
                     1, 8000);
                 return;
             }
-            if (direction === "1" && (state.subIds.length > 1 || state.deptIds.length > 1)) {
-                showToast("平台 → OA 方向的 OA 落点是单选：只能选一个落点分部与一个落点部门（落点部门可以不选）",
+            if (direction === "1" && state.wxDeptIds.length === 0) {
+                showToast("请选择同步范围：平台 → OA 方向至少要选一个平台部门（含下级部门）",
                     1, 8000);
                 return;
             }
+        }
+        if (policy === "1") {
+            var risky = "请尽量不要选择该方式，可能由于错误设置导致部门创建错误，"
+                + "请尽量先设置部门映射。\n\n确定仍按“新增部门”保存吗？";
+            if (!window.confirm(risky)) { return; }
+        } else if (policy === "2" && !state.deptValue) {
+            showToast("选择“默认部门”后，请选择租户下的一个部门", 1, 8000);
+            return;
         }
         // 计划任务的必填校验（与后端同一口径）：启用时当前方式那一套必须配好
         var mode = planMode();
@@ -725,7 +752,7 @@
             scope_set: scopeEnabled ? 1 : 0,
             oa_sub_ids: scopeEnabled ? state.subIds.join(",") : "",
             oa_dept_ids: scopeEnabled ? state.deptIds.join(",") : "",
-            wx_dept_id: scopeEnabled ? state.wxDeptId : "",
+            wx_dept_id: scopeEnabled && direction === "1" ? state.wxDeptIds.join(",") : "",
             force: force ? 1 : 0
         }, function (res) {
             if (res.code !== 0) { showToast(res.msg, 2); return; }
@@ -981,14 +1008,39 @@
         return null;
     }
 
-    /** 选择框显示：已选部门名（或“（不指定…”占位） */
+    /** 默认部门候选：A 用平台部门快照，B 用 OA 部门；树状模式直接以租户组织根节点展示。 */
+    function defaultDeptRows() {
+        var rows = [];
+        var source = String(byId("planDirection").value) === "0" ? state.wxDepts : state.depts;
+        (source || []).forEach(function (d) {
+            rows.push({
+                id: String(d.id),
+                name: d.name || d.fullname || ("部门 " + d.id),
+                code: d.code || "",
+                parent: String(d.parent == null ? d.parentid : d.parent).replace(/^$/, "0"),
+                fullname: d.fullname || d.name || ""
+            });
+        });
+        return rows;
+    }
+
+    function defaultDeptById(id) {
+        var key = String(id == null ? "" : id);
+        var rows = defaultDeptRows();
+        for (var i = 0; i < rows.length; i++) {
+            if (String(rows[i].id) === key) { return rows[i]; }
+        }
+        return null;
+    }
+
+    /** 选择框显示：已选部门名。 */
     function renderDeptInput() {
-        var d = deptById(state.deptValue);
+        var d = defaultDeptById(state.deptValue);
         byId("planDefaultDept").value = state.deptValue || "";
         byId("planDeptInput").value = state.deptValue
             ? ((d && (d.name || d.fullname)) ? (d.name || d.fullname) : ("部门 " + state.deptValue))
             : "";
-        byId("planDeptInput").placeholder = "（不指定：只回写人员基础信息）";
+        byId("planDeptInput").placeholder = "选择租户下的部门";
     }
 
     function deptChildMap() {
@@ -1009,8 +1061,9 @@
 
     function filterDepts(keyword) {
         var k = String(keyword || "").trim().toLowerCase();
-        if (!k) { return state.depts; }
-        return state.depts.filter(function (d) {
+        var rows = defaultDeptRows();
+        if (!k) { return rows; }
+        return rows.filter(function (d) {
             return deptText(d).toLowerCase().indexOf(k) >= 0;
         });
     }
@@ -1103,44 +1156,35 @@
         var oaToWx = scopeDirection() === "0";
         byId("planScopeRow").style.display = scopeOn() ? "" : "none";
         byId("planScopeHint").textContent = scopeOn()
-            ? "已勾选：每次执行都按下面的范围（含下级）同步"
+            ? "已勾选：只选源侧组织（含下级），目标按现有部门映射写入"
             : "未勾选 = 全量同步（与历史口径一致）";
-        // A（OA→平台）：OA 是来源，分部/部门都可多选；B（平台→OA）：OA 是落点，分部单选必选、部门单选可不选
-        state.subSingle = !oaToWx;
-        state.deptSingle = !oaToWx;
-        byId("planSubLabel").textContent = oaToWx ? "OA 分部" : "OA 落点分部";
-        byId("planSubPicker").title = oaToWx
-            ? "点击选择 OA 分部（可多选，含下级分部与部门）"
-            : "点击选择 OA 落点分部（单选必选，新建的 OA 部门挂在该分部下）";
-        byId("planSubInput").placeholder = oaToWx
-            ? "选择 OA 分部（可多选）" : "选择 OA 落点分部（单选必选）";
-        byId("planSubAllBtn").style.display = state.subSingle ? "none" : "";
-        byId("planSubModalTitle").textContent = oaToWx ? "选择 OA 分部" : "选择 OA 落点分部";
-        byId("planSubNoteText").innerHTML = state.subSingle
-            ? "平台 → OA 时 OA 是落点：<span class='rule'>只能选一个分部（必选）</span>，"
-                + "该分部（含其下级分部与部门）就是落点范围；单击即选中（再点其它分部即更换），"
-                + "双击即确定并退出。"
-            : "可多选，<span class='rule'>选中分部自动含其下级分部与部门</span>；"
-                + "单击选中/取消，双击即确定并退出。";
-        byId("planDeptScopeLabel").textContent = oaToWx ? "OA 部门" : "OA 落点部门";
-        byId("planDeptScopePicker").title = oaToWx
-            ? "点击选择 OA 部门（可多选，含下级部门）"
-            : "点击选择 OA 落点部门（单选，可不选；先选落点分部）";
-        byId("planDeptScopeInput").placeholder = oaToWx
-            ? "选择 OA 部门（可多选）" : "选择 OA 落点部门（单选，可不选）";
-        byId("planDeptScopeAllBtn").style.display = state.deptSingle ? "none" : "";
-        byId("planDeptScopeModalTitle").textContent = oaToWx ? "选择 OA 部门" : "选择 OA 落点部门";
-        byId("planDeptScopeNoteText").innerHTML = state.deptSingle
-            ? "平台 → OA 时 OA 是落点：只能选一个部门，<span class='rule'>也可以不选</span>"
-                + "（不选 = 新建部门直接挂在该落点分部下、成为该分部的顶级部门）。"
-                + "单击即选中，双击即确定并退出。"
-            : "可多选，<span class='rule'>选中部门自动含其下级部门</span>；"
-                + "已选分部时只列出该分部（含下级分部）下的部门。单击选中/取消，双击即确定并退出。";
-        byId("planWxLabel").textContent = state.platformLabel + "部门";
-        byId("planWxModalTitle").textContent = "选择" + state.platformLabel + "部门";
-        // 表单始终针对一个具体租户：平台侧部门就是该租户自己的部门快照，可以指定（留空 = root 节点）
+        state.subSingle = false;
+        state.deptSingle = false;
+        // A：只显示 OA 源组织；B：只显示平台源部门。目标侧不再由页面选择。
+        ["planSubLabel", "planSubPicker", "planDeptScopeLabel", "planDeptScopePicker"].forEach(function (id) {
+            byId(id).style.display = oaToWx ? "" : "none";
+        });
+        ["planWxLabel", "planWxPicker"].forEach(function (id) {
+            byId(id).style.display = oaToWx ? "none" : "";
+        });
+        byId("planSubLabel").textContent = "OA 分部（来源）";
+        byId("planSubPicker").title = "点击选择 OA 来源分部（可多选，含下级分部与部门）";
+        byId("planSubInput").placeholder = "选择 OA 分部（可多选）";
+        byId("planSubModalTitle").textContent = "选择 OA 来源分部";
+        byId("planSubNoteText").innerHTML = "可多选，<span class='rule'>选中分部自动含其下级分部与部门</span>；"
+            + "单击选中/取消，双击即确定并退出。";
+        byId("planSubAllBtn").style.display = "";
+        byId("planDeptScopeLabel").textContent = "OA 部门（来源）";
+        byId("planDeptScopePicker").title = "点击选择 OA 来源部门（可多选，含下级部门）";
+        byId("planDeptScopeInput").placeholder = "选择 OA 部门（可多选）";
+        byId("planDeptScopeModalTitle").textContent = "选择 OA 来源部门";
+        byId("planDeptScopeNoteText").innerHTML = "可多选，<span class='rule'>选中部门自动含其下级部门</span>；"
+            + "已选分部时只列出该分部（含下级分部）下的部门。单击选中/取消，双击即确定并退出。";
+        byId("planDeptScopeAllBtn").style.display = "";
+        byId("planWxLabel").textContent = state.platformLabel + "部门（来源）";
+        byId("planWxModalTitle").textContent = "选择" + state.platformLabel + "来源部门";
         byId("planWxPicker").classList.toggle("disabled", formReadOnly());
-        byId("planScopeNote").textContent = "";
+        byId("planScopeNote").textContent = "目标部门按租户现有映射确定";
         renderScopeInputs();
     }
 
@@ -1148,12 +1192,7 @@
     function renderScopeInputs() {
         byId("planSubInput").value = namesOf(state.subIds, subById, "分部");
         byId("planDeptScopeInput").value = namesOf(state.deptIds, deptById, "部门");
-        if (state.wxDeptId) {
-            var w = wxDeptById(state.wxDeptId);
-            byId("planWxInput").value = (w && w.name) ? w.name : ("部门 " + state.wxDeptId);
-        } else {
-            byId("planWxInput").value = "";
-        }
+        byId("planWxInput").value = namesOf(state.wxDeptIds, wxDeptById, "部门");
     }
 
     function namesOf(ids, lookup, fallbackPrefix) {
@@ -1425,7 +1464,7 @@
         hideModal("planDeptScopeMask", "planDeptScopeModal");
     }
 
-    /* ---- 平台部门（单选，留空 = 租户 root 节点） ---- */
+    /* ---- 平台部门（B 方向来源，可多选，含下级） ---- */
 
     function wxDeptById(id) {
         var key = String(id == null ? "" : id);
@@ -1437,8 +1476,8 @@
 
     function wxOptionHtml(d) {
         var id = String(d.id);
-        var active = String(state.wxDeptId) === id;
-        var tip = active ? "已选中该部门（再点其它部门即更换）" : "点击选择该部门（含其下级部门）";
+        var active = state.wxDeptIds.indexOf(id) >= 0;
+        var tip = (active ? "点击取消该部门" : "点击选择该部门") + "；选中部门自动含其下级部门";
         return scopeOptionHtml(id, d.name || ("部门 " + id), "ID " + id, active, false, tip);
     }
 
@@ -1464,15 +1503,19 @@
     }
 
     function toggleWxDept(id) {
-        // 单选：点同一行不取消（清空用弹框里的“清空（= root 节点）”或输入框的 ×）
-        state.wxDeptId = String(id);
+        var key = String(id);
+        var idx = state.wxDeptIds.indexOf(key);
+        state.wxDeptIds = idx >= 0
+            ? state.wxDeptIds.filter(function (v) { return v !== key; })
+            : state.wxDeptIds.concat([key]);
+        state.wxDeptId = state.wxDeptIds.join(",");
     }
 
     function refreshWxDom() {
         var opts = byId("planWxList").querySelectorAll(".wx-pick-option");
         for (var i = 0; i < opts.length; i++) {
             opts[i].classList.toggle("active",
-                String(opts[i].getAttribute("data-id")) === String(state.wxDeptId));
+                state.wxDeptIds.indexOf(String(opts[i].getAttribute("data-id"))) >= 0);
         }
     }
 
@@ -1485,7 +1528,7 @@
             showToast("“全局默认配置”的平台侧固定为各租户的 root 节点，不能指定具体部门", 1, 6000);
             return;
         }
-        state.wxBackup = state.wxDeptId;
+        state.wxBackup = state.wxDeptIds.slice();
         byId("planWxSearch").value = "";
         OaonesPicker.resetTree("planWx");
         renderWxList();
@@ -1494,7 +1537,10 @@
     }
 
     function closeWxPick(commit) {
-        if (!commit) { state.wxDeptId = state.wxBackup || ""; }
+        if (!commit) {
+            state.wxDeptIds = state.wxBackup || [];
+            state.wxDeptId = state.wxDeptIds.join(",");
+        }
         state.wxBackup = null;
         renderScopeInputs();
         hideModal("planWxMask", "planWxModal");
@@ -1707,6 +1753,16 @@
         byId("planModeCron").addEventListener("change", function () { switchPlanMode("1"); });
         // “按范围同步”开关：勾选/取消只切换范围行的显示（选择的值保留在 state 里，重新勾选即恢复）
         byId("planScopeEnabled").addEventListener("change", renderScopeRow);
+        var nodeptRadios = document.getElementsByName("planNodeptPolicy");
+        for (var nr = 0; nr < nodeptRadios.length; nr++) {
+            nodeptRadios[nr].addEventListener("change", function () {
+                if (this.value === "1") {
+                    showToast("请尽量不要选择该方式，可能由于错误设置导致部门创建错误，"
+                        + "请尽量先设置部门映射。", 1, 9000);
+                }
+                renderNodeptRow();
+            });
+        }
 
         /* ---- 同步范围：OA 分部 / OA 部门 / 平台部门（弹框选择，双击即确定） ---- */
         byId("planSubPicker").addEventListener("click", function (e) {
@@ -1791,6 +1847,7 @@
         byId("planWxClear").addEventListener("click", function (e) {
             e.stopPropagation();
             state.wxDeptId = "";
+            state.wxDeptIds = [];
             renderScopeInputs();
         });
         byId("planWxSearch").addEventListener("input", function () { renderWxList(); });
@@ -1803,7 +1860,11 @@
         byId("planWxList").addEventListener("dblclick", function (e) {
             var btn = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
             if (!btn) { return; }
-            toggleWxDept(btn.getAttribute("data-id"));
+            var key = String(btn.getAttribute("data-id"));
+            if (state.wxDeptIds.indexOf(key) < 0) {
+                state.wxDeptIds = state.wxDeptIds.concat([key]);
+                state.wxDeptId = state.wxDeptIds.join(",");
+            }
             refreshWxDom();
             closeWxPick(true);
         });
@@ -1815,6 +1876,7 @@
         });
         byId("planWxClearBtn").addEventListener("click", function () {
             state.wxDeptId = "";
+            state.wxDeptIds = [];
             renderWxList();
         });
 

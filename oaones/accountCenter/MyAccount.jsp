@@ -88,8 +88,8 @@
             </div>
         </div>
 
-        <%-- 页签：第一个固定为“我的账户（主账户 / 子账户）”，其后是企微 / 钉钉 / 飞书三个平台的本人绑定；
-             某平台在当前部署里既没有租户、也没有本人绑定时，它的页签会自动隐藏（“我的账户”不会被隐藏） --%>
+        <%-- 页签：第一个固定为“我的账户（主账户 / 子账户）”，其后是企微 / 钉钉 / 飞书三个平台的本人绑定。
+             平台页签始终保留；当前平台没有可用租户时，在面板内显示空状态，避免点击后页签突然消失。 --%>
         <div class="sub-tabs" id="accountTabs">
             <button type="button" class="<%= "family".equals(acTab) ? "active" : "" %>"
                     data-tab="family">我的账户（主账户 / 子账户）</button>
@@ -100,8 +100,7 @@
             <button type="button" class="<%= "feishu".equals(acTab) ? "active" : "" %>"
                     data-tab="feishu">飞书</button>
             <%-- 个人微信：与三个平台并列的第四个页签。它没有“租户”概念（一人一条绑定），
-                 也不参与下面“空平台自动隐藏”的口径——未绑定、甚至还没维护授权密钥时
-                 页签也必须显示，否则员工没有入口去绑定 --%>
+                 未绑定、甚至还没维护授权密钥时页签也必须显示，否则员工没有入口去绑定。 --%>
             <button type="button" class="<%= "personalwx".equals(acTab) ? "active" : "" %>"
                     data-tab="personalwx">个人微信</button>
         </div>
@@ -229,8 +228,7 @@ function loadAccount() {
         // 第一个页签“我的账户（主账户 / 子账户）”
         renderAccountFamily();
         // 绑定列表：三个平台都取（每个平台一次轻量查询+绑定查询）。
-        // 合并页要按“该平台有没有租户 / 有没有本人绑定”决定页签显示与否，
-        // 不先取一遍就无法在首屏把空平台藏起来；“刷新”按钮走的也是这里，所以刷新会一起更新三家。
+        // 页签始终保留，空平台由面板自己的空状态说明；“刷新”按钮走的也是这里，会一起更新三家。
         PLATFORMS.forEach(function (p) { loadBindings(p); });
         loadPersonalWx();
     });
@@ -253,31 +251,9 @@ function loadBindings(platform) {
         acctState.loaded[p] = true;
         var panel = panels()[p];
         if (panel) { panel.render(tenants, data.bound_count || 0, data.tenant_count); }
-        applyPlatformTab(p, tenants.length, data.bound_count || 0);
         // 表格刚可见时要重画一次：列宽拖拽在 display:none 时量不到宽度
         if (panel && accountTab() === p) { panel.onShow(); }
     });
-}
-
-/**
- * 部署里可能只配了一家 / 两家平台：既没有租户、也没有本人绑定的平台不显示页签
- * （避免合并页在单平台部署下多出两个空页签）；当前页签被隐藏时自动落到第一个可用页签。
- */
-function applyPlatformTab(p, tenantCount, boundCount) {
-    var btn = document.querySelector('#accountTabs button[data-tab="' + p + '"]');
-    if (!btn) { return; }
-    var empty = tenantCount === 0 && boundCount === 0;
-    btn.style.display = empty ? "none" : "";
-    if (empty && accountTab() === p) { switchAccountTab(firstVisibleTab()); }
-}
-
-/** 第一个可见页签（跳过被隐藏的空平台；三个平台都没内容时退回“我的账户”页签，它不会被隐藏） */
-function firstVisibleTab() {
-    var btns = document.querySelectorAll("#accountTabs button[data-tab]");
-    for (var i = 0; i < btns.length; i++) {
-        if (btns[i].style.display !== "none") { return btns[i].getAttribute("data-tab"); }
-    }
-    return "family";
 }
 
 /**
@@ -285,7 +261,7 @@ function firstVisibleTab() {
  *
  * 个人微信与企微 / 钉钉 / 飞书并列，但没有“企业 / 租户”概念：整套系统只有一份授权密钥
  * （由管理员在「微信设置」页维护）、每个 OA 人员最多一条绑定，因此这里不走
- * loadBindings（那是“一行一个租户”的清单），也不参与 applyPlatformTab 的空平台隐藏。
+ * loadBindings（那是“一行一个租户”的清单），页签始终显示。
  */
 function loadPersonalWx() {
     var seq = loadSeq;
@@ -404,7 +380,7 @@ function accountTab() {
     for (var i = 0; i < btns.length; i++) {
         if (btns[i].classList.contains("active")) { return btns[i].getAttribute("data-tab"); }
     }
-    return "wecom";
+    return "family";
 }
 
 function switchAccountTab(tab) {

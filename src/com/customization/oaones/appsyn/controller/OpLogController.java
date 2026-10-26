@@ -26,7 +26,7 @@ public class OpLogController extends BaseController {
     public JSONObject handle(String action, HttpServletRequest request, String operatorId)
             throws Exception {
         if ("oplog.options".equals(action)) {
-            // 打开页面时顺带按保留天数清理历史日志（内部每小时最多一次）
+            // 打开页面时确保每天执行一次的日志保留调度器已启动
             if (logService().canView(operatorId)) {
                 logService().cleanIfDue();
             }

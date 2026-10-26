@@ -88,6 +88,14 @@ public interface AttSyncMapper {
      */
     List<AttMember> listMembers(Map<String, Object> params);
 
+    /**
+     * 设置里已选人员ID → 姓名（编辑回显用）。
+     *
+     * <p>只查 {@code hrmresource}，不联绑定表、不按人员状态过滤：已保存到设置里的历史人员
+     * 即使后来离职，也应当继续显示姓名，而不是在编辑弹框里退化成 {@code #人员ID}。</p>
+     */
+    List<AttMember> listUserNames(Map<String, Object> params);
+
     /** 一批 OA 人员ID → 该租户已绑定的平台账号（未绑定的不返回）。 */
     List<AttMember> listBoundByUsers(Map<String, Object> params);
 
@@ -132,7 +140,7 @@ public interface AttSyncMapper {
     /** 按“平台 + 租户 + 方向 + 人员 + 打卡时间 + 类型 + 来源”找映射（去重用）。 */
     AttSyncLink findLinkByKey(Map<String, Object> params);
 
-    /** 按平台记录ID 找映射（平台给出稳定记录ID 时优先用它判重）。 */
+    /** 按「OA人员 + 平台记录ID」找映射（同一平台记录可扇出到多个 OA 账户）。 */
     AttSyncLink findLinkByRecord(Map<String, Object> params);
 
     /** 该「平台 + 租户 + 方向」下的映射列表（可按来源 / 时间窗 / 人员过滤）。 */

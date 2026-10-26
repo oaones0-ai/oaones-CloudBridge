@@ -149,11 +149,12 @@ public class WeComApi {
         ensureOk(resp, "删除企业微信部门失败");
     }
 
-    public void createUser(JSONObject user) throws Exception {
+    public JSONObject createUser(JSONObject user) throws Exception {
         OaonesLog.step("调用企业微信创建成员 userid="
                 + OaonesUtil.s(user == null ? "" : user.getString("userid")));
         JSONObject resp = post("/cgi-bin/user/create", user);
         ensureOk(resp, "创建企业微信成员失败");
+        return resp;
     }
 
     public void updateUser(JSONObject user) throws Exception {

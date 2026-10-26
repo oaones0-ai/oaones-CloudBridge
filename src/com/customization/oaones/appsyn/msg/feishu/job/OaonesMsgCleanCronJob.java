@@ -1,9 +1,10 @@
 package com.customization.oaones.appsyn.msg.feishu.job;
 
+import com.customization.oaones.appsyn.common.LogRetentionCatalog;
 import com.customization.oaones.appsyn.msg.feishu.service.MsgConfigService;
-import com.customization.oaones.appsyn.msg.feishu.service.MsgLogService;
 import com.customization.oaones.appsyn.msg.feishu.service.MsgTaskService;
 import com.customization.oaones.appsyn.msg.feishu.entity.MsgConfig;
+import com.customization.oaones.appsyn.service.impl.LogRetentionServiceImpl;
 import weaver.general.BaseBean;
 import weaver.interfaces.schedule.BaseCronJob;
 
@@ -19,7 +20,7 @@ public class OaonesMsgCleanCronJob extends BaseCronJob {
     public void execute() {
         try {
             MsgConfig config = new MsgConfigService().get();
-            new MsgLogService().cleanExpired(config.getLogKeepDays() == null ? 0 : config.getLogKeepDays());
+            new LogRetentionServiceImpl().cleanNow(LogRetentionCatalog.MSG_LOG);
             new MsgTaskService().cleanExpired(config.getTaskKeepDays() == null ? 0 : config.getTaskKeepDays());
         } catch (Throwable t) {
             new BaseBean().writeLog("oaones msg clean cron job error: " + t);

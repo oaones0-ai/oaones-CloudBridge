@@ -95,6 +95,11 @@
         where cfg_id = #{cfgId} and oa_user_id = #{oaUserId} and bind_state = 1
     </select>
 
+    <select id="findActiveWxUserIdByOaUser" resultType="java.lang.String">
+        select x_user_id from ${table}
+        where cfg_id = #{cfgId} and oa_user_id = #{oaUserId} and bind_state = 1
+    </select>
+
     <select id="findNoBindIdByOaUser" resultType="java.lang.Integer">
         select id from ${table}
         where cfg_id = #{cfgId} and oa_user_id = #{oaUserId} and bind_state = 0
