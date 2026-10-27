@@ -66,7 +66,7 @@
 配置白名单地址：
 集成中心->统一身份认证->认证接入管理配置->白名单地址配置->统一白名单地址配置->通用白名单
 如果没有该模块，请使用以下sql（sqlserver版本，其他版本请自行插入）：
-INSERT INTO [Int_WhiteList] ([exclude_],[type_],[desc_],[orderNum],[creater],[modifier],[modifydate],[modifytime],[is_sys]) VALUES ('/oaones/login/login.jsp','url','统一登录页','100','null','null,null,null,null');
+INSERT INTO [Int_WhiteList] ([exclude_],[type_],[desc_],[orderNum],[creater],[modifier],[modifydate],[modifytime],[is_sys]) VALUES ('/oaones/appsyn/login/login.jsp','url','统一登录页','100','null','null,null,null,null');
 ```
 
 ### 4.4 配置 web.xml 和 nginx（统一身份认证）
