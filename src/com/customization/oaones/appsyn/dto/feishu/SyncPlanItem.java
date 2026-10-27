@@ -7,7 +7,7 @@ package com.customization.oaones.appsyn.dto.feishu;
  * <ol>
  *   <li>同步前的预览弹窗（本次将更新/新增哪些部门、哪些人员）；</li>
  *   <li>实际同步时逐条执行与结果回填（成功/跳过/失败原因）；</li>
- *   <li>同步日志明细表（uf_oaones_sync_log_item）逐条留痕。</li>
+ *   <li>同步日志明细表（uf_oaones_appsyn_sync_log_item）逐条留痕。</li>
  * </ol>
  */
 public class SyncPlanItem {

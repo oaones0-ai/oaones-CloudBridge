@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.msg.entity;
 
 /**
- * 卡片任务（表名取 oaones.properties#oaones_msg_task_table）。
+ * 卡片任务（表名取 oaones.appsyn.properties#oaones_msg_task_table）。
  *
  * <p>待办卡片推送时登记 {@code taskId}（业务+接收人唯一），
  * 流程办结/退回/收回等标准消息到来时按 taskId 调用企业微信 update_taskcard 更新卡片状态。</p>

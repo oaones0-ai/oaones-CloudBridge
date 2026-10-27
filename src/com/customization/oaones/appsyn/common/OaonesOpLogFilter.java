@@ -19,7 +19,7 @@ import javax.servlet.http.HttpServletRequest;
  *       并且只有地址命中 E9 菜单表时才写日志，所以不会给接口与静态资源带来写库开销；</li>
  *   <li>任何异常一律吞掉（{@link OaonesOpLog#observe} 自带兜底），
  *       最坏情况只是漏一条日志，绝不影响业务请求；</li>
- *   <li>整体开关 {@code oaones.properties#op.log.enable=0} 可随时关闭（60 秒内生效）。</li>
+ *   <li>整体开关 {@code oaones.appsyn.properties#op.log.enable=0} 可随时关闭（60 秒内生效）。</li>
  * </ul>
  *
  * <p>注册方式见 {@code ecology/WEB-INF/resin-web-post.xml}（Resin 自动 import 该文件）；
@@ -30,7 +30,7 @@ public class OaonesOpLogFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) {
-        // 无需初始化参数：开关与窗口从 ecology/WEB-INF/prop/oaones.properties 的 op.log.* 项读
+        // 无需初始化参数：开关与窗口从 ecology/WEB-INF/prop/oaones.appsyn.properties 的 op.log.* 项读
     }
 
     @Override

@@ -3,7 +3,7 @@ package com.customization.oaones.appsyn.service.feishu;
 import com.alibaba.fastjson.JSONObject;
 
 /**
- * 统一登录设置（`/oaones/loginConfig/Feishu/config.jsp`）。
+ * 统一登录设置（`/oaones/appsyn/loginConfig/Feishu/config.jsp`）。
  *
  * <p>设置项：账号密码登录 / 手机号登录 / 飞书扫码登录 / 飞书扫码登录 /
  * 个人微信登录 / 扫码二维码有效期（秒）/ **登录页外观**（logo、整页背景图、左侧富文本）。
@@ -31,7 +31,7 @@ public interface LoginConfigService {
 
     /**
      * 上传登录页外观图片（只有维护人可上传；与「应用中心」的图标同一套落盘口径，都落到
-     * {@code oaones/img/} 下，地址形如 {@code /oaones/img/<前缀><时间戳>_<随机>.<ext>}）。
+     * {@code oaones/appsyn/img/} 下，地址形如 {@code /oaones/appsyn/img/<前缀><时间戳>_<随机>.<ext>}）。
      *
      * <p>上传与保存是两步：本方法**只落盘、不写库**，设置页把回的地址放进表单，
      * 由 {@link #save(JSONObject, String)} 与其它设置一起保存——与「先上传图标、再保存应用」同一口径。
@@ -51,7 +51,7 @@ public interface LoginConfigService {
      *
      * <p>保存前校验：至少要有一种**已实现**的登录方式开启（账号密码 / 手机号 / 飞书扫码），
      * 否则会把所有人挡在登录页外；二维码有效期只接受 `login.qr.ttl.min/max` 之间的秒数；
-     * {@code logo} 只接受空值或本页上传后产生的地址（{@code /oaones/img/loginlogo_xxx.png}）——
+     * {@code logo} 只接受空值或本页上传后产生的地址（{@code /oaones/appsyn/img/loginlogo_xxx.png}）——
      * 请求里**不带 logo 参数 = 保持原值**（从别的入口只改开关时不会把 logo 抹掉），
      * 带空串 = 清除 logo（同时清理不再被引用的旧文件）；
      * {@code bg_image} 与 {@code logo} 同一口径；{@code brand_html}（登录页左侧富文本，HTML）

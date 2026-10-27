@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 会议 / 日程同步「对象映射」实体（业务表：表名取 oaones.properties#oaones_mtg_link_table）。
+ * 会议 / 日程同步「对象映射」实体（业务表：表名取 oaones.appsyn.properties#oaones_mtg_link_table）。
  *
  * <p>一行 = 一个「业务（biz）+ 平台（type）+ 租户（cfgid）」下的
  * <b>OA 对象ID</b>（Meeting.id / WorkPlan.id）与 <b>第三方平台对象ID</b>（日程 / 事件 ID）的映射，
@@ -30,7 +30,7 @@ public class MtgSyncLink {
     private Integer biz;
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书（{@code OaonesConst.TYPE_*}）。 */
     private Integer type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）。 */
     private Integer cfgid;
     /** OA 侧对象ID（Meeting.id / WorkPlan.id）。 */
     private String oaId;

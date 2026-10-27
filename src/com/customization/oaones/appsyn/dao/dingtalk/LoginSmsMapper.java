@@ -4,7 +4,7 @@ import com.customization.oaones.appsyn.entity.dingtalk.LoginSms;
 import org.apache.ibatis.annotations.Param;
 
 /**
- * 登录验证码表 Mapper（uf_oaones_login_sms，手机号 / 邮箱两种验证方式共用）。
+ * 登录验证码表 Mapper（uf_oaones_appsyn_login_sms，手机号 / 邮箱两种验证方式共用）。
  *
  * <p>本表只服务“统一登录设置”里的“验证登录”：发送时插入一行，
  * 校验时按手机号（或邮箱）取**最近一条**（不管状态，由业务层区分

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 同步日志（uf_oaones_appsyn_sync_log）
+  物理列名为 cfgid / corpname / totalcount 等（历史建模表结构）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.dingtalk.SyncLogMapper">
+
+    <select id="list" resultType="com.customization.oaones.appsyn.entity.dingtalk.SyncLog">
+        select top ${limit}
+               id, cfgid, corpname, direction, totalcount, successcount, failcount,
+               skipcount, deptcount, usercount, nodeptcount, nodeptdept,
+               starttime, endtime, runstatus, detail, modedatacreater
+        from ${syncLogTable}
+        <where>
+            <if test="cfgId != null">
+                and cfgid = #{cfgId}
+            </if>
+            <if test="direction != null">
+                and direction = #{direction}
+            </if>
+            <!-- 维护人分权：只返回当前登录人可维护租户的日志；空集合表示无可见租户 -->
+            <if test="cfgIds != null">
+                <choose>
+                    <when test="cfgIds.size() > 0">
+                        and cfgid in
+                        <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">
+                            #{cid}
+                        </foreach>
+                    </when>
+                    <otherwise>
+                        and 1 = 0
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        order by id desc
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (cfgid, corpname, direction, totalcount, successcount, failcount,
+             skipcount, deptcount, usercount, nodeptcount, nodeptdept,
+             starttime, endtime, runstatus, detail, MODEUUID,
+             modedatacreater, modedatacreatedate,
+             modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.cfgid}, #{e.corpname}, #{e.direction}, #{e.totalcount}, #{e.successcount},
+             #{e.failcount}, #{e.skipcount}, #{e.deptcount}, #{e.usercount},
+             #{e.nodeptcount}, #{e.nodeptdept}, #{e.starttime}, #{e.endtime}, #{e.runstatus},
+             #{e.detail}, #{e.modeuuid}, #{e.modedatacreater},
+             #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <select id="findIdByUuid" resultType="java.lang.Integer">
+        select id from ${table} where MODEUUID = #{modeuuid}
+    </select>
+</mapper>

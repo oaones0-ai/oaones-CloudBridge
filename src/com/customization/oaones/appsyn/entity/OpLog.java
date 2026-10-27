@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 操作监控日志（表名取 oaones.properties#oaones_op_log_table）。
+ * 操作监控日志（表名取 oaones.appsyn.properties#oaones_op_log_table）。
  *
  * <p>一行 = 一次“操作监控平台”关心的事件：</p>
  * <ul>

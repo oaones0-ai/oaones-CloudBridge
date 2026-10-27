@@ -5,9 +5,9 @@ import com.alibaba.fastjson.JSONObject;
 /**
  * 扫码登录授权上下文（平台回跳 {@code state}）的编解码：{@code base64url(票据|平台|租户ID)}。
  *
- * <p>统一登录页的二维码是**一张**（见 {@code /oaones/login/login.jsp}），
+ * <p>统一登录页的二维码是**一张**（见 {@code /oaones/appsyn/login/login.jsp}），
  * 扫码方可能是企业微信 / 钉钉 / 飞书任意一个客户端，因此扫码落地页
- * （{@code /oaones/login/scan.jsp}）先按客户端分派到对应连接器，
+ * （{@code /oaones/appsyn/login/scan.jsp}）先按客户端分派到对应连接器，
  * 再由该连接器把“票据 / 平台 / 第几家企业”放进授权 {@code state} 里回传——
  * 三个连接器共用这一个协议，编解码只保留本类一份实现。</p>
  *

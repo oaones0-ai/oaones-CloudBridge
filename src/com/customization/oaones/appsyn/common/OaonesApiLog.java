@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 接口日志记录器：把 OAones 与第三方平台之间的每一次接口调用落进 {@code uf_oaones_api_log}。
+ * 接口日志记录器：把 OAones 与第三方平台之间的每一次接口调用落进 {@code uf_oaones_appsyn_api_log}。
  *
  * <p>统一口径只有这一处：</p>
  * <ul>
@@ -183,7 +183,7 @@ public final class OaonesApiLog {
      * @param cfgId    租户配置ID（无租户传 0）
      * @param corpName 租户名称（可空）
      * @param apiType  接口类型（{@link #TYPE_MSG} / {@link #TYPE_LOGIN} / {@link #TYPE_OTHER} 等）
-     * @param path     入口路径（如 /oaones/WeCom/msgapi.jsp）
+     * @param path     入口路径（如 /oaones/appsyn/WeCom/msgapi.jsp）
      * @param reqBody  入参摘要
      * @param respBody 返回摘要
      * @param success  是否成功
@@ -322,7 +322,7 @@ public final class OaonesApiLog {
         } catch (Throwable t) {
             // 表还没建 / 库不可用：只提示一次，之后 10 分钟内静默，避免刷日志
             disableUntil = System.currentTimeMillis() + 10 * 60 * 1000L;
-            OaonesLog.error("写入接口日志失败（已临时静默 10 分钟，请确认已执行 uf_oaones_api_log 建表脚本）", t);
+            OaonesLog.error("写入接口日志失败（已临时静默 10 分钟，请确认已执行 uf_oaones_appsyn_api_log 建表脚本）", t);
         }
     }
 

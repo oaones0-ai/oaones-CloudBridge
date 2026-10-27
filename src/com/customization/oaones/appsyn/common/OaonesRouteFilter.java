@@ -24,7 +24,7 @@ public class OaonesRouteFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) {
-        // 无需初始化参数：路由表从 ecology/WEB-INF/prop/oaones.properties 的 route.* 项读
+        // 无需初始化参数：路由表从 ecology/WEB-INF/prop/oaones.appsyn.properties 的 route.* 项读
     }
 
     @Override

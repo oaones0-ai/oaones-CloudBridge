@@ -13,7 +13,7 @@ import java.util.List;
  *
  * <p><b>为什么不复用 {@code api.jsp}</b>：{@code api.jsp} 是 query string 口径的 AJAX 入口
  * （{@code js/api.js} 用 GET 调），收不了 {@code multipart/form-data}。
- * 因此图标上传另开一个专用入口页 {@code /oaones/appCenter/iconUpload.jsp}，
+ * 因此图标上传另开一个专用入口页 {@code /oaones/appsyn/appCenter/iconUpload.jsp}，
  * 由它调用同一个控制器 action（{@code appc.uploadIcon}），页面用 {@code fetch} 以
  * {@code FormData} 提交——与平台自带的其它上传页（{@code docs/ofd/OfdUpload.jsp} 等）同一口径。</p>
  *

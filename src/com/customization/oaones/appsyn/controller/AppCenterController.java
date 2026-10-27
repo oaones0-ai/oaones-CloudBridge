@@ -17,15 +17,15 @@ import java.util.Map;
  *
  * <p>「应用中心」是没有租户维度的公共菜单（与个人微信同口径），两个页面：</p>
  * <ul>
- *   <li>应用列表（管理页）{@code /oaones/appCenter/AppList.jsp}：
+ *   <li>应用列表（管理页）{@code /oaones/appsyn/appCenter/AppList.jsp}：
  *       {@code appc.list} / {@code appc.roles} / {@code appc.save} / {@code appc.state} / {@code appc.delete}
- *       / {@code appc.checkClass}，仅系统管理员与 {@code oaones.properties#appc.admin.ids} 可维护；
+ *       / {@code appc.checkClass}，仅系统管理员与 {@code oaones.appsyn.properties#appc.admin.ids} 可维护；
  *       {@code appc.gopage} / {@code appc.gopageSave} 维护启动台自动跳转秒数
  *       （只给系统管理员 + {@code appc.admin.ids}，只写 {@code gopage_seconds} 一列，不改登录页设置）；
  *       {@code appc.uploadIcon}（图标上传）也属于这一组，但它收的是文件，
- *       由专用入口 {@code /oaones/appCenter/iconUpload.jsp} 以 multipart 调进来，
+ *       由专用入口 {@code /oaones/appsyn/appCenter/iconUpload.jsp} 以 multipart 调进来，
  *       页面通过 {@code api.jsp}（GET 口径）调不到；</li>
- *   <li>桌面启动台（展示页）{@code /oaones/appCenter/Desktop.jsp}：
+ *   <li>桌面启动台（展示页）{@code /oaones/appsyn/appCenter/Desktop.jsp}：
  *       {@code appc.desktop}（取出启用中的应用）与 {@code appc.entry}（点击图标时按
  *       “单点登录实现类”生成最终访问地址），本模块任何登录人都可用。</li>
  * </ul>
@@ -73,7 +73,7 @@ public class AppCenterController extends BaseController {
             return OaonesUtil.ok(appCenterService().checkClass(req(request, "sso_class")));
         }
         if ("appc.uploadIcon".equals(action)) {
-            // 图标上传（页面上传，落到 oaones/img/ 下）：multipart 请求由专用入口页转进来，
+            // 图标上传（页面上传，落到 oaones/appsyn/img/ 下）：multipart 请求由专用入口页转进来，
             // 这里只负责取出文件交给 Service（类型/大小/长宽的校验都在 Service 里，见 saveIcon）
             OaonesUpload.Item file = OaonesUpload.read(request, OaonesConst.APP_ICON_MAX_BYTES);
             return OaonesUtil.ok(appCenterService().saveIcon(

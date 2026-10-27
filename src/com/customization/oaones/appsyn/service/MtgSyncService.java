@@ -40,7 +40,7 @@ public interface MtgSyncService {
 
     /**
      * 设置某个「业务 + 平台 + 租户」的**绑定应用**：本租户同步时调平台日程接口用哪个
-     * “应用绑定”记录（{@code uf_oaones_app_bind.id}）。
+     * “应用绑定”记录（{@code uf_oaones_appsyn_app_bind.id}）。
      *
      * <p>平台日程接口要求用**有日程权限的应用自己的 Secret** 换 access_token
      * （租户配置里的通讯录 Secret 通常没有日程权限），所以支持多应用的租户要在这里逐租户指定；
@@ -111,7 +111,7 @@ public interface MtgSyncService {
      *
      * <p>双向同步但<b>不做反向更新</b>（谁创建谁维护）：对方的改动只写一条同步记录
      * （说明里写明“不做反向更新”），不写回源端；只有<b>创建端</b>的修改 / 删除会同步到接收方。
-     * 每条对象都用映射表 {@code uf_oaones_mtg_link} 的内容快照（{@code oa_hash} / {@code wx_hash}）
+     * 每条对象都用映射表 {@code uf_oaones_appsyn_mtg_link} 的内容快照（{@code oa_hash} / {@code wx_hash}）
      * 比对，<b>没变就不调接口、也不写记录</b>。</p>
      *
      * @return 一轮的统计（推送 / 拉取各自的 扫描 / 新增 / 更新 / 跳过 / 失败 / 删除）
@@ -122,8 +122,8 @@ public interface MtgSyncService {
      * 页面「计划任务」：读取当前配置（同步方式、时间段明细 / 高级 cron、工作日口径、启用开关、
      * 规则文案与下次执行时间）。
      *
-     * <p>配置存 {@code uf_oaones_mtg_cron} 单行 + 时间段明细 {@code uf_oaones_mtg_plan_item}；
-     * 表里没有行时返回 {@code oaones.properties} 里的默认值（白天 60 分钟 / 夜间 120 分钟两档 cron，
+     * <p>配置存 {@code uf_oaones_appsyn_mtg_cron} 单行 + 时间段明细 {@code uf_oaones_appsyn_mtg_plan_item}；
+     * 表里没有行时返回 {@code oaones.appsyn.properties} 里的默认值（白天 60 分钟 / 夜间 120 分钟两档 cron，
      * 启用），并给出「恢复默认」用的默认时间段。返回值里还带工作日口径的考勤组候选
      * （泛微标准考勤 {@code kq_group}）与今天的“工作日 / 非工作日”结论。</p>
      */
@@ -170,7 +170,7 @@ public interface MtgSyncService {
      * 内置调度器调用：按「租户勾了「第三方→OA」」逐个租户从第三方平台拉取日程 / 事件，
      * 平台新建的在 OA 新建记录、此前从 OA 推过去的按平台改动更新 OA 记录。
      *
-     * <p>是否“到点”由调度器按规则判断（见 {@code oaones.properties} 的 {@code mtg.pull.*}：
+     * <p>是否“到点”由调度器按规则判断（见 {@code oaones.appsyn.properties} 的 {@code mtg.pull.*}：
      * 默认 9:00–18:00 每小时一次、其余时段每 2 小时一次），本方法被调用即执行一轮拉取。</p>
      *
      * @return 本轮统计（扫描租户 / 新增 / 更新 / 跳过 / 失败）

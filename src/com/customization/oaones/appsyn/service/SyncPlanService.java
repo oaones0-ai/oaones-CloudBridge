@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 
 /**
- * 同步中心“同步设置”服务（业务表名取 oaones.properties#oaones_sync_plan_table）。
+ * 同步中心“同步设置”服务（业务表名取 oaones.appsyn.properties#oaones_sync_plan_table）。
  *
  * <p>本服务是三个连接器（企微 / 钉钉 / 飞书）<b>共用</b>的：设置表用 type 区分平台，
  * 页面（一级菜单“同步中心”）按平台 + 租户维护；同步引擎在每次执行时按

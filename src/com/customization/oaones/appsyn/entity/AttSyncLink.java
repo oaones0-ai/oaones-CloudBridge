@@ -2,7 +2,7 @@ package com.customization.oaones.appsyn.entity;
 
 /**
  * 考勤同步「**平台打卡记录 ⇄ OA 打卡记录**」映射实体
- * （业务表：表名取 {@code oaones.properties#oaones_att_link_table}）。
+ * （业务表：表名取 {@code oaones.appsyn.properties#oaones_att_link_table}）。
  *
  * <p>一行 = 一个「平台 + 租户 + 方向」下的一条打卡对应的两侧记录：用途有三个（需求 4.1.2）：</p>
  * <ol>

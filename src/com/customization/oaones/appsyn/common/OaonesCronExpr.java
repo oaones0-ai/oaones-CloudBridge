@@ -14,7 +14,7 @@ import java.util.List;
  * 页面保存前用 {@link #valid(String)} 校验、并把它交给页面展示
  * {@link #nextTimes(String, Date, int)} 预测出的后 10 次执行时间（所见即所得）；
  * 计划任务类 {@code job.OaonesSyncPlanCronJob} 用 {@link #nextAfter(String, Date)}
- * 维护 {@code uf_oaones_sync_plan.next_run_time}，到点即触发该租户该方向的同步。</p>
+ * 维护 {@code uf_oaones_appsyn_sync_plan.next_run_time}，到点即触发该租户该方向的同步。</p>
  *
  * <p>Quartz 的 cron 是 <b>6 个字段（秒 分 时 日 月 周）</b>或 7 个字段（多一个年），
  * 与“5 字段的 Linux crontab”不同：页面提示语与报错都按这个口径写，避免现场少写秒字段。</p>
@@ -24,7 +24,7 @@ public final class OaonesCronExpr {
     /** 执行时间展示格式（与同步日志的 starttime / endtime 一致）。 */
     public static final String PATTERN = "yyyy-MM-dd HH:mm:ss";
 
-    /** cron 表达式最大长度（与 uf_oaones_sync_plan.cron 列宽一致）。 */
+    /** cron 表达式最大长度（与 uf_oaones_appsyn_sync_plan.cron 列宽一致）。 */
     public static final int MAX_LENGTH = 100;
 
     private OaonesCronExpr() {

@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 会议 / 日程同步设置实体（业务表：表名取 oaones.properties#oaones_mtg_sync_table，
+ * 会议 / 日程同步设置实体（业务表：表名取 oaones.appsyn.properties#oaones_mtg_sync_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一行 = 一个「业务（会议 / 日程）+ 平台 + 租户」，唯一键 {@code (biz, type, cfgid)}：
@@ -18,7 +18,7 @@ public class MtgSyncCfg {
     private Integer biz;
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书（{@code OaonesConst.TYPE_*}）。 */
     private Integer type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）。 */
     private Integer cfgid;
     /** 本租户该业务的同步开关：1 开启 / 0 关闭（“每个租户单独设置开启和关闭”）。 */
     private Integer enabled;
@@ -27,7 +27,7 @@ public class MtgSyncCfg {
     /** 同步方向：第三方同步到 OA（1 选中 / 0 不选，默认选中）。 */
     private Integer dirThird2Oa;
     /**
-     * 「绑定应用」：本租户本业务同步时调平台日程接口用的应用（“应用绑定”表 {@code uf_oaones_app_bind.id}）。
+     * 「绑定应用」：本租户本业务同步时调平台日程接口用的应用（“应用绑定”表 {@code uf_oaones_appsyn_app_bind.id}）。
      *
      * <p>平台日程接口要求“有日程权限的应用”用自己的 Secret 换 access_token
      * （租户配置里的通讯录 Secret 通常没有日程权限），因此这里让管理员逐租户指定用哪个绑定应用：

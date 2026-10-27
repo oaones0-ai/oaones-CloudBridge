@@ -13,11 +13,11 @@ import java.util.Map;
 
 /**
  * 会议 / 日程同步的数据访问接口（Mapper XML：
- * {@code WEB-INF/config/mapper/oaones/MtgSyncMapper.xml}）。
+ * {@code WEB-INF/config/mapper/oaones/appsyn/MtgSyncMapper.xml}）。
  *
  * <p>会议（{@code Meeting}）与日程（{@code WorkPlan}）共用两张业务表：
- * 设置表 {@code uf_oaones_mtg_sync}（一行一个“业务 + 平台 + 租户”，用 biz 区分会议 / 日程）与
- * 记录表 {@code uf_oaones_mtg_sync_log}（一行一次同步动作）；表名由入参
+ * 设置表 {@code uf_oaones_appsyn_mtg_sync}（一行一个“业务 + 平台 + 租户”，用 biz 区分会议 / 日程）与
+ * 记录表 {@code uf_oaones_appsyn_mtg_sync_log}（一行一次同步动作）；表名由入参
  * {@code ${mtgSyncTable}} / {@code ${mtgSyncLogTable}} 传入（取值见 {@code OaonesProps}）。</p>
  *
  * <p>入参统一是 {@code OaonesParam.of(...)} 造出来的 Map：既带表名占位符，
@@ -127,12 +127,12 @@ public interface MtgSyncMapper {
     List<String> listScheduleMembers(Map<String, Object> params);
 
     /**
-     * 把一批 OA 人员ID 换成该租户已绑定的平台成员ID（uf_oaones_user_bind，
+     * 把一批 OA 人员ID 换成该租户已绑定的平台成员ID（uf_oaones_appsyn_user_bind，
      * bind_state = 1 且 x_user_id 非空）；未绑定的 OA 人员不出现在结果里。
      */
     List<String> resolvePlatformUserIds(Map<String, Object> params);
 
-    // ---------------- 个人同步开关（uf_oaones_mtg_sync_user） ----------------
+    // ---------------- 个人同步开关（uf_oaones_appsyn_mtg_sync_user） ----------------
 
     /**
      * 按（业务 / 平台 / 租户 / 人员）个人同步开关：一行一个「业务 + 平台 + 租户 + 本人」，
@@ -153,7 +153,7 @@ public interface MtgSyncMapper {
 
     void updateUserPref(Map<String, Object> params);
 
-    // ---------------- 对象映射（uf_oaones_mtg_link，第三方向拉取用） ----------------
+    // ---------------- 对象映射（uf_oaones_appsyn_mtg_link，第三方向拉取用） ----------------
 
     /** 按平台对象ID 找映射（没有返回 null）。 */
     MtgSyncLink findLinkByWx(Map<String, Object> params);

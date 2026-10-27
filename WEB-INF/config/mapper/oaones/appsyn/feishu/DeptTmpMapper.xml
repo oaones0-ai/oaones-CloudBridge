@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 飞书部门快照（uf_oaones_appsyn_dep_tmp）
+
+  与企微 / 钉钉共用同一张表（设置类表结构可复用时不新建表）：
+    - 平台类型列 type：0 企微 / 1 钉钉 / 2 飞书；
+    - 部门标识：飞书部门ID是**字符串**（形如 od-xxxxxxxx，根部门是 0），
+      因此飞书侧写字符串列 wx_dept_key / parent_key；
+      企微 / 钉钉仍用数值列 wx_dept_id / parent_id（本文件通过别名把
+      wx_dept_key 读成 wx_dept_id，让 Java 侧字段名与页面字段名保持统一）。
+  唯一性由 (corpid, wx_dept_id, wx_dept_key) 保证，见
+  sql/public/alter_oaones_platform_feishu.sql。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.feishu.DeptTmpMapper">
+
+    <update id="closeAll">
+        update ${table}
+        set status = #{status}, last_sync_time = #{syncTime}
+        where corpid = #{corpid} and type = #{type}
+    </update>
+
+    <select id="findWxDeptId" resultType="java.lang.String">
+        select wx_dept_key from ${table}
+        where corpid = #{corpid} and wx_dept_key = #{wxDeptId} and type = #{type}
+    </select>
+
+    <select id="findNormalWxDeptId" resultType="java.lang.String">
+        select wx_dept_key from ${table}
+        where corpid = #{corpid} and wx_dept_key = #{wxDeptId}
+          and type = #{type} and status = #{status}
+    </select>
+
+    <select id="listNormal" resultType="com.customization.oaones.appsyn.entity.feishu.DeptTmp">
+        select wx_dept_key as wx_dept_id, dept_name, parent_key as parent_id, status, no_bind
+        from ${table}
+        where corpid = #{corpid} and type = #{type} and status = #{status}
+        order by parent_key, dept_name, wx_dept_key
+    </select>
+
+    <insert id="insertDept">
+        insert into ${table}
+            (corpid, wx_dept_id, wx_dept_key, dept_name, parent_key, status, last_sync_time, type)
+        values
+            (#{e.corpid}, 0, #{e.wxDeptId}, #{e.deptName}, #{e.parentId}, #{e.status},
+             #{e.lastSyncTime}, #{e.type})
+    </insert>
+
+    <update id="updateDept">
+        update ${table}
+        set dept_name = #{e.deptName},
+            parent_key = #{e.parentId},
+            status = #{e.status},
+            last_sync_time = #{e.lastSyncTime}
+        where corpid = #{e.corpid} and wx_dept_key = #{e.wxDeptId} and type = #{e.type}
+    </update>
+
+    <!-- 免绑定标记：本表只用 0 表达“免绑定”，正常不写值（NULL） -->
+    <update id="updateNoBind">
+        update ${table}
+        set no_bind = #{noBind,jdbcType=INTEGER}
+        where corpid = #{corpid} and wx_dept_key = #{wxDeptId} and type = #{type}
+    </update>
+</mapper>

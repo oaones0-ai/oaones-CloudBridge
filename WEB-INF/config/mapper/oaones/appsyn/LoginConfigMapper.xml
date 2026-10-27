@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 统一登录设置（uf_oaones_appsyn_login_config）
+  表名由 OaonesParam 统一放入入参 Map。
+  本表只保留一行（取 id 最小的一条）：统一登录页按它决定显示哪些登录方式、二维码有效期多少秒。
+  登录方式里的“验证登录”有两种验证方式：mobile_enable（手机号）/ email_enable（邮箱）。
+  wecom_qr_enable / dingtalk_qr_enable / feishu_qr_enable 是**同一张扫码登录二维码**按平台的
+  准入开关（关闭的平台扫了会被服务端拒绝）；personal_wx_enable 只保存配置（尚未接入）。
+  logo = 登录页**右侧登录框内部上方**的图片（页面上传后落 oaones/appsyn/img/ 下，站内地址）；
+  空 = 登录页不显示 logo（超时后的重新登录弹框里一律不显示，见 login.jsp 的 popup 模式）。
+  bg_image = 登录页**整页背景图**（同一套上传口径，文件名前缀 loginbg_）；空 = 用系统默认底色。
+  brand_html = 登录页**左侧**的富文本（HTML）：非空时左侧按它显示（设置什么显示什么），空 = 系统默认说明。
+  login_layout_mode = 登录框与左侧文字共用的定位方式（0 = 视口左上角像素，1 = 区域中心相对视口中心
+                      的偏移；历史空值 / 0 = 左上角）；
+  login_box_left / top / width / height = 登录框按视口左上角像素定位与固定宽高（四列都空 = 默认居中布局）；
+  login_box_opacity = 登录框背景透明度（0~100，0 = 不透明；空 = 0），只改白色底色，不影响文字与输入框；
+  brand_left / top / width / height = 登录页左侧文字按视口左上角像素定位与固定宽高（四列都空 = 默认版式）；
+  brand_opacity = 登录页左侧文字背景透明度（0~100，100 = 透明；空 = 100），只改文字底板，不影响文字；
+  gopage_seconds = 桌面启动台带 gopage 时自动跳转的秒数（0 = 不自动跳；空 = properties 默认 5 秒）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.wecom.LoginConfigMapper">
+
+    <select id="findFirst" resultType="com.customization.oaones.appsyn.entity.wecom.LoginConfig">
+        select top 1 id, password_enable, mobile_enable, email_enable, wecom_qr_enable,
+               dingtalk_qr_enable, feishu_qr_enable, personal_wx_enable, qr_ttl_seconds,
+               logo, bg_image, brand_html, login_layout_mode,
+               login_box_left, login_box_top, login_box_width, login_box_height, login_box_opacity,
+               brand_left, brand_top, brand_width, brand_height, brand_opacity,
+               gopage_seconds, remark,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table}
+        order by id
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (password_enable, mobile_enable, email_enable, wecom_qr_enable, dingtalk_qr_enable, feishu_qr_enable,
+             personal_wx_enable, qr_ttl_seconds, logo, bg_image, brand_html, login_layout_mode,
+             login_box_left, login_box_top, login_box_width, login_box_height, login_box_opacity,
+             brand_left, brand_top, brand_width, brand_height, brand_opacity,
+             gopage_seconds,
+             remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.passwordEnable}, #{e.mobileEnable}, #{e.emailEnable}, #{e.wecomQrEnable}, #{e.dingtalkQrEnable},
+             #{e.feishuQrEnable}, #{e.personalWxEnable}, #{e.qrTtlSeconds}, #{e.logo}, #{e.bgImage},
+             #{e.brandHtml}, #{e.loginLayoutMode},
+             #{e.loginBoxLeft}, #{e.loginBoxTop}, #{e.loginBoxWidth}, #{e.loginBoxHeight},
+             #{e.loginBoxOpacity},
+             #{e.brandLeft}, #{e.brandTop}, #{e.brandWidth}, #{e.brandHeight}, #{e.brandOpacity},
+             #{e.gopageSeconds}, #{e.remark},
+
+             #{e.modedatacreater}, #{e.modedatacreatedate},
+             #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set password_enable = #{e.passwordEnable},
+            mobile_enable = #{e.mobileEnable},
+            email_enable = #{e.emailEnable},
+            wecom_qr_enable = #{e.wecomQrEnable},
+            dingtalk_qr_enable = #{e.dingtalkQrEnable},
+            feishu_qr_enable = #{e.feishuQrEnable},
+            personal_wx_enable = #{e.personalWxEnable},
+            qr_ttl_seconds = #{e.qrTtlSeconds},
+            logo = #{e.logo},
+            bg_image = #{e.bgImage},
+            brand_html = #{e.brandHtml},
+            login_layout_mode = #{e.loginLayoutMode},
+            login_box_left = #{e.loginBoxLeft},
+            login_box_top = #{e.loginBoxTop},
+            login_box_width = #{e.loginBoxWidth},
+            login_box_height = #{e.loginBoxHeight},
+            login_box_opacity = #{e.loginBoxOpacity},
+            brand_left = #{e.brandLeft},
+            brand_top = #{e.brandTop},
+            brand_width = #{e.brandWidth},
+            brand_height = #{e.brandHeight},
+            brand_opacity = #{e.brandOpacity},
+            gopage_seconds = #{e.gopageSeconds},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+</mapper>

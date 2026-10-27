@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * OAones 全局超级管理员判定。
  *
  * <p>“超管”= 系统管理员（{@code user.id=1}）<b>或</b>
- * {@code oaones.properties#total.admin.roleid} 这个 E9 角色内的人员。
+ * {@code oaones.appsyn.properties#total.admin.roleid} 这个 E9 角色内的人员。
  * 超管在 OAones 里拥有**全部页面的全部管理权限**，口径与 {@code user.id=1} 完全一致
  * （所有平台 / 所有租户，含未指定维护人的租户）。</p>
  *

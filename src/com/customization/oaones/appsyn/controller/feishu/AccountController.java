@@ -52,7 +52,7 @@ public class AccountController extends BaseController {
      * 扫码回调地址前缀：协议 + 域名 + 端口（不含路径与上下文）。
      *
      * <p>redirect_uri 必须是飞书开放平台「安全设置 → 重定向URL」里的绝对地址；
-     * 反向代理/多域名部署时用 oaones.properties 的 account.callback.base 显式指定，
+     * 反向代理/多域名部署时用 oaones.appsyn.properties 的 account.callback.base 显式指定，
      * 未配置时按浏览器当前访问的地址自动拼（默认端口不带端口号）。</p>
      */
     private String callbackBase(HttpServletRequest request) {

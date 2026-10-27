@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSONObject;
  * 操作监控平台服务：查询 / 过滤项 / 清理。
  *
  * <p>本页是“全站的操作留痕”，因此分权口径与租户维护人无关：只有系统管理员
- * （user.id = 1）与 {@code oaones.properties#opmonitor.admin.ids} 中列出的人员可以查看。</p>
+ * （user.id = 1）与 {@code oaones.appsyn.properties#opmonitor.admin.ids} 中列出的人员可以查看。</p>
  */
 public interface OpLogService {
 

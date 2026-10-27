@@ -3,7 +3,7 @@ package com.customization.oaones.appsyn.entity;
 /**
  * 应用中心实体：一个「应用」（第三方系统 / 外部页面）。
  *
- * <p>对应业务表：表名取 {@code oaones.properties#oaones_app_table}（默认 {@code uf_oaones_app}），
+ * <p>对应业务表：表名取 {@code oaones.appsyn.properties#oaones_app_table}（默认 {@code uf_oaones_appsyn_app}），
  * 建模模块ID按表名反查，配置里不出现。</p>
  *
  * <p>一行 = 桌面上（macOS 风格启动台）的一个应用图标，三个关键字段：</p>

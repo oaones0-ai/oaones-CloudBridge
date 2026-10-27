@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 考勤同步服务（独立一级菜单「考勤同步」，页面 /oaones/attSync/attSync.jsp）。
+ * 考勤同步服务（独立一级菜单「考勤同步」，页面 /oaones/appsyn/attSync/attSync.jsp）。
  *
  * <p>把第三方平台（企微 / 钉钉 / 飞书）的考勤打卡数据写进 OA 的 E9 标准考勤打卡表，
  * 并支持反向（OA 的打卡写到第三方平台）；两个方向各自独立配置、独立执行、独立记日志。</p>

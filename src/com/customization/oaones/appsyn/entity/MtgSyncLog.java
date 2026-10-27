@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 会议 / 日程同步记录实体（业务表：表名取 oaones.properties#oaones_mtg_sync_log_table）。
+ * 会议 / 日程同步记录实体（业务表：表名取 oaones.appsyn.properties#oaones_mtg_sync_log_table）。
  *
  * <p>一行 = 一个 OA 会议 / 日程 在某次同步里的一个动作（新增 / 更新 / 跳过 / 失败），
  * 会议与日程共用一张表，用 {@code biz} 区分（0 会议 / 1 日程）；「同步记录」列表按它展示
@@ -18,7 +18,7 @@ public class MtgSyncLog {
     private Integer biz;
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书（{@code OaonesConst.TYPE_*}）。 */
     private Integer type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）。 */
     private Integer cfgid;
     /** 一次同步的批次ID（同一批记录共用一个值，页面按批查看）。 */
     private String batchId;

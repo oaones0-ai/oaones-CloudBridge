@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.feishu;
 
 /**
- * 飞书人员快照实体（对应业务表：表名取 oaones.properties#oaones_user_tmp_table，
+ * 飞书人员快照实体（对应业务表：表名取 oaones.appsyn.properties#oaones_user_tmp_table，
  * 建模模块ID按表名反查，配置里不出现；主键 App ID + wxUserId）。
  */
 public class UserTmp {

@@ -2,7 +2,7 @@ package com.customization.oaones.appsyn.entity;
 
 /**
  * 会议 / 日程同步「计划任务」的**时间段明细**（业务表：表名取
- * {@code oaones.properties#oaones_mtg_plan_item_table}）。
+ * {@code oaones.appsyn.properties#oaones_mtg_plan_item_table}）。
  *
  * <p>计划任务选了“按时间段”（{@link com.customization.oaones.appsyn.common.OaonesConst#MTG_PLAN_MODE_ITEM}）时，
  * 一行 = 一个时间段：**适用日 + 开始时间 + 结束时间 + 轮询间隔**。可以自由配多条
@@ -24,7 +24,7 @@ package com.customization.oaones.appsyn.entity;
 public class MtgPlanItem {
 
     private Integer id;
-    /** 所属计划：固定 1（与 {@code uf_oaones_mtg_cron} 的单行 id 对应），预留给将来的多计划。 */
+    /** 所属计划：固定 1（与 {@code uf_oaones_appsyn_mtg_cron} 的单行 id 对应），预留给将来的多计划。 */
     private Integer planId;
     /** 适用日：0 每天 / 1 工作日 / 2 非工作日（见 {@code OaonesConst#MTG_PLAN_DAY_*}）。 */
     private Integer dayType;

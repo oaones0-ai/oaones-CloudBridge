@@ -25,16 +25,16 @@ import javax.servlet.http.HttpServletResponse;
  * 自定义登录页控制器（action 前缀 {@code login.}）。
  *
  * <p>与模块内其它控制器最大的不同：<b>登录页、扫码落地页、PC 轮询都没有 OA 登录会话</b>，
- * 因此不能走 {@code /oaones/WeCom/api.jsp}（那里会先做登录校验、未登录直接返回 401），
- * 而是由统一登录页自己的入口 {@code /oaones/login/loginAction.jsp}（PC 页面的 AJAX 入口，
+ * 因此不能走 {@code /oaones/appsyn/WeCom/api.jsp}（那里会先做登录校验、未登录直接返回 401），
+ * 而是由统一登录页自己的入口 {@code /oaones/appsyn/login/loginAction.jsp}（PC 页面的 AJAX 入口，
  * 见 {@link com.customization.oaones.appsyn.controller.LoginController}）与
- * {@code /oaones/login/scan.jsp}（统一扫码落地/确认页）直接调用。</p>
+ * {@code /oaones/appsyn/login/scan.jsp}（统一扫码落地/确认页）直接调用。</p>
  *
  * <p><b>扫码登录已经合并</b>：登录页只有一个页签、一张二维码（三个平台共用），
  * PC 侧接口（login.settings / login.smsSend / login.smsLogin / login.emailSend /
  * login.emailLogin / login.qrCreate / login.qrStatus / login.qrLogin / login.qrCancel）统一由公共的
  * {@link com.customization.oaones.appsyn.controller.LoginController} 提供；
- * 本类保留的 {@link #dispatch} 等 PC 侧能力只为兼容 {@code /oaones/WeCom/api.jsp} 里
+ * 本类保留的 {@link #dispatch} 等 PC 侧能力只为兼容 {@code /oaones/appsyn/WeCom/api.jsp} 里
  * {@code login.*} 的老路由，**手机侧**的 {@link #scanStep} / {@link #scanConfirm}
  * 仍是本连接器自己的换身份逻辑（统一落地页按扫码客户端分派到它）。</p>
  *

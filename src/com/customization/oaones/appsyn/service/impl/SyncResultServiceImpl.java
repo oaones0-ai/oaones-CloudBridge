@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * 同步结果独立页面实现（三个平台共用）。
  *
- * <p>数据源是同步中心逐条结果表 {@code uf_oaones_sync_log_item}，一行就是一条部门、
+ * <p>数据源是同步中心逐条结果表 {@code uf_oaones_appsyn_sync_log_item}，一行就是一条部门、
  * 分部或人员同步动作；同时左关联批次表与租户配置表，带出 requestid、平台和租户名称。</p>
  */
 public class SyncResultServiceImpl implements SyncResultService {

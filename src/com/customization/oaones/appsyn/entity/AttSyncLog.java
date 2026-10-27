@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 考勤同步**批次**实体（业务表：表名取 {@code oaones.properties#oaones_att_log_table}）。
+ * 考勤同步**批次**实体（业务表：表名取 {@code oaones.appsyn.properties#oaones_att_log_table}）。
  *
  * <p>一行 = 一次执行（计划任务到点 / 手工立即执行 / 重推）产生的整体记录；
  * 打卡明细（{@link AttSyncLogItem}）挂在批次下（{@code log_id}）。</p>

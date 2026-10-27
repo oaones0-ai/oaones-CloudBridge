@@ -233,7 +233,7 @@ public class DingTalkAttApi implements AttPullAdapter, AttPushAdapter {
         JSONObject body = new JSONObject();
         body.put("process_code", processCode);
         body.put("originator_user_id", OaonesUtil.s(ctx == null ? "" : ctx.getWxUserId()));
-        req.note("process_code", "补卡审批模板编码（oaones.properties#att.push.dingtalk.process.code，留空 = 未配置）");
+        req.note("process_code", "补卡审批模板编码（oaones.appsyn.properties#att.push.dingtalk.process.code，留空 = 未配置）");
         req.note("originator_user_id", "发起人：该 OA 人员绑定的钉钉 userId");
         JSONArray components = new JSONArray();
         JSONObject signDate = new JSONObject();
@@ -258,7 +258,7 @@ public class DingTalkAttApi implements AttPullAdapter, AttPushAdapter {
         String approvers = OaonesProps.attPushDingTalkApprovers();
         if (approvers.length() > 0) {
             body.put("approvers", approvers);
-            req.note("approvers", "审批人 userId（oaones.properties#att.push.dingtalk.approvers，逗号分隔）");
+            req.note("approvers", "审批人 userId（oaones.appsyn.properties#att.push.dingtalk.approvers，逗号分隔）");
         }
         req.setBody(body.toJSONString());
         if (processCode.length() == 0) {

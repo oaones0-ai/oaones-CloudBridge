@@ -120,7 +120,7 @@ public class SyncServiceImpl implements SyncService {
     @Override
     public void runAllForCron() {
         JSONArray cfgs = configService().list();
-        // oaones.properties: cron.direction 0=双向, 1=OA->企微, 2=企微->OA
+        // oaones.appsyn.properties: cron.direction 0=双向, 1=OA->企微, 2=企微->OA
         int cronDir = OaonesProps.cronDirection();
         int cronCfgId = OaonesProps.cronCorpId();
         for (int i = 0; i < cfgs.size(); i++) {
@@ -2492,7 +2492,7 @@ public class SyncServiceImpl implements SyncService {
                 .append(" 个、新增人员 ").append(plan.userCreateCount())
                 .append(" 个；跳过 ").append(stats.getIntValue("skip"))
                 .append(" 条、失败 ").append(stats.getIntValue("fail")).append(" 条。\n");
-        sb.append("逐条部门/人员明细见“同步明细”（uf_oaones_sync_log_item）。\n");
+        sb.append("逐条部门/人员明细见“同步明细”（uf_oaones_appsyn_sync_log_item）。\n");
         List<SyncPlanItem> items = plan.getItems();
         int shown = 0;
         for (int i = 0; i < items.size() && shown < 30 && sb.length() < 3000; i++) {

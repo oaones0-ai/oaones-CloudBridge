@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.wecom;
 
 /**
- * 登录验证码实体（手机号 / 邮箱共用一张表：表名取 oaones.properties#oaones_login_sms_table，
+ * 登录验证码实体（手机号 / 邮箱共用一张表：表名取 oaones.appsyn.properties#oaones_login_sms_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一行 = 登录页发出的一条验证码：手机号验证码写 {@code mobile}、
@@ -10,7 +10,7 @@ package com.customization.oaones.appsyn.entity.wecom;
  *
  * <p>状态 state：0 待使用 / 1 已使用 / 2 已作废（作废原因写 failReason）。</p>
  *
- * <p>表名沿用历史上的 {@code uf_oaones_login_sms}（避免老库改表名）：表结构里
+ * <p>表名沿用历史上的 {@code uf_oaones_appsyn_login_sms}（避免老库改表名）：表结构里
  * {@code mobile} 允许为空、新增 {@code email} 列后即可同时承载两种验证方式。</p>
  */
 public class LoginSms {

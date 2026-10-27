@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 应用中心 Mapper（表 uf_oaones_app）。
+ * 应用中心 Mapper（表 uf_oaones_appsyn_app）。
  *
  * <p>表名由 {@code OaonesParam} 统一放入入参 Map（{@code ${appTable}}），
- * 与应用绑定表（{@code uf_oaones_app_bind}）是两张不同的表，不能混用。</p>
+ * 与应用绑定表（{@code uf_oaones_appsyn_app_bind}）是两张不同的表，不能混用。</p>
  */
 public interface AppCenterMapper {
 

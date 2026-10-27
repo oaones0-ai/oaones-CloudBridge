@@ -25,18 +25,18 @@ import javax.servlet.http.HttpServletResponse;
  * 自定义登录页控制器（action 前缀 {@code login.}）。
  *
  * <p>与模块内其它控制器最大的不同：<b>登录页、扫码落地页、PC 轮询都没有 OA 登录会话</b>，
- * 因此不能走 {@code /oaones/DingTalk/api.jsp}（那里会先做登录校验、未登录直接返回 401），
- * 而是由统一登录页自己的入口 {@code /oaones/login/loginAction.jsp}（PC 页面的 AJAX 入口，
+ * 因此不能走 {@code /oaones/appsyn/DingTalk/api.jsp}（那里会先做登录校验、未登录直接返回 401），
+ * 而是由统一登录页自己的入口 {@code /oaones/appsyn/login/loginAction.jsp}（PC 页面的 AJAX 入口，
  * 见 {@link com.customization.oaones.appsyn.controller.LoginController}）与
- * {@code /oaones/login/scan.jsp}（统一扫码落地/确认页）直接调用。</p>
+ * {@code /oaones/appsyn/login/scan.jsp}（统一扫码落地/确认页）直接调用。</p>
  *
  * <p><b>扫码登录已经合并</b>：登录页只有一个页签、一张二维码（三个平台共用），
  * PC 侧接口统一由公共的
  * {@link com.customization.oaones.appsyn.controller.LoginController} 提供；
- * 本类保留的 {@link #dispatch} 等 PC 侧能力只为兼容 {@code /oaones/DingTalk/api.jsp} 里
+ * 本类保留的 {@link #dispatch} 等 PC 侧能力只为兼容 {@code /oaones/appsyn/DingTalk/api.jsp} 里
  * {@code login.*} 的老路由，**手机侧**的 {@link #scanStep} / {@link #scanConfirm}
  * 才是本连接器自己的换身份逻辑（统一落地页识别到钉钉客户端时分派到这里；
- * 旧的 {@code /oaones/login/DingTalk/scan.jsp} 现在只做 302 跳到统一落地页）。</p>
+ * 旧的 {@code /oaones/appsyn/login/DingTalk/scan.jsp} 现在只做 302 跳到统一落地页）。</p>
  *
  * <p><b>二维码是本系统自己生成的</b>（见 {@link ScanLoginService}）：
  * 二维码内容只是本站的扫码落地页 + 票据，扫码方（钉钉 / 后续钉钉）打开后

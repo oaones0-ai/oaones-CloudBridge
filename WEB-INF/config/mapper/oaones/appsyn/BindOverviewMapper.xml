@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 绑定总览（公共只读页 /oaones/appsyn/index/BindOverview.jsp）
+  三个连接器（企微 / 钉钉 / 飞书）共用同一批业务表，本页把全部平台租户放在一起展示，
+  平台由租户配置的 type 列区分（0 企微 / 1 钉钉 / 2 飞书）。表名均由 OaonesParam 放入入参 Map。
+
+  绑定“有效”的口径各表不同（与各自页面的列表口径一致，不要互相套用）：
+    uf_oaones_appsyn_dept_bind  yx = 1 有效 / 0 失效
+    uf_oaones_appsyn_user_bind  bind_state = 1 已绑定 / 0 免绑定
+
+  平台部门标识：企微 / 钉钉在 wx_dept_id（int），飞书在 wx_dept_key（字符串 od-xxxx），
+  因此部门快照按“有 key 用 key、无 key 用 id”关联，两种平台各走一支，互不影响。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.BindOverviewMapper">
+
+    <!-- 全部平台租户（用于筛选框与“平台租户”统计），并顺带取租户根部门名称 -->
+    <select id="listCfgs" resultType="com.customization.oaones.appsyn.dto.BindOverviewRow">
+        select c.id, c.type as platform_type, c.corp_name as cfg_name, c.corp_id,
+               c.qy as cfg_enable, c.root_dept_id, c.root_dept_key,
+               rt.dept_name as root_dept_name
+        from ${cfgTable} c
+        left join ${deptTmpTable} rt
+               on rt.corpid = c.corp_id and rt.type = c.type
+              and ((rt.wx_dept_key is not null and rt.wx_dept_key = c.root_dept_key)
+                   or (rt.wx_dept_key is null and rt.wx_dept_id = c.root_dept_id))
+        order by c.type, c.corp_name, c.id
+    </select>
+
+    <!-- 部门绑定：OA 部门 → 平台部门（多对一），平台部门名称取部门快照 -->
+    <select id="listDeptRows" resultType="com.customization.oaones.appsyn.dto.BindOverviewRow">
+        select b.id, b.cfg_id, c.type as platform_type, b.oa_dept_id as oa_id,
+               b.wx_dept_id, b.wx_dept_key,
+               b.yx as bind_state, b.remark,
+               b.modedatacreatedate as created_date, b.modedatacreatetime as created_time,
+               b.modedatamodifydatetime as update_time,
+               d.departmentname as oa_name, d.canceled as oa_canceled,
+               d.supdepid as oa_parent_id, pd.departmentname as oa_parent_name,
+               d.subcompanyid1 as oa_sub_id, s.subcompanyname as oa_sub_name,
+               c.corp_name as cfg_name, c.corp_id, c.qy as cfg_enable,
+               t.dept_name as wx_dept_name
+        from ${deptBindTable} b
+        left join hrmdepartment d on d.id = b.oa_dept_id
+        left join hrmdepartment pd on pd.id = d.supdepid
+        left join hrmsubcompany s on s.id = d.subcompanyid1
+        left join ${cfgTable} c on c.id = b.cfg_id
+        left join ${deptTmpTable} t
+               on t.corpid = c.corp_id and t.type = c.type
+              and ((t.wx_dept_key is not null and t.wx_dept_key = b.wx_dept_key)
+                   or (t.wx_dept_key is null and t.wx_dept_id = b.wx_dept_id))
+        <where>
+            and b.yx = 1
+            <if test="platform != null">
+                and c.type = #{platform}
+            </if>
+            <if test="cfgId != null">
+                and b.cfg_id = #{cfgId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (d.departmentname like #{keyword} or s.subcompanyname like #{keyword}
+                     or c.corp_name like #{keyword} or b.wx_dept_id like #{keyword}
+                     or b.wx_dept_key like #{keyword} or t.dept_name like #{keyword})
+            </if>
+        </where>
+        order by c.type, b.cfg_id, s.subcompanyname, d.showorder, b.oa_dept_id
+    </select>
+
+    <!-- 人员绑定：OA 人员 → 平台成员（多对一），成员名称取人员快照 -->
+    <select id="listUserRows" resultType="com.customization.oaones.appsyn.dto.BindOverviewRow">
+        select b.id, b.cfg_id, c.type as platform_type, b.oa_user_id as oa_id,
+               b.bind_state, b.bind_time, b.remark,
+               b.modedatamodifydatetime as update_time,
+               r.lastname as oa_name, r.loginid as oa_login_id, r.workcode as oa_workcode,
+               r.mobile as oa_mobile, r.status as oa_status,
+               r.departmentid as oa_dept_id, d.departmentname as oa_dept_name,
+               d.subcompanyid1 as oa_sub_id, s.subcompanyname as oa_sub_name,
+               c.corp_name as cfg_name, c.corp_id, c.qy as cfg_enable,
+               b.x_user_id as wx_user_id,
+               u.wx_name as wx_user_name, u.wx_dept_id as wx_user_dept_id,
+               u.wx_dept_key as wx_user_dept_key,
+               ut.dept_name as wx_user_dept_name
+        from ${userBindTable} b
+        left join hrmresource r on r.id = b.oa_user_id
+        left join hrmdepartment d on d.id = r.departmentid
+        left join hrmsubcompany s on s.id = d.subcompanyid1
+        left join ${cfgTable} c on c.id = b.cfg_id
+        left join ${userTmpTable} u
+               on u.corpid = c.corp_id and u.type = c.type and u.wx_user_id = b.x_user_id
+        left join ${deptTmpTable} ut
+               on ut.corpid = c.corp_id and ut.type = c.type
+              and ((u.wx_dept_key is not null and ut.wx_dept_key = u.wx_dept_key)
+                   or (u.wx_dept_key is null and ut.wx_dept_key is null
+                       and ut.wx_dept_id = u.wx_dept_id))
+        <where>
+            and b.bind_state = 1
+            <if test="platform != null">
+                and c.type = #{platform}
+            </if>
+            <if test="cfgId != null">
+                and b.cfg_id = #{cfgId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (r.lastname like #{keyword} or r.loginid like #{keyword}
+                     or r.workcode like #{keyword} or b.x_user_id like #{keyword}
+                     or u.wx_name like #{keyword} or d.departmentname like #{keyword}
+                     or c.corp_name like #{keyword})
+            </if>
+        </where>
+        order by c.type, b.cfg_id, s.subcompanyname, d.showorder, b.oa_user_id
+    </select>
+
+</mapper>

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 人员绑定（uf_oaones_appsyn_user_bind）
+  钉钉成员 userid 的物理列名为 x_user_id。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.dingtalk.UserBindMapper">
+
+    <select id="listRows" resultType="com.customization.oaones.appsyn.dto.dingtalk.UserBindRow">
+        select b.id, b.cfg_id, b.oa_user_id, b.x_user_id as wx_user_id, b.wx_dept_id,
+               b.bind_state, b.bind_source,
+               b.bind_time, b.last_sync_direction, b.last_sync_time, b.remark,
+               r.lastname as oa_name, r.loginid, r.mobile as oa_mobile, r.email as oa_email,
+               r.workcode, r.departmentid as oa_dept_id, r.subcompanyid1 as oa_subcompany_id,
+               d.departmentname as oa_dept_name,
+               c.corp_name as cfg_name, c.corp_id as cfg_corp_id
+        from ${userBindTable} b
+        left join hrmresource r on r.id = b.oa_user_id
+        left join hrmdepartment d on d.id = r.departmentid
+        left join ${cfgTable} c on c.id = b.cfg_id
+        where b.bind_state = 1
+        <if test="cfgId != null">
+            and b.cfg_id = #{cfgId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (r.lastname like #{keyword} or r.loginid like #{keyword}
+                 or r.workcode like #{keyword} or b.x_user_id like #{keyword}
+                 or c.corp_name like #{keyword})
+        </if>
+        order by b.cfg_id, b.oa_user_id
+    </select>
+
+    <!--
+      同步引擎用的绑定明细（含 OA 人员侧字段）。
+      oa_canceled = “OA 人员已失效、不再同步”标记：E9 标准 **hrmresource 没有 canceled 列**
+      （canceled 只存在于 hrmdepartment / hrmsubcompany，表示部门/分部封存），
+      人员有效性只能看 status：0~3 在职/试用等有效，>=4 离职/解聘/退休等失效；
+      这里统一按 status 推导，与 OaServiceImpl（只取 status < 4）同一口径。
+    -->
+    <select id="listBoundRows" resultType="com.customization.oaones.appsyn.dto.dingtalk.UserBindRow">
+        select b.id, b.cfg_id, b.oa_user_id, b.x_user_id as wx_user_id, b.wx_dept_id,
+               b.bind_state, b.bind_source,
+               r.lastname as oa_name, r.loginid, r.mobile as oa_mobile, r.email as oa_email,
+               r.workcode, r.departmentid as oa_dept_id, r.subcompanyid1 as oa_subcompany_id,
+               r.status as oa_status,
+               case when r.status is null then 0 when r.status &gt;= 4 then 1 else 0 end as oa_canceled
+        from ${table} b
+        left join hrmresource r on r.id = b.oa_user_id
+        where b.cfg_id = #{cfgId} and b.bind_state = 1
+        order by b.oa_user_id
+    </select>
+
+    <!--
+      个人账号中心：本人（指定 OA 人员）在各钉钉租户的绑定记录。
+      一个 OA 人员在每个租户最多一条（(cfg_id, oa_user_id) 唯一），只取 bind_state=1 的启用绑定；
+      免绑定行（bind_state=0）不是绑定关系，不作为本页的“绑定管理”列表数据。
+    -->
+    <select id="listRowsByOaUser" resultType="com.customization.oaones.appsyn.dto.dingtalk.UserBindRow">
+        select b.id, b.cfg_id, b.oa_user_id, b.x_user_id as wx_user_id, b.wx_dept_id,
+               b.bind_state, b.bind_source, b.bind_time,
+               b.last_sync_direction, b.last_sync_time, b.remark,
+               c.corp_name as cfg_name, c.corp_id as cfg_corp_id
+        from ${userBindTable} b
+        left join ${cfgTable} c on c.id = b.cfg_id
+        where b.oa_user_id = #{oaUserId} and b.bind_state = 1
+        order by b.cfg_id
+    </select>
+
+    <select id="findById" resultType="com.customization.oaones.appsyn.entity.dingtalk.UserBind">
+        select id, cfg_id, oa_user_id, x_user_id, wx_dept_id, bind_state, bind_source,
+               bind_time, last_sync_direction, last_sync_time, remark,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table} where id = #{id}
+    </select>
+
+    <select id="findIdByOaUser" resultType="java.lang.Integer">
+        select id from ${table} where cfg_id = #{cfgId} and oa_user_id = #{oaUserId}
+    </select>
+
+    <select id="findPairId" resultType="java.lang.Integer">
+        select id from ${table}
+        where cfg_id = #{cfgId} and oa_user_id = #{oaUserId}
+          and x_user_id = #{wxUserId} and bind_state = 1
+    </select>
+
+    <select id="findActiveIdByWxUser" resultType="java.lang.Integer">
+        select id from ${table}
+        where cfg_id = #{cfgId} and x_user_id = #{wxUserId} and bind_state = 1
+    </select>
+
+    <select id="findActiveIdByOaUser" resultType="java.lang.Integer">
+        select id from ${table}
+        where cfg_id = #{cfgId} and oa_user_id = #{oaUserId} and bind_state = 1
+    </select>
+
+    <select id="findActiveWxUserIdByOaUser" resultType="java.lang.String">
+        select x_user_id from ${table}
+        where cfg_id = #{cfgId} and oa_user_id = #{oaUserId} and bind_state = 1
+    </select>
+
+    <select id="findNoBindIdByOaUser" resultType="java.lang.Integer">
+        select id from ${table}
+        where cfg_id = #{cfgId} and oa_user_id = #{oaUserId} and bind_state = 0
+    </select>
+
+    <select id="countActiveByCfgId" resultType="java.lang.Integer">
+        select count(1) from ${table} where cfg_id = #{cfgId} and bind_state = 1
+    </select>
+
+    <!--
+      钉钉工作台应用免登录：按“钉钉成员 + 租户”取已绑定的 OA 人员ID 列表。
+      OA→钉钉为多对一，同一钉钉成员可能被多个 OA 人员绑定；调用方取ID最小的一条免登录。
+    -->
+    <select id="listBoundOaUserIdsByWxUser" resultType="java.lang.Integer">
+        select oa_user_id from ${userBindTable}
+        where cfg_id = #{cfgId} and x_user_id = #{wxUserId} and bind_state = 1
+        order by oa_user_id
+    </select>
+
+    <select id="listBoundOaUserIds" resultType="java.lang.String">
+        select oa_user_id from ${userBindTable}
+        where bind_state = 1
+        <if test="cfgId != null">
+            and cfg_id = #{cfgId}
+        </if>
+    </select>
+
+    <select id="listBoundWxUserIds" resultType="java.lang.String">
+        select x_user_id from ${userBindTable}
+        where cfg_id = #{cfgId} and bind_state = 1
+    </select>
+
+    <!-- OA 人员侧“免绑定”ID 集合：与绑定记录共用一张表，bind_state=0 即免绑定（已绑定=1，待绑定不落库） -->
+    <select id="listNoBindOaUserIds" resultType="java.lang.String">
+        select oa_user_id from ${table}
+        where cfg_id = #{cfgId} and bind_state = 0
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (cfg_id, oa_user_id, x_user_id, wx_dept_id, bind_state, bind_source, remark,
+             bind_time, modedatacreater, modedatacreatedate,
+             modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.cfgId}, #{e.oaUserId}, #{e.xUserId}, #{e.wxDeptId}, #{e.bindState},
+             #{e.bindSource}, #{e.remark}, #{e.bindTime}, #{e.modedatacreater},
+             #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set x_user_id = #{e.xUserId},
+            wx_dept_id = #{e.wxDeptId},
+            bind_state = #{e.bindState},
+            bind_source = #{e.bindSource},
+            remark = #{e.remark},
+            bind_time = #{e.bindTime},
+            last_sync_direction = null,
+            last_sync_time = null,
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <delete id="deleteById">
+        delete from ${table} where id = #{id}
+    </delete>
+
+    <update id="markSynced">
+        update ${table}
+        set last_sync_direction = #{direction}, last_sync_time = #{syncTime}
+        where cfg_id = #{cfgId} and oa_user_id = #{oaUserId} and bind_state = 1
+    </update>
+</mapper>

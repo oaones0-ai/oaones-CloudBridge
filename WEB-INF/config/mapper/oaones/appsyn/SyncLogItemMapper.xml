@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 同步日志明细（uf_oaones_appsyn_sync_log_item）
+  一行一个同步对象（单条部门 / 单条人员），记录该对象本次同步的过程。
+  物理列名为 cfgid / item_type 等（与建表脚本一致）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.wecom.SyncLogItemMapper">
+
+    <select id="list" resultType="com.customization.oaones.appsyn.entity.wecom.SyncLogItem">
+        select top ${limit}
+               id, log_id, requestid, cfgid, direction, item_type, op, oa_id, oa_name,
+               wx_id, wx_name, parent_id, parent_name, seq, message,
+               modedatacreater, modedatacreatedate, modedatacreatetime
+        from ${syncLogItemTable}
+        <where>
+            <if test="logId != null">
+                and log_id = #{logId}
+            </if>
+            <if test="cfgId != null">
+                and cfgid = #{cfgId}
+            </if>
+            <if test="itemType != null">
+                and item_type = #{itemType}
+            </if>
+        </where>
+        order by seq, id
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (log_id, requestid, cfgid, direction, item_type, op, oa_id, oa_name,
+             wx_id, wx_name, parent_id, parent_name, seq, message,
+             modedatacreater, modedatacreatedate,
+             modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.logId}, #{e.requestid}, #{e.cfgid}, #{e.direction}, #{e.itemType}, #{e.op},
+             #{e.oaId}, #{e.oaName}, #{e.wxId}, #{e.wxName}, #{e.parentId},
+             #{e.parentName}, #{e.seq}, #{e.message},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+</mapper>

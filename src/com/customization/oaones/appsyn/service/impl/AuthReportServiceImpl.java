@@ -20,11 +20,11 @@ import java.util.Map;
  *
  * <p>装配口径：</p>
  * <ul>
- *   <li><b>总人数</b> = 该租户平台成员快照的有效成员数（{@code uf_oaones_user_tmp}，corpid + type、status = 0）；</li>
- *   <li><b>已绑定</b> = 该租户 {@code uf_oaones_user_bind}（bind_state = 1）去重 OA 人员数，可按 OA 分部过滤；</li>
+ *   <li><b>总人数</b> = 该租户平台成员快照的有效成员数（{@code uf_oaones_appsyn_user_tmp}，corpid + type、status = 0）；</li>
+ *   <li><b>已绑定</b> = 该租户 {@code uf_oaones_appsyn_user_bind}（bind_state = 1）去重 OA 人员数，可按 OA 分部过滤；</li>
  *   <li><b>未绑定</b> = 总人数 - 已绑定（不小于 0，页面展示）；</li>
  *   <li><b>今日新增绑定</b> = 绑定日期（bind_time 优先，空值退回建模创建日期）落在今日的去重人数；</li>
- *   <li><b>今日登录</b> = {@code uf_oaones_op_log} 里 op_type = 'login' 的今日去重人数（按 OA 人员 → 租户绑定归属租户）；</li>
+ *   <li><b>今日登录</b> = {@code uf_oaones_appsyn_op_log} 里 op_type = 'login' 的今日去重人数（按 OA 人员 → 租户绑定归属租户）；</li>
  *   <li><b>走势</b> = 上面两个指标按“租户 + 日 / 月”分组，统计区间取筛选的日期范围（缺省近 30 天）。</li>
  * </ul>
  *
@@ -35,7 +35,7 @@ public class AuthReportServiceImpl implements AuthReportService {
     /** 走势缺省统计天数（筛选未给日期范围时，取“今天往前推 29 天”到“今天”）。 */
     private static final int DEFAULT_RANGE_DAYS = 30;
 
-    /** 操作监控表（uf_oaones_op_log）是否缺失：缺表时登录相关指标退化为空并在页面提示。 */
+    /** 操作监控表（uf_oaones_appsyn_op_log）是否缺失：缺表时登录相关指标退化为空并在页面提示。 */
     private boolean loginMissing;
 
     @Override
@@ -132,7 +132,7 @@ public class AuthReportServiceImpl implements AuthReportService {
             return rows;
         } catch (Throwable t) {
             loginMissing = true;
-            OaonesLog.error("统一认证登录走势查询失败（请确认已执行 uf_oaones_op_log 建表脚本）", t);
+            OaonesLog.error("统一认证登录走势查询失败（请确认已执行 uf_oaones_appsyn_op_log 建表脚本）", t);
             return new ArrayList<Map<String, Object>>();
         }
     }

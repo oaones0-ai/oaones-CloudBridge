@@ -15,11 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 推送用钉钉应用服务（**只读**“应用绑定”表 uf_oaones_app_bind）。
+ * 推送用钉钉应用服务（**只读**“应用绑定”表 uf_oaones_appsyn_app_bind）。
  *
  * <p>合并口径：钉钉自建应用只在“应用绑定”页维护一次（应用名 / AgentId / 应用 Secret /
  * 所属租户 / 启停），消息中心直接引用同一行；因此本服务不再提供新增、修改、删除，
- * 只提供列表、按接收人租户路由、缺省应用（记录在 uf_oaones_msg_config.default_app_id）
+ * 只提供列表、按接收人租户路由、缺省应用（记录在 uf_oaones_appsyn_msg_config.default_app_id）
  * 与连通测试。</p>
  */
 public class MsgAppService {
@@ -38,7 +38,7 @@ public class MsgAppService {
         return list == null ? new ArrayList<MsgApp>() : list;
     }
 
-    /** 按应用绑定记录ID取一条（uf_oaones_app_bind.id）。 */
+    /** 按应用绑定记录ID取一条（uf_oaones_appsyn_app_bind.id）。 */
     public MsgApp getById(int id) {
         if (id <= 0) {
             return null;
@@ -48,7 +48,7 @@ public class MsgAppService {
     }
 
     /**
-     * 缺省应用：优先取“推送配置”里维护的缺省应用（{@code uf_oaones_msg_config.default_app_id}），
+     * 缺省应用：优先取“推送配置”里维护的缺省应用（{@code uf_oaones_appsyn_msg_config.default_app_id}），
      * 该配置为空或对应应用已停用/删除时，回退到第一个启用中的应用。
      */
     public MsgApp defaultApp() {
@@ -107,7 +107,7 @@ public class MsgAppService {
     }
 
     /**
-     * 把某个应用设为“推送缺省应用”（只改 uf_oaones_msg_config.default_app_id，
+     * 把某个应用设为“推送缺省应用”（只改 uf_oaones_appsyn_msg_config.default_app_id，
      * 应用本身仍在“应用绑定”页维护）。
      */
     public void setDefaultApp(int appId, int operatorId) {

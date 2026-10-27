@@ -7,7 +7,7 @@ import java.util.List;
  * 「会议同步 / 日程同步」的 OA 侧来源对象（多表关联查询结果）。
  *
  * <p>会议取 E9 {@code Meeting} 表、日程取 E9 {@code WorkPlan} 表（表名在
- * {@code oaones.properties} 里可配，见 {@code OaonesProps}），两张表字段不同，
+ * {@code oaones.appsyn.properties} 里可配，见 {@code OaonesProps}），两张表字段不同，
  * 这里统一归一化成同一个载体后再交给同步引擎：标题 / 正文 / 起止时间 / 所属分部 / 创建人 /
  * 参与人，平台适配器只认这一份结构。</p>
  *

@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 日志保留配置（uf_oaones_log_retention）。
+ * 日志保留配置（uf_oaones_appsyn_log_retention）。
  *
  * <p>每个日志项一行；{@code keepDays <= 0} 表示永久保留。</p>
  */

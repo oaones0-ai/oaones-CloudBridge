@@ -13,13 +13,13 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * 统一登录设置控制器（action 前缀 {@code logincfg.}）。
  *
- * <p>页面：`/oaones/loginConfig/config.jsp`（模块一级菜单“登录设置”，三个连接器共用一行配置）。
- * 与登录页的 {@code login.*} 不同，本控制器走 {@code /oaones/DingTalk/api.jsp}，
- * 因此**必须有登录会话**，并且只允许系统管理员与 `oaones.properties#login.admin.ids`
+ * <p>页面：`/oaones/appsyn/loginConfig/config.jsp`（模块一级菜单“登录设置”，三个连接器共用一行配置）。
+ * 与登录页的 {@code login.*} 不同，本控制器走 {@code /oaones/appsyn/DingTalk/api.jsp}，
+ * 因此**必须有登录会话**，并且只允许系统管理员与 `oaones.appsyn.properties#login.admin.ids`
  * 里列出的人员查看/修改（登录方式开关一改就是全体员工的登录入口，必须收紧权限）。</p>
  *
  * <p>{@code logincfg.imageUpload}（登录页 logo / 整页背景图上传）收的是文件，页面通过
- * {@code api.jsp}（GET 口径）调不到，由专用入口页 {@code /oaones/loginConfig/imageUpload.jsp}
+ * {@code api.jsp}（GET 口径）调不到，由专用入口页 {@code /oaones/appsyn/loginConfig/imageUpload.jsp}
  * 以 multipart 调进来（入口页调的是企微连接器的那一个，本类保留同一组 action 只为口径一致）；
  * 用途 {@code kind=logo|bg} 放在查询串上。</p>
  */

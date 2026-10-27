@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.feishu;
 
 /**
- * 扫码登录票据实体（对应业务表：表名取 oaones.properties#oaones_scan_login_table，
+ * 扫码登录票据实体（对应业务表：表名取 oaones.appsyn.properties#oaones_scan_login_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一行 = 登录页上的一次“自己生成的二维码”：
@@ -23,7 +23,7 @@ public class ScanLogin {
     private String qrText;
     /** 扫码平台：wecom / dingtalk / feishu（为空表示还没识别出扫码客户端）。 */
     private String platform;
-    /** 命中的平台租户配置ID（uf_oaones_qywx_config.id，飞书租户 type=2）。 */
+    /** 命中的平台租户配置ID（uf_oaones_appsyn_qywx_config.id，飞书租户 type=2）。 */
     private Integer cfgId;
     /** 扫码人平台成员ID（飞书 user_id；应用没申请 user_id 权限时为 open_id）。 */
     private String outUserId;

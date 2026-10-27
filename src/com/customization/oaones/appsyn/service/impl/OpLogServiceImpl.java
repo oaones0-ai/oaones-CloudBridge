@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * 操作监控平台服务实现（DAO 层为 {@link OpLogMapper}）。
  *
- * <p>分权：只有系统管理员（user.id=1）与 {@code oaones.properties#opmonitor.admin.ids}
+ * <p>分权：只有系统管理员（user.id=1）与 {@code oaones.appsyn.properties#opmonitor.admin.ids}
  * 可以查看；其它登录人打开页面只看到说明，接口层一律拒绝（本页不做“按租户 / 按部门”的裁剪，
  * 避免把审计数据按业务分权拆碎）。</p>
  */
@@ -80,7 +80,7 @@ public class OpLogServiceImpl implements OpLogService {
             total = count == null ? 0 : count.intValue();
         } catch (Throwable t) {
             // 表还没建：给出可读提示，而不是 500
-            OaonesLog.error("查询操作监控日志失败（请确认已执行 uf_oaones_op_log 建表脚本）", t);
+            OaonesLog.error("查询操作监控日志失败（请确认已执行 uf_oaones_appsyn_op_log 建表脚本）", t);
             data.put("rows", rows);
             data.put("total", Integer.valueOf(0));
             data.put("page", Integer.valueOf(page));
@@ -241,7 +241,7 @@ public class OpLogServiceImpl implements OpLogService {
         }
     }
 
-    /** 查看人：系统管理员（user.id=1）、超管角色（total.admin.roleid）或 oaones.properties#opmonitor.admin.ids。 */
+    /** 查看人：系统管理员（user.id=1）、超管角色（total.admin.roleid）或 oaones.appsyn.properties#opmonitor.admin.ids。 */
     private boolean isViewer(String operatorId) {
         int uid = OaonesUtil.i(operatorId, 0);
         if (OaonesAdmin.isTotalAdmin(operatorId)) {

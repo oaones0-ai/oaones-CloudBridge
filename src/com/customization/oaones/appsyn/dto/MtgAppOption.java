@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.dto;
 
 /**
- * 会议 / 日程同步「绑定应用」候选项（数据来自“应用绑定”表 {@code uf_oaones_app_bind}）。
+ * 会议 / 日程同步「绑定应用」候选项（数据来自“应用绑定”表 {@code uf_oaones_appsyn_app_bind}）。
  *
  * <p>用途有两处，取的是同一张表、同一批列：</p>
  * <ul>
@@ -13,9 +13,9 @@ package com.customization.oaones.appsyn.dto;
  */
 public class MtgAppOption {
 
-    /** 应用绑定记录ID（{@code uf_oaones_app_bind.id}）。 */
+    /** 应用绑定记录ID（{@code uf_oaones_appsyn_app_bind.id}）。 */
     private Integer id;
-    /** 所属租户配置ID（{@code uf_oaones_qywx_config.id}）。 */
+    /** 所属租户配置ID（{@code uf_oaones_appsyn_qywx_config.id}）。 */
     private Integer cfgId;
     /** 应用名称（页面展示用）。 */
     private String appName;

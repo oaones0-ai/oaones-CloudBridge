@@ -114,7 +114,7 @@ public class ScanLoginServiceImpl implements ScanLoginService {
         data.put("ticket", ticket);
         data.put("browser_key", key);
         data.put("qr_text", qrText);
-        data.put("qr_image_url", base + "/oaones/login/Feishu/qrImage.jsp?t=" + ticket);
+        data.put("qr_image_url", base + "/oaones/appsyn/login/Feishu/qrImage.jsp?t=" + ticket);
         data.put("expire_at", entity.getExpireTime());
         data.put("ttl_seconds", ttl / 1000);
         data.put("poll_ms", OaonesProps.loginQrPollMs());
@@ -207,7 +207,7 @@ public class ScanLoginServiceImpl implements ScanLoginService {
         if (row == null) {
             throw new RuntimeException("二维码不存在或已失效，请在电脑上刷新二维码后重新扫码");
         }
-        // 统一扫码落地页（/oaones/login/scan.jsp）识别到飞书客户端时才会分派到本实现，因此这里按飞书口径处理：
+        // 统一扫码落地页（/oaones/appsyn/login/scan.jsp）识别到飞书客户端时才会分派到本实现，因此这里按飞书口径处理：
         // UA 只用于日志与提示，不参与“是哪家平台”的判断，避免把电脑浏览器里复制的链接判成“未知客户端”。
         String clientPlatform = OaonesUtil.s(QrLoginPlatform.detect(userAgent));
         String platform = QrLoginPlatform.FEISHU;

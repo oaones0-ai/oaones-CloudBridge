@@ -48,11 +48,11 @@ import java.util.Set;
  *
  * <p>「应用中心」没有租户维度：一套部署一份应用列表，
  * 页面准入（能进本页、能新建应用）= 系统管理员（user.id=1）
- * + {@code oaones.properties#appc.admin.ids} 中列出的人员
+ * + {@code oaones.appsyn.properties#appc.admin.ids} 中列出的人员
  * + 被指定为某个应用创建人 / 维护人的人员（见 {@link #hasOwnApp}）；
  * 具体某个应用则由**创建人 + 维护人**维护（见 {@link #belongsTo}），
  * 系统管理员可查看与维护**全部**应用，其它登录人只看得到自己创建或自己维护的应用；
- * 桌面启动台（{@code /oaones/appCenter/Desktop.jsp}）对本模块任何登录人只读可用。</p>
+ * 桌面启动台（{@code /oaones/appsyn/appCenter/Desktop.jsp}）对本模块任何登录人只读可用。</p>
  */
 public class AppCenterServiceImpl implements AppCenterService {
 
@@ -96,7 +96,7 @@ public class AppCenterServiceImpl implements AppCenterService {
     @Override
     public boolean canMaintain(String operatorId) {
         // 页面准入：能进本页、能新建应用的人（具体某个应用能不能维护见 belongsTo / assertAppMaintain）。
-        // 三类人可进：系统管理员、oaones.properties#appc.admin.ids 名单，以及
+        // 三类人可进：系统管理员、oaones.appsyn.properties#appc.admin.ids 名单，以及
         // **被指定为某个应用创建人 / 维护人**的人（否则把应用交给不在名单里的人维护时，他连本页都进不来）
         String uid = OaonesUtil.s(operatorId).trim();
         if (uid.length() == 0) {
@@ -137,7 +137,7 @@ public class AppCenterServiceImpl implements AppCenterService {
     private void assertMaintain(String operatorId) {
         if (!canMaintain(operatorId)) {
             throw new RuntimeException("你不是「应用中心」的维护人，无权进入应用中心（可用的是：系统管理员、"
-                    + "oaones.properties#appc.admin.ids 中列出的人员，以及被指定为某个应用创建人/维护人的人员）");
+                    + "oaones.appsyn.properties#appc.admin.ids 中列出的人员，以及被指定为某个应用创建人/维护人的人员）");
         }
     }
 
@@ -1076,7 +1076,7 @@ public class AppCenterServiceImpl implements AppCenterService {
     }
 
     /**
-     * 图标地址校验：只接受本页上传后产生的站内地址（{@code /oaones/img/<文件名>}）。
+     * 图标地址校验：只接受本页上传后产生的站内地址（{@code /oaones/appsyn/img/<文件名>}）。
      *
      * <p>图标一律走页面上传（见 {@link #saveIcon}），所以这里既不接受外部图片地址，
      * 也不接受带子目录/回退段的地址——避免有人把 {@code icon} 填成别的路径或跳转地址。</p>
@@ -1143,7 +1143,7 @@ public class AppCenterServiceImpl implements AppCenterService {
         return stored == null ? OAONES_OPEN_CURRENT : parseOpenMode(String.valueOf(stored));
     }
 
-    /** 图标上传目录（E9 站点根下的 {@code oaones/img}）。 */
+    /** 图标上传目录（E9 站点根下的 {@code oaones/appsyn/img}）。 */
     private File iconDir() {
         return new File(OaonesUtil.s(GCONST.getRootPath()), OaonesConst.APP_ICON_DIR);
     }
@@ -1172,7 +1172,7 @@ public class AppCenterServiceImpl implements AppCenterService {
     /**
      * 删除不再被引用的图标文件。
 
-     * <p>两道保险：① 只处理 {@code /oaones/img/} 下、且文件名带本模块前缀（
+     * <p>两道保险：① 只处理 {@code /oaones/appsyn/img/} 下、且文件名带本模块前缀（
      * {@link OaonesConst#APP_ICON_FILE_PREFIX}）的文件，手工放进该目录的图片不动；
      * ② 删除前先查还有没有别的应用引用同一地址（多个应用可以指向同一张图，这里不误删）。</p>
      */

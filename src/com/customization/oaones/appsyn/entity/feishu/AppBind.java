@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.feishu;
 
 /**
- * 飞书工作台应用 - OA 页面 绑定实体（对应业务表：表名取 oaones.properties#oaones_app_bind_table，
+ * 飞书工作台应用 - OA 页面 绑定实体（对应业务表：表名取 oaones.appsyn.properties#oaones_app_bind_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一条记录 = 飞书某个自建应用（App ID）在飞书工作台里的一个入口：
@@ -20,7 +20,7 @@ public class AppBind {
     /**
      * 该自建应用的 Secret：飞书网页授权只能用它（或租户App Secret）换成员身份。
      *
-     * <p>留空时回退用租户配置里的App Secret（`uf_oaones_qywx_config.corp_secret`），
+     * <p>留空时回退用租户配置里的App Secret（`uf_oaones_appsyn_qywx_config.corp_secret`），
      * 便于“租户配置里维护的自建应用就是工作台应用”这种单应用场景。</p>
      */
     private String appSecret;

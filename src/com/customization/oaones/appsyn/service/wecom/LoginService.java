@@ -3,7 +3,7 @@ package com.customization.oaones.appsyn.service.wecom;
 import com.alibaba.fastjson.JSONArray;
 
 /**
- * 统一登录页（`/oaones/login/login.jsp`，三个平台共用一页、一张二维码）的登录页配置视图。
+ * 统一登录页（`/oaones/appsyn/login/login.jsp`，三个平台共用一页、一张二维码）的登录页配置视图。
  *
  * <p>本接口只负责“登录页能看到什么租户”：登录页没有登录人，无法按维护人过滤，
  * 因此列出**全部启用中**的租户，并对配置不全（缺 corpid / AgentId / Secret）的租户

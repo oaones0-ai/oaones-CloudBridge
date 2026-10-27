@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 考勤同步**设置**实体（业务表：表名取 {@code oaones.properties#oaones_att_cfg_table}）。
+ * 考勤同步**设置**实体（业务表：表名取 {@code oaones.appsyn.properties#oaones_att_cfg_table}）。
  *
  * <p>一行 = <b>平台 + 租户 + 方向</b>（{@code rowType = 0}，同一组合**可以有多条**：
  * 不同范围 / 不同数据类型 / 不同时间口径 / 不同频率各自一条），
@@ -34,7 +34,7 @@ public class AttSyncCfg {
     private Integer id;
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书（{@code OaonesConst.TYPE_*}）。 */
     private Integer type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）。 */
     private Integer cfgid;
     /** 行类型：0 同步设置 / 1 租户级开关（{@code OaonesConst.ATT_ROW_*}）。 */
     private Integer rowType;
@@ -74,7 +74,7 @@ public class AttSyncCfg {
     /** 「最近 N 天」口径的 N（默认取配置 {@code att.win.last.days.default}）。 */
     private Integer winDays;
 
-    /** 考勤应用（“应用绑定”记录ID {@code uf_oaones_app_bind.id}；0 = 未指定则**不执行同步**）。 */
+    /** 考勤应用（“应用绑定”记录ID {@code uf_oaones_appsyn_app_bind.id}；0 = 未指定则**不执行同步**）。 */
     private Integer appId;
 
     /** 计划任务方式：0 按时间段 / 1 高级（cron）。 */
@@ -105,7 +105,7 @@ public class AttSyncCfg {
     private String lastResultText;
     /** 连续失败次数（成功一轮即清零；到阈值出告警）。 */
     private Integer failStreak;
-    /** 最近一次执行的批次ID（关联 {@code uf_oaones_att_log.id}）。 */
+    /** 最近一次执行的批次ID（关联 {@code uf_oaones_appsyn_att_log.id}）。 */
     private Integer lastLogId;
 
     private String remark;

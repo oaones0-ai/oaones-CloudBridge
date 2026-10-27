@@ -4,7 +4,7 @@ import com.customization.oaones.appsyn.entity.dingtalk.ScanLogin;
 import org.apache.ibatis.annotations.Param;
 
 /**
- * 扫码登录票据表 Mapper（uf_oaones_scan_login）。
+ * 扫码登录票据表 Mapper（uf_oaones_appsyn_scan_login）。
  *
  * <p>按 ticket 定位（唯一索引），状态推进用 {@link #updateState} 之外的小粒度更新方法，
  * 避免“PC 轮询”与“手机确认”两个线程互相覆盖对方写的字段。</p>

@@ -12,9 +12,9 @@ public class MsgReceiver {
     /** 接收人的 OA 语言ID（hrmresource.systemlanguage，7 简体 / 8 英文 / 9 繁体…）；未知为 0。 */
     private int language;
     private String wxUserid;
-    /** 组织同步租户ID（uf_oaones_qywx_config.id）；未知为 0。 */
+    /** 组织同步租户ID（uf_oaones_appsyn_qywx_config.id）；未知为 0。 */
     private int cfgId;
-    /** 企微应用ID（uf_oaones_app_bind.id，与应用绑定共用同一行）；未匹配到为 0。 */
+    /** 企微应用ID（uf_oaones_appsyn_app_bind.id，与应用绑定共用同一行）；未匹配到为 0。 */
     private int appId;
 
     public int getOaUserId() { return oaUserId; }

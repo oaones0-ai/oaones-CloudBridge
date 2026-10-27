@@ -539,7 +539,7 @@ public class UserBindServiceImpl implements UserBindService {
     }
 
     /**
-     * OA 人员侧“免绑定”标记：直接维护 uf_oaones_user_bind.bind_state
+     * OA 人员侧“免绑定”标记：直接维护 uf_oaones_appsyn_user_bind.bind_state
      * （0 = 免绑定，1 = 已绑定），不再使用独立的 no_bind 字段。
      *
      * <p>本表只落两类行：已绑定（{@code x_user_id} 非空、bind_state=1）与免绑定

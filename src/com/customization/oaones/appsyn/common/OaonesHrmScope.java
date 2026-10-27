@@ -31,7 +31,7 @@ import java.util.Set;
  *       与平台的 {@code DepartmentBrowserByDec.jsp} / {@code ResourceBrowserByRight.jsp} 同一口径。</li>
  * </ol>
  *
- * <p>三类候选各自对应一个 E9 分权权限点（默认值见下，可在 oaones.properties 覆盖）：</p>
+ * <p>三类候选各自对应一个 E9 分权权限点（默认值见下，可在 oaones.appsyn.properties 覆盖）：</p>
  * <ul>
  *   <li>分部：{@code oa.sec.right.sub}，默认 {@code Subcompanys:decentralization}；</li>
  *   <li>部门：{@code oa.sec.right.dept}，默认 {@code Departments:decentralization}；</li>

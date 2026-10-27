@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 
 /**
- * 同步日志服务（业务表名取 oaones.properties#oaones_sync_log_table）。
+ * 同步日志服务（业务表名取 oaones.appsyn.properties#oaones_sync_log_table）。
  */
 public interface SyncLogService {
 

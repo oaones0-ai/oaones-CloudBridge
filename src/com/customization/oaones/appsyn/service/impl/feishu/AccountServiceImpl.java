@@ -38,7 +38,7 @@ import java.net.URLDecoder;
 public class AccountServiceImpl implements AccountService {
 
     /** 扫码绑定回调页（相对 OA 根路径）。 */
-    private static final String SCAN_CALLBACK_PATH = "/oaones/accountCenter/Feishu/FeishuCallback.jsp";
+    private static final String SCAN_CALLBACK_PATH = "/oaones/appsyn/accountCenter/Feishu/FeishuCallback.jsp";
 
     private ConfigService configService() {
         return new ConfigServiceImpl();
@@ -457,7 +457,7 @@ public class AccountServiceImpl implements AccountService {
             base = OaonesUtil.s(callbackBase).trim();
         }
         if (base.length() == 0) {
-            throw new RuntimeException("无法确定扫码回调地址，请在 oaones.properties 配置 dd.account.callback.base");
+            throw new RuntimeException("无法确定扫码回调地址，请在 oaones.appsyn.properties 配置 dd.account.callback.base");
         }
         while (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);

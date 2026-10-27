@@ -12,8 +12,8 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * 会议 / 日程同步控制器（action 前缀 {@code mtgsync.}，三个连接器共用同一实现）。
  *
- * <p>入口是两条独立的一级菜单页：「会议同步」{@code /oaones/meetingSync/meetingSync.jsp}
- * 与「日程同步」{@code /oaones/scheduleSync/scheduleSync.jsp}；页面按当前平台走对应的
+ * <p>入口是两条独立的一级菜单页：「会议同步」{@code /oaones/appsyn/meetingSync/meetingSync.jsp}
+ * 与「日程同步」{@code /oaones/appsyn/scheduleSync/scheduleSync.jsp}；页面按当前平台走对应的
  * {@code api.jsp}（企微 / 钉钉 / 飞书），三个入口都路由到本控制器，
  * 用 {@code biz}（0 会议 / 1 日程）+ {@code type}（0 企微 / 1 钉钉 / 2 飞书）区分。</p>
  *
@@ -21,7 +21,7 @@ import javax.servlet.http.HttpServletRequest;
  * 不带租户的列表只返回当前登录人可维护租户的数据。</p>
  *
  * <p>例外：{@code mtgsync.userStates} / {@code mtgsync.userState} 是<b>个人账号中心</b>
- * （{@code /oaones/accountCenter/MyAccount.jsp}）的本人自助入口——本人看 / 设自己在各租户的
+ * （{@code /oaones/appsyn/accountCenter/MyAccount.jsp}）的本人自助入口——本人看 / 设自己在各租户的
  * 会议 / 日程同步开关，只按登录人ID限定范围，<b>不做</b>租户维护人分权
  * （与 {@code account.*} 同一口径）。</p>
  */

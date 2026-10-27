@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * OAones 模块配置。
  *
- * <p>配置项存放于 ecology/WEB-INF/prop/oaones.properties。
+ * <p>配置项存放于 ecology/WEB-INF/prop/oaones.appsyn.properties。
  * 业务表都是 E9 建模表，<b>配置里只登记表名</b>（{@code oaones_xxx_table}），
  * 不再登记模块ID：需要模块ID的地方（写入数据行 {@code formmodeid}、按建模共享规则
  * 重构单条数据权限）由 {@link WeaverUtil} 按
@@ -22,43 +22,43 @@ import java.nio.charset.StandardCharsets;
  */
 public final class OaonesProps {
 
-    private static final String PROP_FILE = "oaones";
-    /** 本模块配置文件（oaones.properties）的编码：GBK，与平台其它 properties 同一口径。 */
+    private static final String PROP_FILE = "oaones.appsyn";
+    /** 本模块配置文件（oaones.appsyn.properties）的编码：GBK，与平台其它 properties 同一口径。 */
     private static final Charset CHARSET_GBK = Charset.forName("GBK");
     /** 已提示过“重解码还原”的配置项（同一 JVM 只提示一次，避免每次打开页面都刷日志）。 */
     private static final java.util.Set<String> CHARSET_REPAIR_LOGGED =
             java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
     /** 未配置表名时的兜底表名（与 sql/oaones_tables.sql 建表脚本一致）。 */
-    private static final String DEF_CFG_TABLE = "uf_oaones_qywx_config";
-    private static final String DEF_DEPT_BIND_TABLE = "uf_oaones_dept_bind";
-    private static final String DEF_SUB_TENANT_MAP_TABLE = "uf_oaones_sub_tenant_map";
-    private static final String DEF_USER_BIND_TABLE = "uf_oaones_user_bind";
-    private static final String DEF_USER_RULE_TABLE = "uf_oaones_user_rule";
-    private static final String DEF_SYNC_LOG_TABLE = "uf_oaones_sync_log";
-    private static final String DEF_SYNC_LOG_ITEM_TABLE = "uf_oaones_sync_log_item";
-    private static final String DEF_SYNC_PLAN_TABLE = "uf_oaones_sync_plan";
-    private static final String DEF_DEP_TMP_TABLE = "uf_oaones_dep_tmp";
-    private static final String DEF_USER_TMP_TABLE = "uf_oaones_user_tmp";
-    private static final String DEF_APP_BIND_TABLE = "uf_oaones_app_bind";
-    private static final String DEF_APP_TABLE = "uf_oaones_app";
-    private static final String DEF_MTG_SYNC_TABLE = "uf_oaones_mtg_sync";
-    private static final String DEF_MTG_SYNC_LOG_TABLE = "uf_oaones_mtg_sync_log";
-    private static final String DEF_MTG_SYNC_USER_TABLE = "uf_oaones_mtg_sync_user";
-    private static final String DEF_MTG_LINK_TABLE = "uf_oaones_mtg_link";
+    private static final String DEF_CFG_TABLE = "uf_oaones_appsyn_qywx_config";
+    private static final String DEF_DEPT_BIND_TABLE = "uf_oaones_appsyn_dept_bind";
+    private static final String DEF_SUB_TENANT_MAP_TABLE = "uf_oaones_appsyn_sub_tenant_map";
+    private static final String DEF_USER_BIND_TABLE = "uf_oaones_appsyn_user_bind";
+    private static final String DEF_USER_RULE_TABLE = "uf_oaones_appsyn_user_rule";
+    private static final String DEF_SYNC_LOG_TABLE = "uf_oaones_appsyn_sync_log";
+    private static final String DEF_SYNC_LOG_ITEM_TABLE = "uf_oaones_appsyn_sync_log_item";
+    private static final String DEF_SYNC_PLAN_TABLE = "uf_oaones_appsyn_sync_plan";
+    private static final String DEF_DEP_TMP_TABLE = "uf_oaones_appsyn_dep_tmp";
+    private static final String DEF_USER_TMP_TABLE = "uf_oaones_appsyn_user_tmp";
+    private static final String DEF_APP_BIND_TABLE = "uf_oaones_appsyn_app_bind";
+    private static final String DEF_APP_TABLE = "uf_oaones_appsyn_app";
+    private static final String DEF_MTG_SYNC_TABLE = "uf_oaones_appsyn_mtg_sync";
+    private static final String DEF_MTG_SYNC_LOG_TABLE = "uf_oaones_appsyn_mtg_sync_log";
+    private static final String DEF_MTG_SYNC_USER_TABLE = "uf_oaones_appsyn_mtg_sync_user";
+    private static final String DEF_MTG_LINK_TABLE = "uf_oaones_appsyn_mtg_link";
     /** 会议 / 日程同步「计划任务」表（单行：白天 / 夜间两套 cron）。 */
-    private static final String DEF_MTG_CRON_TABLE = "uf_oaones_mtg_cron";
+    private static final String DEF_MTG_CRON_TABLE = "uf_oaones_appsyn_mtg_cron";
     /** 会议 / 日程「计划任务」时间段明细表（没有配置项时用的兜底表名）。 */
-    private static final String DEF_MTG_PLAN_ITEM_TABLE = "uf_oaones_mtg_plan_item";
+    private static final String DEF_MTG_PLAN_ITEM_TABLE = "uf_oaones_appsyn_mtg_plan_item";
     /** 考勤同步设置表（一行 = 平台 + 租户 + 方向，可多条；另含“租户级开关”行）。 */
-    private static final String DEF_ATT_CFG_TABLE = "uf_oaones_att_cfg";
+    private static final String DEF_ATT_CFG_TABLE = "uf_oaones_appsyn_att_cfg";
     /** 考勤同步「计划任务」时间段明细表（一行一个时间段，挂在设置行上）。 */
-    private static final String DEF_ATT_PLAN_ITEM_TABLE = "uf_oaones_att_plan_item";
+    private static final String DEF_ATT_PLAN_ITEM_TABLE = "uf_oaones_appsyn_att_plan_item";
     /** 考勤同步批次表（一次执行一行）。 */
-    private static final String DEF_ATT_LOG_TABLE = "uf_oaones_att_log";
+    private static final String DEF_ATT_LOG_TABLE = "uf_oaones_appsyn_att_log";
     /** 考勤同步打卡明细表（一条打卡一次动作一行）。 */
-    private static final String DEF_ATT_LOG_ITEM_TABLE = "uf_oaones_att_log_item";
+    private static final String DEF_ATT_LOG_ITEM_TABLE = "uf_oaones_appsyn_att_log_item";
     /** 考勤同步「平台打卡记录 ⇄ OA 打卡记录」映射表。 */
-    private static final String DEF_ATT_LINK_TABLE = "uf_oaones_att_link";
+    private static final String DEF_ATT_LINK_TABLE = "uf_oaones_appsyn_att_link";
     /** E9 标准考勤打卡表（正向同步的写入目标；表名可配，换版本只改配置）。 */
     private static final String DEF_ATT_SIGN_TABLE = "HrmScheduleSign";
     /** OA 会议 / 日程来源表（E9 标准表，只读；会议取 Meeting，日程取 WorkPlan，可配）。 */
@@ -66,17 +66,17 @@ public final class OaonesProps {
     private static final String DEF_MTG_MEETING_MEMBER_TABLE = "Meeting_Member2";
     private static final String DEF_MTG_SCHEDULE_TABLE = "WorkPlan";
     private static final String DEF_MTG_SCHEDULE_MEMBER_TABLE = "workplanMember";
-    private static final String DEF_SCAN_LOGIN_TABLE = "uf_oaones_scan_login";
-    private static final String DEF_LOGIN_CONFIG_TABLE = "uf_oaones_login_config";
-    private static final String DEF_LOGIN_SMS_TABLE = "uf_oaones_login_sms";
-    private static final String DEF_PERSONAL_WX_CONFIG_TABLE = "uf_oaones_personal_wx_config";
-    private static final String DEF_PERSONAL_WX_BIND_TABLE = "uf_oaones_personal_wx_bind";
-    /** 接口日志表（oaones.properties#oaones_api_log_table）默认表名。 */
-    private static final String DEF_API_LOG_TABLE = "uf_oaones_api_log";
-    /** 操作监控日志表（oaones.properties#oaones_op_log_table）默认表名。 */
-    private static final String DEF_OP_LOG_TABLE = "uf_oaones_op_log";
-    /** 日志保留设置表（oaones.properties#oaones_log_retention_table）默认表名。 */
-    private static final String DEF_LOG_RETENTION_TABLE = "uf_oaones_log_retention";
+    private static final String DEF_SCAN_LOGIN_TABLE = "uf_oaones_appsyn_scan_login";
+    private static final String DEF_LOGIN_CONFIG_TABLE = "uf_oaones_appsyn_login_config";
+    private static final String DEF_LOGIN_SMS_TABLE = "uf_oaones_appsyn_login_sms";
+    private static final String DEF_PERSONAL_WX_CONFIG_TABLE = "uf_oaones_appsyn_personal_wx_config";
+    private static final String DEF_PERSONAL_WX_BIND_TABLE = "uf_oaones_appsyn_personal_wx_bind";
+    /** 接口日志表（oaones.appsyn.properties#oaones_api_log_table）默认表名。 */
+    private static final String DEF_API_LOG_TABLE = "uf_oaones_appsyn_api_log";
+    /** 操作监控日志表（oaones.appsyn.properties#oaones_op_log_table）默认表名。 */
+    private static final String DEF_OP_LOG_TABLE = "uf_oaones_appsyn_op_log";
+    /** 日志保留设置表（oaones.appsyn.properties#oaones_log_retention_table）默认表名。 */
+    private static final String DEF_LOG_RETENTION_TABLE = "uf_oaones_appsyn_log_retention";
     /** OA 分权（选择 OA 组织架构时按登录人范围过滤）三类候选各自对应的 E9 分权权限点。 */
     private static final String DEF_SEC_RIGHT_SUB = "Subcompanys:decentralization";
     private static final String DEF_SEC_RIGHT_DEPT = "Departments:decentralization";
@@ -113,7 +113,7 @@ public final class OaonesProps {
      * （只有“连着的两个 Latin-1 字符恰好构成一个合法 GBK 汉字”这种极端写法才可能被改写，
      * 本模块的配置里不存在这种值）。</p>
      *
-     * <p>本模块的 oaones.properties 统一按 <b>GBK</b> 保存、值里直接写中文
+     * <p>本模块的 oaones.appsyn.properties 统一按 <b>GBK</b> 保存、值里直接写中文
      * （与平台其它 properties 同一口径，用 GBK 编辑器打开也正常显示）。
      * 注意：这里只认 GBK——把文件改存成 UTF-8 会让值里的中文读出乱码。</p>
      */
@@ -333,7 +333,7 @@ public final class OaonesProps {
      * 会议 / 日程同步内置调度器的**检查间隔**（秒，{@code mtg.sync.tick.seconds}，默认 60）。
      *
      * <p>调度器每次醒来只做一件事：看页面上配的「计划任务」（白天 / 夜间两套频率，
-     * 表 {@code uf_oaones_mtg_cron}）是否到点，到点就跑一轮同步（OA→第三方 推送 +
+     * 表 {@code uf_oaones_appsyn_mtg_cron}）是否到点，到点就跑一轮同步（OA→第三方 推送 +
      * 第三方→OA 拉取）。因此本值只是“看一眼”的粒度，不是同步频率：
      * 计划任务频率下限 5 分钟，这里收敛到 [30, 180] 秒，最多晚 3 分钟发现“到点了”。</p>
      */
@@ -394,7 +394,7 @@ public final class OaonesProps {
      * 白天时段（默认 9:00–18:00）的**默认**同步频率分钟数
      * （{@code mtg.pull.hourly.minutes}，默认 60）。
      *
-     * <p>实际频率由页面上的「计划任务」决定（存 {@code uf_oaones_mtg_cron}，白天 / 夜间两套 cron）；
+     * <p>实际频率由页面上的「计划任务」决定（存 {@code uf_oaones_appsyn_mtg_cron}，白天 / 夜间两套 cron）；
      * 本值只在“计划任务还没配过”（表里没有行）时作为白天那一档的默认值。</p>
      */
     public static int mtgPullHourlyMinutes() {
@@ -507,13 +507,13 @@ public final class OaonesProps {
         return tableOf("oaones_api_log_table", DEF_API_LOG_TABLE);
     }
 
-    /** 是否开启接口日志（oaones.properties#api.log.enable，默认 1 = 开启）。 */
+    /** 是否开启接口日志（oaones.appsyn.properties#api.log.enable，默认 1 = 开启）。 */
     public static boolean apiLogEnabled() {
         return propInt("api.log.enable", 1) == 1;
     }
 
     /**
-     * 旧接口日志保留天数配置（oaones.properties#api.log.keep.days，默认 0；0 = 永久保留）。
+     * 旧接口日志保留天数配置（oaones.appsyn.properties#api.log.keep.days，默认 0；0 = 永久保留）。
      *
      * <p>现由「系统设置 → 日志保留」统一维护；本方法仅为旧部署兼容保留。</p>
      */
@@ -548,7 +548,7 @@ public final class OaonesProps {
     }
 
     /**
-     * 是否采集操作监控（oaones.properties#op.log.enable，默认 1 = 开启）。
+     * 是否采集操作监控（oaones.appsyn.properties#op.log.enable，默认 1 = 开启）。
      *
      * <p>关闭后过滤器不再写任何操作日志（已落库的数据不受影响），
      * 页面顶部会给出提示；改动最多 1 分钟生效（采集端按 60 秒缓存）。</p>
@@ -558,7 +558,7 @@ public final class OaonesProps {
     }
 
     /**
-     * 旧操作监控日志保留天数配置（oaones.properties#op.log.keep.days，默认 0；0 = 永久保留）。
+     * 旧操作监控日志保留天数配置（oaones.appsyn.properties#op.log.keep.days，默认 0；0 = 永久保留）。
      *
      * <p>现由「系统设置 → 日志保留」统一维护；本方法仅为旧部署兼容保留。</p>
      */
@@ -567,7 +567,7 @@ public final class OaonesProps {
     }
 
     /**
-     * 菜单访问去重窗口（oaones.properties#op.log.dedupe.seconds，默认 60 秒之一行；0 = 不去重）。
+     * 菜单访问去重窗口（oaones.appsyn.properties#op.log.dedupe.seconds，默认 60 秒之一行；0 = 不去重）。
      *
      * <p>同一会话在窗口内重复打开同一个菜单只记一条：页面里的 iframe、刷新、
      * 重定向都会在很短时间内重复请求同一个菜单地址，不做去重会产生大量重复记录。</p>
@@ -578,7 +578,7 @@ public final class OaonesProps {
     }
 
     /**
-     * 「操作监控平台」的查看人（逗号分隔的 OA 人员ID，oaones.properties#opmonitor.admin.ids）。
+     * 「操作监控平台」的查看人（逗号分隔的 OA 人员ID，oaones.appsyn.properties#opmonitor.admin.ids）。
      *
      * <p>本页是“全站的操作留痕”，只对系统管理员（user.id=1）与这里列出的人员开放；
      * 留空表示仅系统管理员可查看。</p>
@@ -636,7 +636,7 @@ public final class OaonesProps {
 
     /* ---------------- 个人微信（与企微 / 钉钉 / 飞书并列的第四个平台，但没有“租户”概念） ----------------
        个人微信绑定只用**一份**微信授权密钥（AppID + AppSecret，维护在「微信设置」页 /
-       uf_oaones_personal_wx_config），因此下面这些参数都是全局单份，不按 cfg_id 区分。 */
+       uf_oaones_appsyn_personal_wx_config），因此下面这些参数都是全局单份，不按 cfg_id 区分。 */
 
     /**
      * 个人微信“换授权令牌 / 读用户信息”的接口网关。
@@ -690,7 +690,7 @@ public final class OaonesProps {
 
     /** 个人微信扫码绑定回调页的站内路径（redirect_uri 的路径部分）。 */
     public static String pwCallbackPath() {
-        return prop("pw.bind.callback.path", "/oaones/personalWx/PersonalWxCallback.jsp");
+        return prop("pw.bind.callback.path", "/oaones/appsyn/personalWx/PersonalWxCallback.jsp");
     }
 
     /** 个人微信扫码 state 令牌有效期（毫秒），默认 10 分钟。 */
@@ -718,7 +718,7 @@ public final class OaonesProps {
     }
 
     /**
-     * 全局超级管理员的**角色ID**（oaones.properties#total.admin.roleid，单个 E9 角色ID）。
+     * 全局超级管理员的**角色ID**（oaones.appsyn.properties#total.admin.roleid，单个 E9 角色ID）。
      *
      * <p>该角色内的人员与系统管理员（user.id=1）权限完全一致：OAones 全部页面的全部管理权限
      * （所有平台 / 所有租户、含未指定维护人的租户）。留空或 0 = 不启用（只有 user.id=1 是超管）。</p>
@@ -772,7 +772,7 @@ public final class OaonesProps {
 
     /** 企微工作台应用免登录入口的页面路径。 */
     public static String appEntryPath() {
-        return prop("app.entry.path", "/oaones/appBind/WeCom/appEntry.jsp");
+        return prop("app.entry.path", "/oaones/appsyn/appBind/WeCom/appEntry.jsp");
     }
 
     /** 企业微信网页授权（OAuth2）网关：入口缺少 code 时跳转到这里换取授权码。 */
@@ -828,7 +828,7 @@ public final class OaonesProps {
      * 本路径只用于“钉钉授权完成后回到本站”，页面本体只做 302 跳回统一落地页。</p>
      */
     public static String ddLoginScanPath() {
-        return prop("dd.login.scan.path", "/oaones/login/DingTalk/scan.jsp");
+        return prop("dd.login.scan.path", "/oaones/appsyn/login/DingTalk/scan.jsp");
     }
 
     /** 钉钉自定义登录页默认使用的租户配置ID（留空时按可用租户顺序探测/让员工选）。 */
@@ -848,7 +848,7 @@ public final class OaonesProps {
 
     /** 钉钉工作台应用免登录入口的页面路径。 */
     public static String ddAppEntryPath() {
-        return prop("dd.app.entry.path", "/oaones/appBind/DingTalk/appEntry.jsp");
+        return prop("dd.app.entry.path", "/oaones/appsyn/appBind/DingTalk/appEntry.jsp");
     }
 
     /** 钉钉个人账号中心扫码绑定回调地址前缀（协议+域名+端口，不含路径）。 */
@@ -894,7 +894,7 @@ public final class OaonesProps {
      * 这样飞书后台已登记的旧地址不用改。</p>
      */
     public static String fsLoginScanPath() {
-        return prop("fs.login.scan.path", "/oaones/login/Feishu/scan.jsp");
+        return prop("fs.login.scan.path", "/oaones/appsyn/login/Feishu/scan.jsp");
     }
 
     /** 飞书自定义登录页默认使用的租户配置ID（留空时按可用租户顺序探测/让员工选）。 */
@@ -914,7 +914,7 @@ public final class OaonesProps {
 
     /** 飞书工作台应用免登录入口的页面路径。 */
     public static String fsAppEntryPath() {
-        return prop("fs.app.entry.path", "/oaones/appBind/Feishu/appEntry.jsp");
+        return prop("fs.app.entry.path", "/oaones/appsyn/appBind/Feishu/appEntry.jsp");
     }
 
     /** 飞书个人账号中心扫码绑定回调地址前缀（协议+域名+端口，不含路径）。 */
@@ -959,7 +959,7 @@ public final class OaonesProps {
     /**
      * 自建扫码登录二维码的有效期（毫秒），默认 2 分钟（120 秒）。
      *
-     * <p>票据存 {@code uf_oaones_scan_login}：PC 轮询用它判断过期，
+     * <p>票据存 {@code uf_oaones_appsyn_scan_login}：PC 轮询用它判断过期，
      * 过期后必须刷新二维码（登录二维码比绑定的二维码更敏感，有效期取更短）。
      * 本项只是“登录设置”页有效期留空时的默认值：设置页按秒维护、最长 180 秒，优先于这里。</p>
      */
@@ -995,18 +995,18 @@ public final class OaonesProps {
      * 因此三个平台的二维码都是同一张、落地页也是同一个。</p>
      */
     public static String loginScanPath() {
-        return prop("login.scan.path", "/oaones/login/scan.jsp");
+        return prop("login.scan.path", "/oaones/appsyn/login/scan.jsp");
     }
 
     /**
      * 登录成功后的默认落地页（未指定 gopage 时用，`#` 之后的页面参数要整段保留，
      * 见 {@link OaonesSso#internalPath}）。
      *
-     * <p>默认落工作台对外地址 `/oaones/desktop`（路由到应用中心桌面启动台，不再进系统首页）；
+     * <p>默认落工作台对外地址 `/oaones/appsyn/desktop`（路由到应用中心桌面启动台，不再进系统首页）；
      * 想回系统首页把 {@code login.landing.url} 配成 `/wui/index.html#/main` 即可。</p>
      */
     public static String loginLandingUrl() {
-        return prop("login.landing.url", "/oaones/desktop");
+        return prop("login.landing.url", "/oaones/appsyn/desktop");
     }
 
     /**
@@ -1177,18 +1177,18 @@ public final class OaonesProps {
         return WeaverUtil.getModeIdByTableName(syncLogItemTable());
     }
 
-    /** 内置同步调度器是否启用（oaones.properties#sync.plan.enable，默认 1 = 启用）。 */
+    /** 内置同步调度器是否启用（oaones.appsyn.properties#sync.plan.enable，默认 1 = 启用）。 */
     public static boolean syncPlanSchedulerEnabled() {
         return propInt("sync.plan.enable", 1) == 1;
     }
 
-    /** 内置同步调度器的扫描间隔（秒，oaones.properties#sync.plan.tick.seconds，默认 30，最小 10）。 */
+    /** 内置同步调度器的扫描间隔（秒，oaones.appsyn.properties#sync.plan.tick.seconds，默认 30，最小 10）。 */
     public static int syncPlanTickSeconds() {
         int seconds = propInt("sync.plan.tick.seconds", 30);
         return seconds < 10 ? 10 : seconds;
     }
 
-    /** 内置同步调度器一次扫描最多执行的设置条数（oaones.properties#sync.plan.batch，默认 20）。 */
+    /** 内置同步调度器一次扫描最多执行的设置条数（oaones.appsyn.properties#sync.plan.batch，默认 20）。 */
     public static int syncPlanBatch() {
         int batch = propInt("sync.plan.batch", 20);
         return batch < 1 ? 1 : batch;
@@ -1280,7 +1280,7 @@ public final class OaonesProps {
     }
 
     // ==================================================================
-    // 考勤同步（独立一级菜单「考勤同步」，页面 /oaones/attSync/attSync.jsp）
+    // 考勤同步（独立一级菜单「考勤同步」，页面 /oaones/appsyn/attSync/attSync.jsp）
     // ==================================================================
 
     /**

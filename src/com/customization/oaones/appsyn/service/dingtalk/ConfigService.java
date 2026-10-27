@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.customization.oaones.appsyn.api.dingtalk.DingTalkApi;
 
 /**
- * 多钉钉租户配置维护（业务表名取 oaones.properties#oaones_qywx_config_table）。
+ * 多钉钉租户配置维护（业务表名取 oaones.appsyn.properties#oaones_qywx_config_table）。
  */
 public interface ConfigService {
 

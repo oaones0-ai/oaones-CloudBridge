@@ -19,7 +19,7 @@ import java.util.Set;
  *
  * <ul>
  *   <li>传入 OA 账号（登录名 / 工号）或 OA 人员ID：按人员绑定表
- *       {@code uf_oaones_user_bind}（bind_state = 1）转换为飞书 userid；</li>
+ *       {@code uf_oaones_appsyn_user_bind}（bind_state = 1）转换为飞书 userid；</li>
  *   <li>直接传入飞书 userid：优先直接使用，并反查所属租户用于应用路由；</li>
  *   <li>未绑定、已免绑定、已删除的账号自动过滤，调用方按 {@code filtered} 记录异常日志。</li>
  * </ul>

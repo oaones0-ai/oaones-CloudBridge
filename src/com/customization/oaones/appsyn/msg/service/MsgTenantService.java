@@ -16,7 +16,7 @@ import java.util.Map;
  * 「消息设置 → 租户开关」：本平台（企微）租户的消息通知开关。
  *
  * <p>“消息设置”是独立的一级菜单，其中按租户决定 OA 消息要不要推到该租户：
- * 开关值落在**租户表复用列** {@code uf_oaones_qywx_config.msg_enable}（1 开启 / 0 关闭），
+ * 开关值落在**租户表复用列** {@code uf_oaones_appsyn_qywx_config.msg_enable}（1 开启 / 0 关闭），
  * 不新建表；关掉的租户在推送前置校验里被跳过并记“已跳过”日志。</p>
  *
  * <p>钉钉 / 飞书连接器各有同名实现（分别读 {@code type = 1} / {@code type = 2} 的租户），

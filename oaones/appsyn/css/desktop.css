@@ -1,0 +1,129 @@
+/**
+ * 应用中心「桌面启动台」样式（/oaones/appsyn/appCenter/Desktop.jsp 专用）。
+ *
+ * 视觉口径：模仿 macOS 桌面 —— 顶部菜单栏 + 桌面图标区（**没有底部 Dock**：
+ * 原来那排小图标已按需求去掉，页面只保留上方的桌面图标区，样式不变）；
+ * 交互口径：鼠标移上去放大（桌面图标用 CSS），点击跳转到应用页面。
+ *
+ * 本文件只服务于桌面页，与列表页（css/style.css）互不影响；
+ * 改了本文件后 assets.jsp 里的 ?v= 版本号会自动变化（见 assets.jsp）。
+ */
+
+/* ---------------- 整页：macOS 桌面 ---------------- */
+html, body.mac-body { height: 100%; }
+body.mac-body {
+    margin: 0;
+    overflow: hidden;
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", Arial, sans-serif;
+    color: #fff;
+    /* 桌面壁纸：偏 macOS Big Sur 的深蓝紫渐变（纯 CSS，不依赖图片资源） */
+    background:
+        radial-gradient(1200px 700px at 18% 8%, rgba(255,255,255,.20), rgba(255,255,255,0) 60%),
+        radial-gradient(900px 620px at 88% 22%, rgba(120,200,255,.28), rgba(0,0,0,0) 62%),
+        radial-gradient(1000px 700px at 62% 96%, rgba(255,140,190,.26), rgba(0,0,0,0) 60%),
+        linear-gradient(150deg, #1b2a5b 0%, #2d3a76 32%, #5b3f8f 62%, #8a4a6d 100%);
+}
+
+/* ---------------- 顶部菜单栏 ---------------- */
+.mac-menubar {
+    position: fixed; left: 0; right: 0; top: 0; height: 30px; z-index: 30;
+    display: flex; align-items: center; gap: 18px; padding: 0 14px;
+    font-size: 12.5px; letter-spacing: .2px;
+    background: rgba(28,28,32,.42);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    backdrop-filter: blur(18px) saturate(180%);
+    border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.mac-menubar a { color: #fff; text-decoration: none; }
+.mac-menubar a:hover { text-decoration: underline; }
+.mac-menubar .mac-menubar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; opacity: .95; }
+.mac-menubar .mac-clock { font-variant-numeric: tabular-nums; }
+
+/* 自动跳转倒计时：桌面页带 gopage 且秒数 > 0 时显示在菜单栏下方。
+   pointer-events:none，避免提示条挡住桌面图标的点击。 */
+.mac-countdown {
+    position: fixed; top: 42px; left: 50%; transform: translateX(-50%);
+    z-index: 40; pointer-events: none;
+    padding: 7px 16px; border-radius: 999px;
+    background: rgba(22,22,26,.58);
+    border: 1px solid rgba(255,255,255,.18);
+    box-shadow: 0 6px 18px rgba(0,0,0,.28);
+    color: #fff; font-size: 13px; line-height: 1.3;
+    letter-spacing: .2px; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    backdrop-filter: blur(14px) saturate(160%);
+}
+.mac-countdown[hidden] { display: none; }
+.mac-countdown b { font-weight: 700; }
+
+/* ---------------- 桌面图标区 ---------------- */
+/* 应用图标**只占中间的“安全区”**：左右各留白 20%、上下各留白 10%，
+   四周留白里不出现任何图标（图标只在该区域内居中换行排列）。
+   本元素 left/right/top/bottom 四个方向都定位，百分比都按视口尺寸算，
+   因此“上下 10%”就是视口高度的 10%。 */
+.mac-desktop {
+    position: absolute; left: 20%; right: 20%; top: 10%; bottom: 10%;
+    /* 区内留一点内边距：图标悬浮会放大 1.14 倍并上移 4px，
+       第一/最后一行如果没有这点余量就会被滚动容器裁掉上/下边缘。
+       这是**区域内**的内边距，不影响外面 20% / 10% 的留白口径。 */
+    padding: 22px 0;
+    overflow: auto;
+    display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start;
+    gap: 34px 18px;
+}
+.mac-icon {
+    width: 184px; padding: 10px 6px 8px; border-radius: 16px;
+    text-align: center; cursor: pointer; text-decoration: none;
+    color: #fff; outline: none;
+    transition: transform .18s cubic-bezier(.2,.8,.3,1.2), background-color .18s;
+    will-change: transform;
+}
+.mac-icon:hover, .mac-icon:focus-visible { background: rgba(255,255,255,.16); transform: scale(1.14) translateY(-4px); }
+.mac-icon:active { transform: scale(1.06) translateY(-2px); }
+/* 图标块：72px → 144px（按需求放大到原来的 2 倍），圆角与字号同步放大 */
+.mac-icon-tile {
+    position: relative;
+    width: 144px; height: 144px; margin: 0 auto;
+    border-radius: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 60px; font-weight: 600; color: #fff;
+    box-shadow: 0 6px 16px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.42);
+    background-image: linear-gradient(160deg, rgba(255,255,255,.35), rgba(0,0,0,.16));
+    overflow: hidden;
+}
+.mac-icon-tile img { width: 100%; height: 100%; object-fit: cover; }
+.mac-icon-label {
+    margin-top: 10px; font-size: 15px; line-height: 1.35;
+    text-shadow: 0 1px 3px rgba(0,0,0,.7);
+    word-break: break-word;
+    max-height: 41px; overflow: hidden;
+}
+/* 单点登录标记：配了实现类的应用右上角一个小圆点（悬浮提示里有说明） */
+.mac-sso-badge {
+    position: absolute; right: -4px; top: -4px;
+    min-width: 24px; height: 24px; padding: 0 5px; border-radius: 12px;
+    background: #34c759; color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35); letter-spacing: .3px;
+}
+
+/* ---------------- 空状态 / 加载 ---------------- */
+.mac-empty {
+    position: fixed; left: 50%; top: 46%; transform: translate(-50%,-50%);
+    text-align: center; font-size: 14px; line-height: 2; color: rgba(255,255,255,.88);
+    text-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+.mac-empty b { font-size: 16px; }
+.mac-empty a { color: #fff; }
+
+/* ---------------- 移动端：图标比桌面端小一档（桌面的 144px → 116px） ----------------
+   中间安全区的口径不变（仍然是左右 20% / 上下 10%），只是图标本身变小。 */
+@media (max-width: 640px) {
+    .mac-countdown { top: 38px; max-width: calc(100vw - 28px); white-space: normal; text-align: center; font-size: 12px; }
+    .mac-desktop { gap: 22px 10px; }
+    .mac-icon { width: 140px; }
+    .mac-icon-tile { width: 116px; height: 116px; border-radius: 26px; font-size: 48px; }
+    .mac-icon-label { font-size: 13px; max-height: 36px; }
+    .mac-sso-badge { min-width: 20px; height: 20px; border-radius: 10px; font-size: 11px; }
+}

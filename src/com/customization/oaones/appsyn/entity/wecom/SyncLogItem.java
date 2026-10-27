@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.wecom;
 
 /**
- * 同步日志明细实体（对应业务表：表名取 oaones.properties#oaones_sync_log_item_table，
+ * 同步日志明细实体（对应业务表：表名取 oaones.appsyn.properties#oaones_sync_log_item_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一行一个同步对象：单条部门、单条人员各一行，记录该对象本次同步的过程。</p>
@@ -9,7 +9,7 @@ package com.customization.oaones.appsyn.entity.wecom;
 public class SyncLogItem {
 
     private Integer id;
-    /** 所属同步日志ID（uf_oaones_sync_log.id）。 */
+    /** 所属同步日志ID（uf_oaones_appsyn_sync_log.id）。 */
     private Integer logId;
     /** OA 流程 requestid；定时同步无流程上下文时为空。 */
     private Integer requestid;

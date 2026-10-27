@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.dingtalk;
 
 /**
- * OA人员 - 钉钉成员 绑定实体（对应业务表：表名取 oaones.properties#oaones_user_bind_table，
+ * OA人员 - 钉钉成员 绑定实体（对应业务表：表名取 oaones.appsyn.properties#oaones_user_bind_table，
  * 建模模块ID按表名反查，配置里不出现）。
  */
 public class UserBind {

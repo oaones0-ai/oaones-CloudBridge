@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
- * 推送用企微应用 Mapper：**只读**“应用绑定”表（uf_oaones_app_bind）并关联租户配置。
+ * 推送用企微应用 Mapper：**只读**“应用绑定”表（uf_oaones_appsyn_app_bind）并关联租户配置。
  *
  * <p>应用与“应用绑定”共用同一张表，应用的新增/修改/停用都在“应用绑定”页完成，
  * 因此这里没有增删改语句。</p>

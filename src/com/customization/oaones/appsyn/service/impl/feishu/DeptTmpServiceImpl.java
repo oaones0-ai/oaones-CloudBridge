@@ -219,7 +219,7 @@ public class DeptTmpServiceImpl implements DeptTmpService {
     }
 
     /**
-     * 飞书部门侧“免绑定”标记：维护 uf_oaones_dep_tmp.no_bind。
+     * 飞书部门侧“免绑定”标记：维护 uf_oaones_appsyn_dep_tmp.no_bind。
      *
      * <p>本表只用 {@link OaonesConst#NO_BIND_MARK}（0）表达“免绑定”，取消其它状态值：
      * 标记免绑定写 0，取消免绑定把该列置回 NULL（正常态不写值）。</p>

@@ -7,7 +7,7 @@ import java.util.Map;
  * 统一认证报表 Mapper（跨平台只读看板，表名全部由 {@link com.customization.oaones.appsyn.common.OaonesParam}
  * 注入的入参 Map 里的 {@code ${...}} 占位提供，不写死物理表名）。
  *
- * <p>口径见 {@code WEB-INF/config/mapper/oaones/AuthReportMapper.xml} 顶部说明：
+ * <p>口径见 {@code WEB-INF/config/mapper/oaones/appsyn/AuthReportMapper.xml} 顶部说明：
  * 总人数取平台成员快照、已绑定 / 新增绑定取人员绑定表、登录取操作监控的 login 留痕。</p>
  *
  * <p>本接口只有查询，没有任何写操作（报表页只读）。</p>

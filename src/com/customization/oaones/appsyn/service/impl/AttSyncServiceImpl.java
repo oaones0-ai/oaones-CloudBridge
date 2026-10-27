@@ -91,7 +91,7 @@ public class AttSyncServiceImpl implements AttSyncService {
     /**
      * 造一条租户级行，**所有 NOT NULL 列都给显式值**。
      *
-     * <p>为什么必须一个个填：{@code uf_oaones_att_cfg} 的 {@code data_types / sign_periods /
+     * <p>为什么必须一个个填：{@code uf_oaones_appsyn_att_cfg} 的 {@code data_types / sign_periods /
      * win_mode / app_id / plan_mode / cron_day_type / enabled / check_state} 都是 {@code NOT NULL}，
      * 而 DDL 里的 DEFAULT 只对“insert 时压根不写这一列”生效——{@code insertCfg} 是把这些列
      * 全部列出来、值取实体字段的，实体字段为 null 就是显式插 NULL，直接报
@@ -784,7 +784,7 @@ public class AttSyncServiceImpl implements AttSyncService {
             item.put("app_name", OaonesUtil.s(row.getAppName()));
             item.put("agent_id", OaonesUtil.s(row.getAgentId()));
             // 应用是否可用：**只给 enable 这个布尔值**，不把原始的 yx 抛给页面——
-            // uf_oaones_app_bind.yx 是“0 有效 / 1 无效”（OaonesConst.APP_BIND_STATE_VALID = 0，
+            // uf_oaones_appsyn_app_bind.yx 是“0 有效 / 1 无效”（OaonesConst.APP_BIND_STATE_VALID = 0，
             // 与部门绑定表的 1 有效 / 0 失效相反），页面自己判很容易写反
             // （2026-10-15 现场：启用中的应用被标成「已停用」）。与 appBind / 会议同步同一口径。
             item.put("enable", Boolean.valueOf(row.getYx() != null
@@ -1843,7 +1843,7 @@ public class AttSyncServiceImpl implements AttSyncService {
      */
     private String precondition(AttSyncCfg cfg, int trigger) {
         if (!OaonesProps.attSyncEnabled()) {
-            return "考勤同步功能总开关已关闭（oaones.properties#att.sync.enable），不执行任何同步";
+            return "考勤同步功能总开关已关闭（oaones.appsyn.properties#att.sync.enable），不执行任何同步";
         }
         if (trigger != OaonesConst.ATT_TRIGGER_MANUAL
                 && (cfg.getEnabled() == null || cfg.getEnabled().intValue() == 0)) {

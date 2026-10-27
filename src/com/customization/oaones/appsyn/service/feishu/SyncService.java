@@ -40,7 +40,7 @@ public interface SyncService {
      * <p>写入范围：OA 分部/部门（含下级）⇄ 飞书部门（含下级，未指定时为租户 root 节点）；
      * 飞书 → OA 的 OA 侧是落点（落点分部必选 + 落点部门非必选，只选分部时新建部门落在该分部下）；
      * 部门与人员逐条处理后，把“单条部门 / 单条人员”的同步过程写入同步日志明细表
-     * （uf_oaones_sync_log_item）。</p>
+     * （uf_oaones_appsyn_sync_log_item）。</p>
      */
     JSONObject runScoped(JSONObject params, String operatorId);
 }

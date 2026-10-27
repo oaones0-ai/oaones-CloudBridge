@@ -10,7 +10,7 @@ import java.util.List;
  *
  * <p>消息类型由 {@code std_config_id}（泛微标准「消息类型」ID，字符串）或
  * {@code std_type}（未纳入标准消息类型的独立来源编号）定位，两者口径与
- * {@link MsgTypeMapper} 的 {@code uf_oaones_msg_type} 完全一致。</p>
+ * {@link MsgTypeMapper} 的 {@code uf_oaones_appsyn_msg_type} 完全一致。</p>
  */
 public interface MsgTypeAppMapper {
 

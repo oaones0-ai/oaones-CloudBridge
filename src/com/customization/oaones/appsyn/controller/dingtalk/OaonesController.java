@@ -12,14 +12,14 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * OAones 前端 AJAX 统一入口（控制层门面）。
  *
- * <p>所有 /oaones 页面通过 action 参数调用本类，按 action 前缀路由到各模块控制器：
+ * <p>所有 /oaones/appsyn 页面通过 action 参数调用本类，按 action 前缀路由到各模块控制器：
  * cfg. → {@link ConfigController}、dept. → {@link DeptBindController}、
  * user. → {@link UserBindController}、sync. → {@link SyncController}、
  * account. → {@link AccountController}（个人账号中心：本人自助）、
  * app. → {@link AppBindController}（钉钉工作台应用 - OA 页面绑定）；
  * login. → {@link LoginController}（本连接器的扫码换身份逻辑，**不走 api.jsp**：
- * 统一登录页与扫码回调都没有登录会话，由 `/oaones/login/loginAction.jsp` 与
- * `/oaones/login/scan.jsp` 直接调用公共的 `controller.LoginController`，
+ * 统一登录页与扫码回调都没有登录会话，由 `/oaones/appsyn/login/loginAction.jsp` 与
+ * `/oaones/appsyn/login/scan.jsp` 直接调用公共的 `controller.LoginController`，
  * 本处路由只为兼容 api.jsp 上 `login.*` 的老口径）；
  * logincfg. → {@link LoginConfigController}（统一登录设置：登录方式开关与二维码有效期）；
  * msg. → {@link DingTalkMsgController}（统一消息中心：钉钉推送配置/日志/看板）；
@@ -78,7 +78,7 @@ public class OaonesController {
             return new SyncController();
         }
         // 同步中心“同步设置”（一级菜单“同步中心”的租户级计划任务与“成员没有找到部门”口径）：
-        // 三个连接器共用同一套公共实现（表 uf_oaones_sync_plan 用 type 区分平台）
+        // 三个连接器共用同一套公共实现（表 uf_oaones_appsyn_sync_plan 用 type 区分平台）
         if ("syncplan".equals(prefix)) {
             return new com.customization.oaones.appsyn.controller.SyncPlanController();
         }
@@ -110,7 +110,7 @@ public class OaonesController {
         if ("mtgsync".equals(prefix)) {
             return new com.customization.oaones.appsyn.controller.MtgSyncController();
         }
-        // 考勤同步（一级菜单「考勤同步」，三个连接器共用一套公共实现：表 uf_oaones_att_cfg / _att_log / _att_log_item / _att_link 用 type 区分平台）
+        // 考勤同步（一级菜单「考勤同步」，三个连接器共用一套公共实现：表 uf_oaones_appsyn_att_cfg / _att_log / _att_log_item / _att_link 用 type 区分平台）
         if ("attsync".equals(prefix)) {
             return new com.customization.oaones.appsyn.controller.AttSyncController();
         }

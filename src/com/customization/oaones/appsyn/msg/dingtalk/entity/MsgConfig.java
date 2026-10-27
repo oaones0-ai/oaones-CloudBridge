@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.msg.dingtalk.entity;
 
 /**
- * 消息中心系统参数（表名取 oaones.properties#oaones_msg_config_table，单行 id=1）。
+ * 消息中心系统参数（表名取 oaones.appsyn.properties#oaones_msg_config_table，单行 id=1）。
  */
 public class MsgConfig {
 

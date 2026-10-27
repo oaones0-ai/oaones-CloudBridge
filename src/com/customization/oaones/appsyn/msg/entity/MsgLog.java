@@ -1,12 +1,12 @@
 package com.customization.oaones.appsyn.msg.entity;
 
 /**
- * 消息推送**状态表**（表名取 oaones.properties#oaones_msg_log_table）。
+ * 消息推送**状态表**（表名取 oaones.appsyn.properties#oaones_msg_log_table）。
  *
  * <p>口径（接口日志中心方案 B）：本表只记录一次推送的**业务状态**——
  * 业务单号 / 消息类型 / 接收人 / 分片 / 去重键 / 卡片任务 / 重试计划；
  * <b>接口报文与结果（请求 / 返回报文、平台返回码与信息、耗时、异常堆栈）不再落本表</b>，
- * 统一保存在接口日志中心 {@code uf_oaones_api_log}，用 {@link #apiLogId} 关联——
+ * 统一保存在接口日志中心 {@code uf_oaones_appsyn_api_log}，用 {@link #apiLogId} 关联——
  * 同一次接口调用全库只存一份。推送日志页面的报文 / 结果 / 耗时都按它到接口日志里取。</p>
  *
  * <p>没有实际发起接口调用的行（待推送 / 去重拦截 / 跳过）没有 {@code api_log_id}，
@@ -35,7 +35,7 @@ public class MsgLog {
     private Integer status;
     private Integer retryCount;
     private String nextRetryTime;
-    /** 最近一次接口调用对应的接口日志ID（uf_oaones_api_log.id）；没有调用过时为空。 */
+    /** 最近一次接口调用对应的接口日志ID（uf_oaones_appsyn_api_log.id）；没有调用过时为空。 */
     private Long apiLogId;
     /** 跳过 / 去重 / 拦截等业务原因（平台返回结果看接口日志）。 */
     private String reason;
@@ -43,7 +43,7 @@ public class MsgLog {
     private String srcJson;
     private Integer operatorId;
     /**
-     * 建模模块ID（写入时按 {@code oaones.properties#oaones_msg_log_table} 反查）。
+     * 建模模块ID（写入时按 {@code oaones.appsyn.properties#oaones_msg_log_table} 反查）。
      *
      * <p>日志表**不做权限重构**：只记录模块ID 便于在建模引擎里查询日志，
      * 不调用 ModeRightInfo，不需要在建模引擎里维护权限共享规则。</p>
@@ -57,7 +57,7 @@ public class MsgLog {
     private String modedatamodifydatetime;
 
     /* ------------------------------------------------------------------
-     * 只读联表字段：从接口日志中心 uf_oaones_api_log 带出（不落本表）
+     * 只读联表字段：从接口日志中心 uf_oaones_appsyn_api_log 带出（不落本表）
      * ------------------------------------------------------------------ */
     /** 耗时（毫秒，接口日志 cost_ms）。 */
     private Integer apiCostMs;

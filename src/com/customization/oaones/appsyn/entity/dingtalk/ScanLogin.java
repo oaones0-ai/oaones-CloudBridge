@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.dingtalk;
 
 /**
- * 扫码登录票据实体（对应业务表：表名取 oaones.properties#oaones_scan_login_table，
+ * 扫码登录票据实体（对应业务表：表名取 oaones.appsyn.properties#oaones_scan_login_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一行 = 登录页上的一次“自己生成的二维码”：
@@ -23,7 +23,7 @@ public class ScanLogin {
     private String qrText;
     /** 扫码平台：wecom / dingtalk（为空表示还没识别出扫码客户端）。 */
     private String platform;
-    /** 命中的平台租户配置ID（钉钉为 uf_oaones_qywx_config.id）。 */
+    /** 命中的平台租户配置ID（钉钉为 uf_oaones_appsyn_qywx_config.id）。 */
     private Integer cfgId;
     /** 扫码人平台成员ID（钉钉 userid / 钉钉 userid）。 */
     private String outUserId;

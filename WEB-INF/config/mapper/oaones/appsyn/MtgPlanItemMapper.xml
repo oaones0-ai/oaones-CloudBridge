@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 会议 / 日程同步「计划任务」的时间段明细（uf_oaones_appsyn_mtg_plan_item）
+
+  一行 = 一个时间段：适用日（day_type 0 每天 / 1 工作日 / 2 非工作日）+ 起止时间（HH:mm，
+  结束时间不大于开始时间 = 跨天）+ 轮询间隔（interval_min，分钟）。
+  页面（会议同步 / 日程同步 → 同步设置 → 计划任务）保存时**整表重写**：
+  deleteByPlan 删掉本计划的全部行，再按页面顺序 insert。
+  表名由入参 ${table} 传入（取值见 OaonesProps#mtgPlanItemTable）。
+  数据库方言与其它 oaones Mapper 一致（分页/取一条都用 SQL Server 的 top，这里不需要）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.MtgPlanItemMapper">
+
+    <sql id="cols">
+        id, plan_id, day_type, start_time, end_time, interval_min, showorder, remark,
+        modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <select id="listByPlan" resultType="com.customization.oaones.appsyn.entity.MtgPlanItem">
+        select <include refid="cols"/> from ${table}
+        where plan_id = #{planId}
+        order by showorder, id
+    </select>
+
+    <delete id="deleteByPlan">
+        delete from ${table} where plan_id = #{planId}
+    </delete>
+
+    <insert id="insert">
+        insert into ${table}
+            (plan_id, day_type, start_time, end_time, interval_min, showorder, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.planId}, #{e.dayType}, #{e.startTime}, #{e.endTime}, #{e.intervalMin}, #{e.showorder}, #{e.remark},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+</mapper>

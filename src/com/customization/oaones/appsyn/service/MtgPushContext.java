@@ -9,13 +9,13 @@ import java.util.List;
  * 「会议 / 日程同步」推送到第三方平台时传给平台适配器的上下文。
  *
  * <p>适配器只认这一份结构，不直接读库：租户凭据、OA 侧对象、换算好的平台成员ID
- * （由同步引擎按 {@code uf_oaones_user_bind} 把 OA 人员ID 换成平台 userid）都在这里。</p>
+ * （由同步引擎按 {@code uf_oaones_appsyn_user_bind} 把 OA 人员ID 换成平台 userid）都在这里。</p>
  */
 public class MtgPushContext {
 
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书。 */
     private int type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）。 */
     private int cfgId;
     /** 企业标识：企微 corpid / 钉钉 AppKey / 飞书 App ID。 */
     private String corpId;

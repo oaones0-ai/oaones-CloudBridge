@@ -27,22 +27,22 @@ import javax.servlet.http.HttpServletResponse;
  * 统一登录页控制器（action 前缀 {@code login.}）。
  *
  * <p><b>一个页面、四种登录方式</b>：统一登录页
- * {@code /oaones/login/login.jsp} 同时提供
+ * {@code /oaones/appsyn/login/login.jsp} 同时提供
  * <b>账号密码登录</b> / <b>验证登录</b>（页签内可切手机号 / 邮箱两种验证方式）/
  * <b>企业应用扫码</b> / <b>个人微信登录</b>；企业微信 / 钉钉 / 飞书客户端共用一张本站二维码，
  * 个人微信使用独立的微信官方二维码，但四者共用同一套票据、轮询与一次性登录令牌
  * （见 {@link QrLoginPlatform}）。</p>
  *
  * <p>与模块内其它控制器最大的不同：<b>登录页、扫码落地页、PC 轮询都没有 OA 登录会话</b>，
- * 因此不能走 {@code /oaones/{WeCom,DingTalk,Feishu}/api.jsp}（那里会先做登录校验、未登录直接返回 401），
- * 而是由 {@code /oaones/login/loginAction.jsp}（PC 页面的 AJAX 入口）与
- * {@code /oaones/login/scan.jsp}（手机扫码落地/确认页）直接调用本类。</p>
+ * 因此不能走 {@code /oaones/appsyn/{WeCom,DingTalk,Feishu}/api.jsp}（那里会先做登录校验、未登录直接返回 401），
+ * 而是由 {@code /oaones/appsyn/login/loginAction.jsp}（PC 页面的 AJAX 入口）与
+ * {@code /oaones/appsyn/login/scan.jsp}（手机扫码落地/确认页）直接调用本类。</p>
  *
  * <p>分层口径：</p>
  * <ul>
  *   <li><b>PC 侧</b>（登录设置 / 手机验证码 / 票据生成与轮询）是三个连接器**共用**的一件事
- *       （一行共享配置 + 一张共享票据表 {@code uf_oaones_scan_login}），
- *       因此沿用企微连接器的实现（与 {@code /oaones/{WeCom,DingTalk,Feishu}/api.jsp}、{@code loginConfig/config.jsp} 同一口径），
+ *       （一行共享配置 + 一张共享票据表 {@code uf_oaones_appsyn_scan_login}），
+ *       因此沿用企微连接器的实现（与 {@code /oaones/appsyn/{WeCom,DingTalk,Feishu}/api.jsp}、{@code loginConfig/config.jsp} 同一口径），
  *       不在本页另写一套；</li>
  *   <li><b>手机侧</b>（换成员身份）必须由**扫码客户端对应的连接器**来做：三个连接器的租户范围与
  *       应用凭证是分开的，跨连接器换身份会把 A 平台的 Secret 用到 B 平台接口上。
@@ -171,7 +171,7 @@ public class LoginController extends BaseController {
     }
 
     /**
-     * 模块统一入口（经 {@code /oaones/{WeCom,DingTalk,Feishu}/api.jsp} 调用时的老口径）。
+     * 模块统一入口（经 {@code /oaones/appsyn/{WeCom,DingTalk,Feishu}/api.jsp} 调用时的老口径）。
      *
      * <p>这里没有 response，{@code login.qrLogin}（要写会话）在模块内调用时不受支持，
      * 其余 action 与 {@link #dispatch} 同一口径。</p>

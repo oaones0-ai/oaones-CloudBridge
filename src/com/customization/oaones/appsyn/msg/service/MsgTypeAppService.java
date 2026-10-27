@@ -254,7 +254,7 @@ public class MsgTypeAppService {
     private static boolean isTableMissing(Throwable t) {
         String msg = t == null ? "" : OaonesUtil.s(t.getMessage());
         String lower = msg.toLowerCase();
-        return lower.indexOf("uf_oaones_msg_type_app") >= 0 || lower.indexOf("invalid object name") >= 0
+        return lower.indexOf("uf_oaones_appsyn_msg_type_app") >= 0 || lower.indexOf("invalid object name") >= 0
                 || lower.indexOf("doesn't exist") >= 0 || lower.indexOf("does not exist") >= 0
                 || lower.indexOf("ora-00942") >= 0;
     }

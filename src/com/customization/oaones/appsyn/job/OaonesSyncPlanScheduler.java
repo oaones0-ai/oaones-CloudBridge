@@ -19,20 +19,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 同步中心“计划任务”的<b>内置调度器</b>：页面配置的 cron 直接生效，**不需要 E9 后台计划任务**。
  *
  * <p>做法：本模块自己在 E9 webapp 里起一个守护线程，按固定间隔（默认 30 秒）扫描
- * {@code uf_oaones_sync_plan}，把 {@code next_run_time} 已到点的设置交给
+ * {@code uf_oaones_appsyn_sync_plan}，把 {@code next_run_time} 已到点的设置交给
  * {@link SyncPlanService#runDuePlans(int)} 执行；每条设置在执行前先“认领”
  * （条件更新 {@code next_run_time}），因此<b>多实例部署不会重复跑</b>，
  * 与 E9 后台计划任务（可选保留的 {@link OaonesSyncPlanCronJob}）同时存在也不会重复。</p>
  *
  * <p>启动时机（幂等，只起一个线程）：</p>
  * <ul>
- *   <li>任何 OAones 页面被访问时（{@code oaones/redirect.inc.jsp}）；</li>
+ *   <li>任何 OAones 页面被访问时（{@code oaones/appsyn/redirect.inc.jsp}）；</li>
  *   <li>任何 OAones 接口被调用时（三个连接器的 {@code OaonesController});</li>
  *   <li>可选：在 {@code WEB-INF/web.xml} 里注册
  *       {@link OaonesSyncPlanSchedulerListener}，则 E9 一启动就跑起来（不依赖有人访问）。</li>
  * </ul>
  *
- * <p>开关与频率在 {@code oaones.properties}：{@code sync.plan.enable} / {@code sync.plan.tick.seconds} /
+ * <p>开关与频率在 {@code oaones.appsyn.properties}：{@code sync.plan.enable} / {@code sync.plan.tick.seconds} /
  * {@code sync.plan.batch}（见 {@link OaonesProps}）。</p>
  */
 public final class OaonesSyncPlanScheduler {

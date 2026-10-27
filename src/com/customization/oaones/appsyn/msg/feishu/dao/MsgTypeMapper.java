@@ -25,7 +25,7 @@ public interface MsgTypeMapper {
     /**
      * 按标准消息类型ID取本平台的推送设置行（未配置返回 null）。
      *
-     * @param table       本平台的消息类型表名（oaones.properties#oaones_msg_type_table）
+     * @param table       本平台的消息类型表名（oaones.appsyn.properties#oaones_msg_type_table）
      * @param stdConfigId 标准「消息类型」ID（{@code ecology_biz_mobile_config.id}，<b>字符串</b>：
      *                    内置类型是 "20" 这类数字，自定义类型是 "1LbVgIrt" 这类 8 位编号）
      */

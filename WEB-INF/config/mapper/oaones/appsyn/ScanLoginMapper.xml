@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 扫码登录票据（uf_oaones_appsyn_scan_login）
+  表名由 OaonesParam 统一放入入参 Map。
+  一行 = 登录页上的一次“自己生成的二维码”：
+    PC 生成 ticket/二维码 → 扫码方打开二维码里的本模块落地页 →
+    OA 侧换出平台成员身份并按人员绑定关系找 OA 账号 → 扫码人确认 →
+    PC 用自己的请求带一次性 login_token 换登录会话。
+  状态 state：0 待扫码 / 1 已扫码待确认 / 2 已确认 / 3 失败 / 4 已过期 / 5 已使用。
+  时间字段统一用毫秒时间戳（bigint），避免 SQLServer/MySQL 两套日期函数差异。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.wecom.ScanLoginMapper">
+
+    <select id="findByTicket" resultType="com.customization.oaones.appsyn.entity.wecom.ScanLogin">
+        select id, ticket, browser_key, qr_text, platform, cfg_id,
+               out_user_id, out_user_name, oa_user_id, login_token, state, msg, landing_url,
+               expire_time, confirm_time, used_time,
+               create_ip, create_ua, scan_ip, scan_ua,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table}
+        where ticket = #{ticket}
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (ticket, browser_key, qr_text, state, expire_time,
+             create_ip, create_ua, landing_url,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.ticket}, #{e.browserKey}, #{e.qrText}, #{e.state}, #{e.expireTime},
+             #{e.createIp}, #{e.createUa}, #{e.landingUrl},
+
+             #{e.modedatacreater}, #{e.modedatacreatedate},
+             #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <!-- 扫码落地：写扫码侧字段并延长确认有效期；browser_key 仍只由 PC 创建时写入 -->
+    <update id="markScanned">
+        update ${table}
+        set platform = #{e.platform},
+            cfg_id = #{e.cfgId},
+            out_user_id = #{e.outUserId},
+            out_user_name = #{e.outUserName},
+            oa_user_id = #{e.oaUserId},
+            state = #{e.state},
+            expire_time = #{e.expireTime},
+            msg = #{e.msg},
+            scan_ip = #{e.scanIp},
+            scan_ua = #{e.scanUa},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where ticket = #{e.ticket}
+    </update>
+
+    <update id="markFailed">
+        update ${table}
+        set state = 3,
+            msg = #{msg},
+            platform = #{platform},
+            scan_ip = #{scanIp},
+            scan_ua = #{scanUa}
+        where ticket = #{ticket}
+    </update>
+
+    <update id="markConfirmed">
+        update ${table}
+        set state = 2,
+            login_token = #{loginToken},
+            confirm_time = #{confirmTime}
+        where ticket = #{ticket}
+    </update>
+
+    <update id="markUsed">
+        update ${table}
+        set state = 5,
+            login_token = null,
+            used_time = #{usedTime}
+        where ticket = #{ticket} and state = 2 and login_token = #{loginToken}
+    </update>
+
+    <update id="markExpired">
+        update ${table}
+        set state = 4
+        where ticket = #{ticket}
+    </update>
+
+    <!-- 同一张二维码重试：退回“待扫码”，清掉上次的身份命中结果与失败原因（二维码没过期就还能用） -->
+    <update id="resetToWaiting">
+        update ${table}
+        set state = 0,
+            msg = null,
+            platform = null,
+            cfg_id = null,
+            out_user_id = null,
+            out_user_name = null,
+            oa_user_id = null,
+            login_token = null,
+            confirm_time = null
+        where ticket = #{ticket}
+    </update>
+
+    <update id="markCanceled">
+        update ${table}
+        set state = 4,
+            msg = '二维码已刷新作废，请使用最新二维码扫码'
+        where ticket = #{ticket}
+    </update>
+
+    <delete id="deleteExpired">
+        delete from ${table} where expire_time is null or expire_time &lt; #{before}
+    </delete>
+</mapper>

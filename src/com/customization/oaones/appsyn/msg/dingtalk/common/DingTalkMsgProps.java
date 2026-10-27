@@ -5,7 +5,7 @@ import com.customization.oaones.appsyn.common.WeaverUtil;
 import weaver.general.BaseBean;
 
 /**
- * 消息中心缺省参数与专有表名（ecology/WEB-INF/prop/oaones.properties）。
+ * 消息中心缺省参数与专有表名（ecology/WEB-INF/prop/oaones.appsyn.properties）。
  *
  * <p><b>properties 里只配表名，不配模块ID</b>：四张消息表（配置 / 消息类型 / 推送日志 / 卡片任务）
  * 各配一个 {@code oaones_msg_xxx_table}；需要建模模块ID时才按表名反查
@@ -16,14 +16,14 @@ import weaver.general.BaseBean;
  */
 public final class DingTalkMsgProps {
 
-    private static final String PROP_FILE = "oaones";
+    private static final String PROP_FILE = "oaones.appsyn";
 
     /** 未配置表名时的兜底表名（与 sql/create_oaones_msg_center.sql 建表脚本一致）。 */
-    private static final String DEF_CONFIG_TABLE = "uf_oaones_msg_config";
-    private static final String DEF_TYPE_TABLE = "uf_oaones_msg_type";
-    private static final String DEF_TYPE_APP_TABLE = "uf_oaones_msg_type_app";
-    private static final String DEF_LOG_TABLE = "uf_oaones_msg_log";
-    private static final String DEF_TASK_TABLE = "uf_oaones_msg_task";
+    private static final String DEF_CONFIG_TABLE = "uf_oaones_appsyn_msg_config";
+    private static final String DEF_TYPE_TABLE = "uf_oaones_appsyn_msg_type";
+    private static final String DEF_TYPE_APP_TABLE = "uf_oaones_appsyn_msg_type_app";
+    private static final String DEF_LOG_TABLE = "uf_oaones_appsyn_msg_log";
+    private static final String DEF_TASK_TABLE = "uf_oaones_appsyn_msg_task";
 
     private DingTalkMsgProps() {
     }
@@ -63,7 +63,7 @@ public final class DingTalkMsgProps {
     }
 
     /**
-     * 钉钉应用表：**与“应用绑定”共用同一张表**（uf_oaones_app_bind）。
+     * 钉钉应用表：**与“应用绑定”共用同一张表**（uf_oaones_appsyn_app_bind）。
      *
      * <p>一个钉钉自建应用只维护一次：应用绑定页维护工作台入口页面，
      * 消息中心引用同一行的应用名称 / AgentId / 应用 Secret / 所属租户 / 启停，
@@ -136,7 +136,7 @@ public final class DingTalkMsgProps {
     }
 
     /**
-     * 钉钉统一消息接口调用密钥（{@code /oaones/DingTalk/msgapi.jsp}），留空关闭该入口。
+     * 钉钉统一消息接口调用密钥（{@code /oaones/appsyn/DingTalk/msgapi.jsp}），留空关闭该入口。
      *
      * <p>与企微的 {@code msg.api.key} 分开维护（配置项 {@code msg.dingtalk.api.key}）：
      * 留空时**不回退**到企微密钥，避免误用企业微信的密钥往钉钉推消息
@@ -150,7 +150,7 @@ public final class DingTalkMsgProps {
      * 跳转地址是否包一层【钉钉工作台免登录入口】（`msg.oa.login.entry`，默认 1=包）。
      *
      * <p>钉钉里点开卡片时浏览器没有 OA 会话，直接打开站内页面会提示“登录超时”；
-     * 默认把站内地址换成 {@code /oaones/appBind/DingTalk/appEntry.jsp?cfg_id=..&agent_id=..&state=..}
+     * 默认把站内地址换成 {@code /oaones/appsyn/appBind/DingTalk/appEntry.jsp?cfg_id=..&agent_id=..&state=..}
      * （钉钉网页授权静默换身份 → 写入 OA 会话 → 跳到业务页）。
      * 环境里已经用别的 SSO（如 E9 自带钉钉免登录）覆盖站内地址时，配 0 关闭本包装。</p>
      */

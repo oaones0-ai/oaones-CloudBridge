@@ -22,7 +22,7 @@ import java.util.Map;
  * 接口日志中心服务实现（DAO 层为 {@link ApiLogMapper}）。
  *
  * <p>分权口径与同步日志一致：系统管理员（user.id=1）或
- * {@code oaones.properties#apilog.admin.ids} 中列出的人员可查看全部日志；
+ * {@code oaones.appsyn.properties#apilog.admin.ids} 中列出的人员可查看全部日志；
  * 其他登录人只看得到<b>本人可维护租户</b>的日志（个人微信 {@code cfg_id=0} 只对管理员可见）。</p>
  */
 public class ApiLogServiceImpl implements ApiLogService {
@@ -79,7 +79,7 @@ public class ApiLogServiceImpl implements ApiLogService {
             total = count == null ? 0 : count.intValue();
         } catch (Throwable t) {
             // 表还没建：给出可读提示，而不是 500
-            OaonesLog.error("查询接口日志失败（请确认已执行 uf_oaones_api_log 建表脚本）", t);
+            OaonesLog.error("查询接口日志失败（请确认已执行 uf_oaones_appsyn_api_log 建表脚本）", t);
             data.put("rows", rows);
             data.put("total", Integer.valueOf(0));
             data.put("page", Integer.valueOf(page));

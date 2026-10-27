@@ -13,7 +13,7 @@ public final class OaonesConst {
      * 平台类型：飞书（国内版 feishu.cn / 海外版 Lark）。
      *
      * <p>飞书连接器与企微、钉钉**共用同一批业务表**（设置类表结构可复用时不新建表），
-     * 用 {@code uf_oaones_qywx_config.type} 区分租户平台；飞书的部门ID是字符串
+     * 用 {@code uf_oaones_appsyn_qywx_config.type} 区分租户平台；飞书的部门ID是字符串
      * （形如 {@code od-xxxxxxxx}），因此飞书侧的平台部门标识写在共用的
      * {@code wx_dept_key} 列（企微/钉钉仍用数值列 {@code wx_dept_id}），
      * 见 {@code sql/public/alter_oaones_platform_feishu.sql}。</p>
@@ -61,11 +61,11 @@ public final class OaonesConst {
      * 免绑定标记值：0 —— 三处对象统一口径，只用 0 表达“免绑定”。
      *
      * <ul>
-     *   <li>{@code uf_oaones_user_tmp.no_bind}（企微成员侧，“企微数据基准”页）：
+     *   <li>{@code uf_oaones_appsyn_user_tmp.no_bind}（企微成员侧，“企微数据基准”页）：
      *       免绑定写 0，正常不写值（NULL），已取消 1 等其它状态值；</li>
-     *   <li>{@code uf_oaones_dep_tmp.no_bind}（企微部门侧，“企微未绑定部门”页）：
+     *   <li>{@code uf_oaones_appsyn_dep_tmp.no_bind}（企微部门侧，“企微未绑定部门”页）：
      *       免绑定写 0，正常不写值（NULL），已取消 1 等其它状态值；</li>
-     *   <li>{@code uf_oaones_user_bind.bind_state}（OA 人员侧，“OA数据基准”页）：
+     *   <li>{@code uf_oaones_appsyn_user_bind.bind_state}（OA 人员侧，“OA数据基准”页）：
      *       0 = 免绑定 / 1 = 已绑定，本表已取消 no_bind 列。</li>
      * </ul>
      *
@@ -83,7 +83,7 @@ public final class OaonesConst {
      * 个人微信绑定原因：“个人账号中心”本人扫码绑定个人微信。
      *
      * <p>“个人微信”是与企微 / 钉钉 / 飞书并列的**第四个平台**，但它没有“企业 / 租户”概念：
-     * 一套部署只有一份微信授权密钥（见 {@code uf_oaones_personal_wx_config}），
+     * 一套部署只有一份微信授权密钥（见 {@code uf_oaones_appsyn_personal_wx_config}），
      * 因此绑定表按 OA 人员一对一存一条，不按 cfg_id 分租户。</p>
      */
     public static final String PERSONAL_WX_BIND_REMARK_SELF = "个人微信扫码绑定（本人操作）";
@@ -94,7 +94,7 @@ public final class OaonesConst {
     /** 人员/部门绑定原因：“同步中心”按指定范围同步（OA 分部/部门 ⇄ 企微部门）时自动建立。 */
     public static final String SCOPE_SYNC_BIND_REMARK = "同步中心按范围同步";
 
-    /* ---------- 同步日志明细（uf_oaones_sync_log_item） ---------- */
+    /* ---------- 同步日志明细（uf_oaones_appsyn_sync_log_item） ---------- */
 
     /** 同步明细对象类型：部门。 */
     public static final int SYNC_ITEM_DEPT = 0;
@@ -150,7 +150,7 @@ public final class OaonesConst {
         return "";
     }
 
-    /* ---------- 会议 / 日程同步（uf_oaones_mtg_sync / uf_oaones_mtg_sync_log） ---------- */
+    /* ---------- 会议 / 日程同步（uf_oaones_appsyn_mtg_sync / uf_oaones_appsyn_mtg_sync_log） ---------- */
 
     /**
      * 会议 / 日程同步的业务类型：会议（一级菜单「会议同步」）。
@@ -193,7 +193,7 @@ public final class OaonesConst {
         return "未选择同步方向";
     }
 
-    /* ---------- 同步中心“同步设置”（uf_oaones_sync_plan） ---------- */
+    /* ---------- 同步中心“同步设置”（uf_oaones_appsyn_sync_plan） ---------- */
 
     /**
      * 同步成员时“没有找到部门”（所在部门未绑定 / 目标侧部门不存在）的口径：不同步。
@@ -221,7 +221,7 @@ public final class OaonesConst {
     public static final int SYNC_NODEPT_ATTACH_TENANT = SYNC_NODEPT_DEFAULT_DEPT;
 
     /**
-     * 同步中心「计划任务」的方式（{@code uf_oaones_sync_plan.plan_mode}）：
+     * 同步中心「计划任务」的方式（{@code uf_oaones_appsyn_sync_plan.plan_mode}）：
      * 0 = 轮询间隔（分钟，见 {@code interval_min}，<b>页面上是“轮询间隔（分钟）”一档</b>）——
      * 按“每 N 分钟轮询一次”执行，现场不需要懂 cron；
      * 1 = 高级模式（直接写 cron 表达式，Quartz 口径，见 {@code cron}）。
@@ -256,7 +256,7 @@ public final class OaonesConst {
     /** 会议 / 日程同步·对象映射来源：1 = 由「第三方→OA」拉取建立（**平台是创建方**）。 */
     public static final int MTG_LINK_SOURCE_PLATFORM = 1;
 
-    /* ---------- 会议 / 日程同步的「计划任务」（uf_oaones_mtg_cron）与变更快照 ---------- */
+    /* ---------- 会议 / 日程同步的「计划任务」（uf_oaones_appsyn_mtg_cron）与变更快照 ---------- */
 
     /** 内容快照（映射表 {@code oa_hash} / {@code wx_hash}）的字符长度：MD5 十六进制，32 位。 */
     public static final int MTG_HASH_LENGTH = 32;
@@ -266,8 +266,8 @@ public final class OaonesConst {
      */
     public static final int MTG_PLAN_MIN_MINUTES = 5;
     /**
-     * 计划任务（{@code uf_oaones_mtg_cron.plan_mode}）的**同步方式**：
-     * 0 = 按时间段（明细表 {@code uf_oaones_mtg_plan_item}，页面上自由配多个时段 + 每段一个轮询间隔，
+     * 计划任务（{@code uf_oaones_appsyn_mtg_cron.plan_mode}）的**同步方式**：
+     * 0 = 按时间段（明细表 {@code uf_oaones_appsyn_mtg_plan_item}，页面上自由配多个时段 + 每段一个轮询间隔，
      * <b>默认</b>）；1 = 高级（直接写 cron 表达式，白天 / 夜间两档，见 {@code day_cron} / {@code night_cron}）。
      */
     public static final int MTG_PLAN_MODE_ITEM = 0;
@@ -275,7 +275,7 @@ public final class OaonesConst {
     public static final int MTG_PLAN_MODE_CRON = 1;
     /**
      * 计划任务的**适用日**（明细表每一行的 {@code day_type}，以及高级模式下的
-     * {@code uf_oaones_mtg_cron.cron_day_type}）：0 = 每天。
+     * {@code uf_oaones_appsyn_mtg_cron.cron_day_type}）：0 = 每天。
      */
     public static final int MTG_PLAN_DAY_ALL = 0;
     /** 计划任务的适用日：1 = 仅工作日（按泛微标准考勤口径，见 {@link com.customization.oaones.appsyn.common.OaonesWorkday}）。 */
@@ -296,7 +296,7 @@ public final class OaonesConst {
     public static final int MTG_DELETE_RETRY_HOURS = 6;
 
     /**
-     * 应用绑定状态（`uf_oaones_app_bind.yx`）：0 有效。
+     * 应用绑定状态（`uf_oaones_appsyn_app_bind.yx`）：0 有效。
      *
      * <p>建模枚举序号从 0 开始，查询一律带 {@code yx = 0}；
      * 与部门绑定表 `yx` 的 1 有效 / 0 失效相反，两处不可混用。</p>
@@ -311,18 +311,18 @@ public final class OaonesConst {
      */
     public static final String DEFAULT_OA_HOME_URL = "/wui/index.html";
 
-    /* ---------- 应用中心：应用图标（页面上传，落到 oaones/img/ 下） ---------- */
+    /* ---------- 应用中心：应用图标（页面上传，落到 oaones/appsyn/img/ 下） ---------- */
 
     /**
      * 图标上传目录（站点根下的相对路径）。
      *
-     * <p>E9 部署即 {@code ecology/oaones/img/}；目录随 {@code oaones/} 一起同步，
+     * <p>E9 部署即 {@code ecology/oaones/appsyn/img/}；目录随 {@code oaones/} 一起同步，
      * 应用列表页上传的图标都落在这里，页面/桌面按 {@link #APP_ICON_URL_PREFIX} 引用。</p>
      */
-    public static final String APP_ICON_DIR = "oaones/img";
+    public static final String APP_ICON_DIR = "oaones/appsyn/img";
 
     /** 图标地址前缀：记录里的 {@code icon} 只存这个前缀下的站内地址（不上传则留空）。 */
-    public static final String APP_ICON_URL_PREFIX = "/oaones/img/";
+    public static final String APP_ICON_URL_PREFIX = "/oaones/appsyn/img/";
 
     /** 单个图标文件大小上限（1MB）：图标是桌面/Dock 上的小图，超过说明没压过。 */
     public static final long APP_ICON_MAX_BYTES = 1024L * 1024L;
@@ -351,7 +351,7 @@ public final class OaonesConst {
     /** 上传图标落盘时的文件名前缀（清理旧图标时按它判定“这个文件是本模块生成的”）。 */
     public static final String APP_ICON_FILE_PREFIX = "appicon_";
 
-    /* ---------- 统一登录设置：登录页外观（logo / 整页背景图，与图标同一个 oaones/img/ 目录） ----------
+    /* ---------- 统一登录设置：登录页外观（logo / 整页背景图，与图标同一个 oaones/appsyn/img/ 目录） ----------
        两类图片都走页面上的「上传」（见 service.impl.wecom.LoginConfigServiceImpl#uploadImage），
        落盘前缀不同：清理旧图时只删自己前缀的文件，图标与手工放进该目录的图片都不会被误删。 */
 
@@ -361,7 +361,7 @@ public final class OaonesConst {
     /** 登录页整页背景图落盘时的文件名前缀。 */
     public static final String LOGIN_BG_FILE_PREFIX = "loginbg_";
 
-    /** 登录页外观图片（logo / 整页背景图）的站内地址前缀（与图标同目录：{@code /oaones/img/}）。 */
+    /** 登录页外观图片（logo / 整页背景图）的站内地址前缀（与图标同目录：{@code /oaones/appsyn/img/}）。 */
     public static final String LOGIN_IMAGE_URL_PREFIX = APP_ICON_URL_PREFIX;
 
     /** 登录页外观图片（logo / 整页背景图）的上传目录（与图标同目录，见 {@link #APP_ICON_DIR}）。 */
@@ -455,7 +455,7 @@ public final class OaonesConst {
     public static final int LOGIN_GOPAGE_MAX_SECONDS = 120;
 
     /* ==================================================================
-       考勤同步（独立一级菜单「考勤同步」，页面 /oaones/attSync/attSync.jsp）
+       考勤同步（独立一级菜单「考勤同步」，页面 /oaones/appsyn/attSync/attSync.jsp）
        一行设置 = 平台 + 租户 + 方向（同一平台租户同方向可多条），
        把第三方平台（企微 / 钉钉 / 飞书）的打卡数据写进 OA 的 E9 标准考勤打卡表，
        并支持反向（OA 的打卡写到第三方平台）；两个方向各自独立配置、执行与记日志。

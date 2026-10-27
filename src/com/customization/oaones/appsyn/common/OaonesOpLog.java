@@ -18,7 +18,7 @@ import java.util.Map;
 /**
  * 操作监控采集器：一级菜单「操作监控平台」的数据来源。
  *
- * <p>本类是唯一的采集口径（页面只查 {@code uf_oaones_op_log}，不自己采集）：</p>
+ * <p>本类是唯一的采集口径（页面只查 {@code uf_oaones_appsyn_op_log}，不自己采集）：</p>
  * <ul>
  *   <li>登录（{@code op_type=login}）：会话里第一次出现登录态的页面请求
  *       —— 不是“打开登录页”，而是登录成功后第一次真正进入 OA 页面；</li>
@@ -40,7 +40,7 @@ import java.util.Map;
  *   <li>极低开销：菜单索引与开关都按 60 秒缓存，读登录态只读会话属性
  *       （{@code weaver_user@bean}，与 {@code HrmUserVarify} 同一口径），不做额外查询；</li>
  *   <li>绝不影响业务：写库 / 解析失败只写一条 mylog 日志后静默，
- *       永远不会把异常抛回请求；开关 {@code oaones.properties#op.log.enable=0} 可整体关闭。</li>
+ *       永远不会把异常抛回请求；开关 {@code oaones.appsyn.properties#op.log.enable=0} 可整体关闭。</li>
  * </ul>
  */
 public final class OaonesOpLog {
@@ -190,7 +190,7 @@ public final class OaonesOpLog {
             OaonesMyBatis.run(OpLogMapper.class, mapper -> mapper.insert(table, e));
         } catch (Throwable t) {
             disableUntil = System.currentTimeMillis() + DISABLE_MS;
-            OaonesLog.error("写入操作监控日志失败（已临时静默，请确认已执行 uf_oaones_op_log 建表脚本）", t);
+            OaonesLog.error("写入操作监控日志失败（已临时静默，请确认已执行 uf_oaones_appsyn_op_log 建表脚本）", t);
         }
     }
 

@@ -38,7 +38,7 @@ import java.util.Map;
  * 统一消息中心控制器（action 前缀 msg.）。
  *
  * <p>覆盖：推送配置、飞书应用、消息类型映射、推送日志、数据看板、测试推送、
- * 外部统一发送接口。写操作限系统管理员或 oaones.properties#msg.admin.ids 指定人员。</p>
+ * 外部统一发送接口。写操作限系统管理员或 oaones.appsyn.properties#msg.admin.ids 指定人员。</p>
  */
 public class FeishuMsgController extends BaseController {
 
@@ -53,7 +53,7 @@ public class FeishuMsgController extends BaseController {
     public JSONObject handle(String action, HttpServletRequest request, String operatorId)
             throws Exception {
         if ("msg.send".equals(action)) {
-            // 供 /oaones/Feishu/msgapi.jsp 外部统一消息接口复用（密钥已在 JSP 内校验）
+            // 供 /oaones/appsyn/Feishu/msgapi.jsp 外部统一消息接口复用（密钥已在 JSP 内校验）
             return sendService.push(readPushRequest(request, OaonesUtil.i(operatorId, 0)));
         }
         assertMsgAdmin(operatorId);
@@ -96,7 +96,7 @@ public class FeishuMsgController extends BaseController {
             return OaonesUtil.ok(appService.test(appService.getById(OaonesUtil.i(req(request, "id"), 0))));
         }
         if ("msg.app.default".equals(action)) {
-            // 设为推送缺省应用：只写 uf_oaones_msg_config.default_app_id
+            // 设为推送缺省应用：只写 uf_oaones_appsyn_msg_config.default_app_id
             appService.setDefaultApp(OaonesUtil.i(req(request, "id"), 0), OaonesUtil.i(operatorId, 0));
             return OaonesUtil.ok();
         }
@@ -267,7 +267,7 @@ public class FeishuMsgController extends BaseController {
         }
     }
 
-    /** 消息中心写操作权限：系统管理员（user.id=1）、超管角色（total.admin.roleid）或 oaones.properties#msg.admin.ids 指定人员。 */
+    /** 消息中心写操作权限：系统管理员（user.id=1）、超管角色（total.admin.roleid）或 oaones.appsyn.properties#msg.admin.ids 指定人员。 */
     private void assertMsgAdmin(String operatorId) {
         int uid = OaonesUtil.i(operatorId, 0);
         if (OaonesAdmin.isTotalAdmin(operatorId)) {
@@ -275,7 +275,7 @@ public class FeishuMsgController extends BaseController {
         }
         String ids = "";
         try {
-            ids = OaonesUtil.s(new BaseBean().getPropValue("oaones", "msg.admin.ids"));
+            ids = OaonesUtil.s(new BaseBean().getPropValue("oaones.appsyn", "msg.admin.ids"));
         } catch (Throwable t) {
             ids = "";
         }
@@ -405,7 +405,7 @@ public class FeishuMsgController extends BaseController {
     /**
      * 应用列表（来自“应用绑定”表，只读）。
      *
-     * @param defaultAppId 推送缺省应用ID（uf_oaones_msg_config.default_app_id），用于标记“默认”
+     * @param defaultAppId 推送缺省应用ID（uf_oaones_appsyn_msg_config.default_app_id），用于标记“默认”
      */
     private JSONArray appJson(List<MsgApp> list, Integer defaultAppId) {
         JSONArray array = new JSONArray();

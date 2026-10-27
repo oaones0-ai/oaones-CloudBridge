@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
  * 自建二维码渲染（把文本画成二维码图片，不依赖任何外部服务）。
  *
  * <p>登录页的二维码是**本系统自己生成**的：内容指向本模块的统一扫码落地页
- * （{@code /oaones/login/scan.jsp?t=<ticket>}），扫码方（企业微信 / 钉钉 / 飞书）
+ * （{@code /oaones/appsyn/login/scan.jsp?t=<ticket>}），扫码方（企业微信 / 钉钉 / 飞书）
  * 只是打开这个本站地址，平台判断与身份换取都在 OA 侧完成——
  * 因此同一张二维码既能服务多个租户，也能被三个平台的客户端扫。</p>
  *

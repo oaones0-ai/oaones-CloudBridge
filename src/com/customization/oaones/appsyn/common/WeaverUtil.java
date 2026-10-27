@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * E9 建模表通用查询工具：按物理表名反查建模模块ID。
  *
  * <p>OAones 的业务表都是 E9 建模引擎的 uf_ 表。<b>配置里只登记表名</b>
- * （{@code oaones.properties#oaones_xxx_table}），不再登记模块ID：
+ * （{@code oaones.appsyn.properties#oaones_xxx_table}），不再登记模块ID：
  * 需要模块ID的地方只有两处——写入数据行的 {@code formmodeid}、按建模共享规则重构单条数据权限
  * ——由表名反查得到：{@code workflow_bill.tablename → workflow_bill.id → modeinfo.id}
  * （与 {@code com.customization.ghedu.utils.WokflowAndModeDataUtil} 的取表口径一致，

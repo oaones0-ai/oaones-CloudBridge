@@ -22,10 +22,10 @@ import java.util.Date;
 import java.util.Random;
 
 /**
- * 统一登录设置实现（单行配置，表名取 oaones.properties#oaones_login_config_table）。
+ * 统一登录设置实现（单行配置，表名取 oaones.appsyn.properties#oaones_login_config_table）。
  *
  * <p>读取：取本表 id 最小的一条；没有数据（表还没建/还没保存过）时按默认值返回——
- * 默认账号密码 + 飞书扫码 开、二维码有效期取 `oaones.properties#login.qr.ttl`，
+ * 默认账号密码 + 飞书扫码 开、二维码有效期取 `oaones.appsyn.properties#login.qr.ttl`，
  * 这样“没配过设置”与“配过设置但没改”表现一致，登录页不会因为少一行数据而不可用。</p>
  *
  * <p>保存：校验通过后更新那一行，没有行则插入；飞书/个人微信只存开关不做登录实现，
@@ -33,7 +33,7 @@ import java.util.Random;
  *
  * <p><b>登录页外观</b>三项（列 {@code logo} / {@code bg_image} / {@code brand_html}）：
  * 与统一登录设置页共用一行配置，本类同样读写它们——两个图片项页面上传后落到
- * {@code oaones/img/}（前缀 loginlogo_ / loginbg_），记录里只存站内地址；
+ * {@code oaones/appsyn/img/}（前缀 loginlogo_ / loginbg_），记录里只存站内地址；
  * 上传（{@link #uploadImage}）只落盘，点“保存设置”才写库；请求里不带对应参数时保持原值，
  * 这样从飞书入口只改开关不会把图或左侧文字抹掉。</p>
  */
@@ -289,7 +289,7 @@ public class LoginConfigServiceImpl implements LoginConfigService {
 
     /**
      * 页面提交的图片地址：只接受**空值**或本页上传后产生的站内地址
-     * （{@code /oaones/img/loginlogo_xxx.png} / {@code /oaones/img/loginbg_xxx.png}）；
+     * （{@code /oaones/appsyn/img/loginlogo_xxx.png} / {@code /oaones/appsyn/img/loginbg_xxx.png}）；
      * 其它值一律拒绝（与「应用中心」的图标同一口径）。
      */
     private String normalizeImageUrl(LoginImage spec, String value) {
@@ -341,7 +341,7 @@ public class LoginConfigServiceImpl implements LoginConfigService {
         return text.length() == 0 ? "" : html;
     }
 
-    /** 登录页外观图片的上传目录（与「应用中心」的图标同目录：E9 站点根下的 {@code oaones/img}）。 */
+    /** 登录页外观图片的上传目录（与「应用中心」的图标同目录：E9 站点根下的 {@code oaones/appsyn/img}）。 */
     private File loginImageDir() {
         return new File(OaonesUtil.s(GCONST.getRootPath()), OaonesConst.LOGIN_IMAGE_DIR);
     }
@@ -436,7 +436,7 @@ public class LoginConfigServiceImpl implements LoginConfigService {
             // 表还没建（没跑升级脚本/没建模）时不能让整个登录页打不开：
             // 按默认值继续（默认开了账号密码 + 飞书扫码），并在日志里说明原因
             OaonesLog.error("读取统一登录设置失败，按默认值继续（请确认已执行 "
-                    + "sql/create_oaones_login_config.sql 且 oaones.properties 的 oaones_login_config_table 指向该表）", t);
+                    + "sql/create_oaones_login_config.sql 且 oaones.appsyn.properties 的 oaones_login_config_table 指向该表）", t);
             return null;
         }
     }
@@ -451,7 +451,7 @@ public class LoginConfigServiceImpl implements LoginConfigService {
     private String writeError(Throwable t) {
         OaonesLog.error("保存统一登录设置失败", t);
         return "保存统一登录设置失败：请确认已执行 sql/create_oaones_login_config.sql 建好 "
-                + "uf_oaones_login_config 表、且 oaones.properties 的 oaones_login_config_table 指向该表"
+                + "uf_oaones_appsyn_login_config 表、且 oaones.appsyn.properties 的 oaones_login_config_table 指向该表"
                 + "（老库还要执行 oaones0006.sql 补 email_enable 列、执行 oaones0007.sql 补 logo 列）"
                 + (t.getMessage() == null ? "" : "（数据库返回：" + t.getMessage() + "）");
     }

@@ -9,7 +9,7 @@ import com.customization.oaones.appsyn.dto.MtgPushRequest;
  * （{@code api.wecom.WeComScheduleApi} / {@code api.dingtalk.DingTalkScheduleApi} /
  * {@code api.feishu.FeishuScheduleApi}），同步引擎按 type 分派，业务侧不感知平台字段差异。</p>
  *
- * <p>约定：成功返回平台侧对象ID（写进同步记录 {@code uf_oaones_mtg_sync_log.wx_id}）；
+ * <p>约定：成功返回平台侧对象ID（写进同步记录 {@code uf_oaones_appsyn_mtg_sync_log.wx_id}）；
  * 失败直接抛异常（引擎捕获后记一条“失败”记录，不影响其余对象）。</p>
  *
  * <p>请求报文由 {@link #buildRequest} 单独组装，{@link #push} 直接拿它下发；

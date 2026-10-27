@@ -1,11 +1,11 @@
 package com.customization.oaones.appsyn.msg.feishu.entity;
 
 /**
- * 消息类型「推送目标应用」明细行（表名取 oaones.properties#oaones_msg_type_app_table）。
+ * 消息类型「推送目标应用」明细行（表名取 oaones.appsyn.properties#oaones_msg_type_app_table）。
  *
  * <p><b>一行 = 一个消息类型在某一个租户上绑定的推送目标应用</b>
  * （{@link #stdConfigId} / {@link #stdType} 定位消息类型，{@link #cfgId} = 租户，
- * {@link #appId} = {@code uf_oaones_app_bind.id}）。同一个消息类型在同一个租户上只能有一行
+ * {@link #appId} = {@code uf_oaones_appsyn_app_bind.id}）。同一个消息类型在同一个租户上只能有一行
  * （唯一键 {@code type + std_config_id + std_type + cfg_id}），也就是
  * “<b>同一个消息类型每个租户只能设置一个应用</b>”。</p>
  *
@@ -22,9 +22,9 @@ public class MsgTypeApp {
     private String stdConfigId;
     /** 标准消息来源编号 typecode；只对独立来源行有意义（标准类型行固定 0）。 */
     private Integer stdType;
-    /** 租户ID（{@code uf_oaones_qywx_config.id}，三个平台共用一张租户表，按 type 区分）。 */
+    /** 租户ID（{@code uf_oaones_appsyn_qywx_config.id}，三个平台共用一张租户表，按 type 区分）。 */
     private Integer cfgId;
-    /** 绑定的推送目标应用（{@code uf_oaones_app_bind.id}）。 */
+    /** 绑定的推送目标应用（{@code uf_oaones_appsyn_app_bind.id}）。 */
     private Integer appId;
     private Integer modedatacreater;
     private String modedatacreatedate;

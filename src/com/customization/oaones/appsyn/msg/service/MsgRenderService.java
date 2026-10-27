@@ -63,7 +63,7 @@ public class MsgRenderService {
     private static volatile long warnedRelativeAt;
 
     /**
-     * 供本地冒烟测试（{@code oaones/tools/MsgRenderSmokeTest}）注入 OA 访问地址：
+     * 供本地冒烟测试（{@code oaones/appsyn/tools/MsgRenderSmokeTest}）注入 OA 访问地址：
      * 生产环境不调用本方法，地址一律从系统设置里读。
      *
      * <p>传空串表示“按未配置地址”参与自检（相对地址不补全、任务卡片不带链接），
@@ -519,12 +519,12 @@ public class MsgRenderService {
      *
      * <p>企业微信内置浏览器里没有 OA 登录会话，直接打开 {@code /workflow/request/...}
      * 这类站内地址只会看到登录页 / 登录超时；换成
-     * {@code {base}/oaones/appBind/WeCom/appEntry.jsp?cfg_id=..&agent_id=..&state=<base64url 目标路径>}
+     * {@code {base}/oaones/appsyn/appBind/WeCom/appEntry.jsp?cfg_id=..&agent_id=..&state=<base64url 目标路径>}
      * 后，入口页会用企业微信网页授权（snsapi_base）静默核实成员身份、写入 OA 会话，
      * 再按 {@code state} 跳到原来的业务页（{@code AppBindServiceImpl#landingUrl} 支持该 state 口径）。</p>
      *
      * <p>只包装本 OA 域名下的站内地址：外部链接原样返回，已经是免登录入口的地址不重复包装；
-     * 取不到 OA 对外域名、应用没有 AgentId、或 {@code oaones.properties#msg.oa.login.entry=0} 时原样返回。</p>
+     * 取不到 OA 对外域名、应用没有 AgentId、或 {@code oaones.appsyn.properties#msg.oa.login.entry=0} 时原样返回。</p>
      */
     private String loginEntryUrl(String url, MsgApp app) {
         String target = url == null ? "" : url.trim();
@@ -710,7 +710,7 @@ public class MsgRenderService {
             return "";
         }
         if (!value.startsWith("http://") && !value.startsWith("https://")) {
-            // 站内路径（/oaones/... 等）取不出域名；只有“域名[:端口]”这种值才补协议
+            // 站内路径（/oaones/appsyn/... 等）取不出域名；只有“域名[:端口]”这种值才补协议
             if (value.startsWith("/") || value.startsWith("\\")) {
                 return "";
             }

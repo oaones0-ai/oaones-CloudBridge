@@ -2,7 +2,7 @@ package com.customization.oaones.appsyn.entity;
 
 /**
  * 个人微信绑定实体（对应业务表：表名取
- * oaones.properties#oaones_personal_wx_bind_table）。
+ * oaones.appsyn.properties#oaones_personal_wx_bind_table）。
  *
  * <p>一个 OA 人员最多一条绑定（`oa_user_id` 唯一）：本人扫码绑定或管理员代为绑定；
  * 重复扫码即换绑（同一行覆盖 openid / 昵称 / 头像）。个人微信没有租户概念，

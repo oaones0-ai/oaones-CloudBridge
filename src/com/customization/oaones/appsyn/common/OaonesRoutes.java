@@ -17,16 +17,16 @@ import java.util.Properties;
  * OAones URL 路由（对外地址 ⇄ 实际页面），由配置文件驱动。
  *
  * <p>为什么要有这一层：模块里有些页面是**给别人用的入口**（统一登录页
- * {@code /oaones/login/login.jsp}、桌面启动台 {@code /oaones/appCenter/Desktop.jsp}），
+ * {@code /oaones/appsyn/login/login.jsp}、桌面启动台 {@code /oaones/appsyn/appCenter/Desktop.jsp}），
  * 真实地址一旦写进员工收藏、E9 后台菜单、门户链接，页面换个目录/改个文件名就要满环境改地址；
  * 而且真实 .jsp 地址本身也不适合对外。</p>
  *
  * <p>做法是把「对外地址」与「实际页面」分成两个概念，路由表就写在**本模块唯一的配置文件**
- * {@code ecology/WEB-INF/prop/oaones.properties} 里（key 以 {@code route.} 开头）：</p>
+ * {@code ecology/WEB-INF/prop/oaones.appsyn.properties} 里（key 以 {@code route.} 开头）：</p>
  *
  * <pre>
- * route./oaones/login=/oaones/login/login.jsp|forward|hide
- * route./oaones/desktop=/oaones/appCenter/Desktop.jsp|forward|hide
+ * route./oaones/appsyn/login=/oaones/appsyn/login/login.jsp|forward|hide
+ * route./oaones/appsyn/desktop=/oaones/appsyn/appCenter/Desktop.jsp|forward|hide
  * </pre>
  *
  * <ul>
@@ -41,7 +41,7 @@ import java.util.Properties;
  * （由 {@link OaonesRouteFilter} 调用）；页面里要输出对外地址时用 {@link #publicUrl(String)}
  * （配了路由就用对外地址，没配原样返回），不要在页面里再写一份地址表。</p>
  *
- * <p>302 一律写**相对地址**（只写路径，不拼协议/域名/端口）：与 {@code oaones/redirect.inc.jsp}
+ * <p>302 一律写**相对地址**（只写路径，不拼协议/域名/端口）：与 {@code oaones/appsyn/redirect.inc.jsp}
  * 同一口径——nginx 终止 TLS 后转发给内网 Resin 的是明文 http，若由容器补全绝对地址，
  * 客户端会拿到连不上的 http:// 地址（钉钉/企微/飞书内置浏览器上表现为
  * “errorCode: -6 net::ERR_CONNECTION_REFUSED”）。</p>
@@ -50,14 +50,14 @@ public final class OaonesRoutes {
 
     /** 配置项前缀：配置文件里的 key 写成 {@code route.<对外地址>}。 */
     private static final String KEY_PREFIX = "route.";
-    /** 路由表所在文件：与模块其它配置同一个文件（ecology/WEB-INF/prop/oaones.properties）。 */
-    private static final String PROP_FILE = "oaones.properties";
+    /** 路由表所在文件：与模块其它配置同一个文件（ecology/WEB-INF/prop/oaones.appsyn.properties）。 */
+    private static final String PROP_FILE = "oaones.appsyn.properties";
     /** 请求级防重入标记：配置写错（两个地址互指）时也不会绕成死循环。 */
     private static final String ATTR_DONE = "oaones.route.done";
     /**
      * 两次“看配置文件有没有改”之间的最小间隔（毫秒）。
      *
-     * <p>过滤器映射到 {@code /*}，每个请求都 stat 一次 oaones.properties 虽然不慢，
+     * <p>过滤器映射到 {@code /*}，每个请求都 stat 一次 oaones.appsyn.properties 虽然不慢，
      * 但在高并发下没必要：这里 1 秒最多看一次文件，代价只是**改完配置最多 1 秒生效**
      * （“改完立即生效、不用重启”的体验不变）。</p>
      */
@@ -247,7 +247,7 @@ public final class OaonesRoutes {
         try {
             Properties props = new Properties();
             // 路由项（key 以 route. 开头）的值都是地址、只用 ASCII，按什么编码读都不影响路由本身；
-            // 这里按 GBK 读，与 oaones.properties 的存盘编码一致，注释里的中文也不会读成乱码
+            // 这里按 GBK 读，与 oaones.appsyn.properties 的存盘编码一致，注释里的中文也不会读成乱码
             // （平台 Properties.load(InputStream) 的 ISO-8859-1 口径与还原办法见 OaonesProps#decodePropValue）
             reader = new InputStreamReader(new FileInputStream(file), "GBK");
             props.load(reader);
@@ -330,7 +330,7 @@ public final class OaonesRoutes {
         return src;
     }
 
-    /** 查表：先按原样查，再按“去掉结尾斜线”的写法查（兼容 /oaones/login/ 这种带斜线的访问）。 */
+    /** 查表：先按原样查，再按“去掉结尾斜线”的写法查（兼容 /oaones/appsyn/login/ 这种带斜线的访问）。 */
     private static Rule find(Map<String, Rule> table, String path) {
         Rule rule = table.get(path);
         if (rule != null) {

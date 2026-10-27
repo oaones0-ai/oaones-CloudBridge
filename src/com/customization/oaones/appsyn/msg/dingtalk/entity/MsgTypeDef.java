@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.msg.dingtalk.entity;
 
 /**
- * 消息类型推送设置（表名取 oaones.properties#oaones_msg_type_table）。
+ * 消息类型推送设置（表名取 oaones.appsyn.properties#oaones_msg_type_table）。
  *
  * <p><b>一行 = 泛微标准消息类型设置里的一个“消息类型”</b>（{@link #stdConfigId} =
  * {@code ecology_biz_mobile_config.id}，由标准页

@@ -334,7 +334,7 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
         JSONObject body = new JSONObject();
         body.put("approval_code", approvalCode);
         body.put("user_id", OaonesUtil.s(ctx == null ? "" : ctx.getWxUserId()));
-        req.note("approval_code", "补卡审批定义编码（oaones.properties#att.push.feishu.approval.code，留空 = 未配置）");
+        req.note("approval_code", "补卡审批定义编码（oaones.appsyn.properties#att.push.feishu.approval.code，留空 = 未配置）");
         req.note("user_id", "发起人：该 OA 人员绑定的飞书 user_id");
         JSONArray form = new JSONArray();
         form.add(component("补卡日期", punch == null ? "" : OaonesUtil.s(punch.getSignDate())));
@@ -350,7 +350,7 @@ public class FeishuAttApi implements AttPullAdapter, AttPushAdapter {
             node.put("approver_chs", approvers.split(","));
             nodes.add(node);
             body.put("node_approver_user_id_list", nodes);
-            req.note("node_approver_user_id_list", "审批人 user_id（oaones.properties#att.push.feishu.approvers）");
+            req.note("node_approver_user_id_list", "审批人 user_id（oaones.appsyn.properties#att.push.feishu.approvers）");
         }
         req.setBody(body.toJSONString());
         if (approvalCode.length() == 0) {

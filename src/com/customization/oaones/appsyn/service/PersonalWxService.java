@@ -7,10 +7,10 @@ import com.alibaba.fastjson.JSONObject;
  *
  * <p>两条入口共用本服务：</p>
  * <ul>
- *   <li><b>个人账号中心 → 个人微信页签</b>（`/oaones/accountCenter/MyAccount.jsp?tab=personalwx`）：
+ *   <li><b>个人账号中心 → 个人微信页签</b>（`/oaones/appsyn/accountCenter/MyAccount.jsp?tab=personalwx`）：
  *       本人查看 / 扫码绑定 / 换绑 / 解绑，所有读写都限定在登录会话本人的那一行；</li>
- *   <li><b>微信设置</b>（`/oaones/personalWx/config.jsp`，独立一级菜单）：
- *       系统管理员（user.id=1）与 `oaones.properties#pw.admin.ids` 中的人员维护微信授权密钥
+ *   <li><b>微信设置</b>（`/oaones/appsyn/personalWx/config.jsp`，独立一级菜单）：
+ *       系统管理员（user.id=1）与 `oaones.appsyn.properties#pw.admin.ids` 中的人员维护微信授权密钥
  *       （AppID / AppSecret），并在“个人微信绑定列表”里为员工绑定、解绑。</li>
  * </ul>
  *
@@ -86,7 +86,7 @@ public interface PersonalWxService {
      * 个人微信登录：为统一扫码登录票据生成微信网页授权地址。
      *
      * <p>这里返回的 {@code auth_url} 由登录页内嵌成微信官方二维码；扫码回调仍回到统一落地页
-     * {@code /oaones/login/scan.jsp}，state 里带票据，不暴露 AppSecret。</p>
+     * {@code /oaones/appsyn/login/scan.jsp}，state 里带票据，不暴露 AppSecret。</p>
      */
     JSONObject loginQrStart(String ticket, String callbackBase);
 

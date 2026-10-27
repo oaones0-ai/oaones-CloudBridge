@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.feishu;
 
 /**
- * 默认人员绑定规则实体（对应业务表：表名取 oaones.properties#oaones_user_rule_table，
+ * 默认人员绑定规则实体（对应业务表：表名取 oaones.appsyn.properties#oaones_user_rule_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>cfgId 为空/0 表示“默认配置”，非空表示某个飞书租户的独立配置。</p>

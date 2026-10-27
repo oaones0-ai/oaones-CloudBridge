@@ -9,7 +9,7 @@
   既不用改 E9 的 web.xml，也不用改平台的 resin-web.xml。
 
   这里登记 OAones 的 URL 路由过滤器、操作监控采集过滤器，以及日志保留自动清理监听器。
-  路由过滤器只按 ecology/WEB-INF/prop/oaones.properties 里 **route.* 明确写出**的地址处理，
+  路由过滤器只按 ecology/WEB-INF/prop/oaones.appsyn.properties 里 **route.* 明确写出**的地址处理，
   其它 URL 全部原样放行，映射可以放心写成 /*。
 
   * 非 Resin 容器（Tomcat / 其它）：把下面的 <filter>、<filter-mapping> 与 <listener>
@@ -30,14 +30,14 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
     <!--
-      操作监控采集（一级菜单「操作监控平台」/oaones/opMonitor/opMonitor.jsp 的数据来源）：
+      操作监控采集（一级菜单「操作监控平台」/oaones/appsyn/opMonitor/opMonitor.jsp 的数据来源）：
       记录“谁、什么时间、登录 / 退出、访问了哪个菜单”。
 
       与上面的路由过滤器同口径：映射写 /*，但只被动观察——
       只处理“页面请求”（GET / POST + Accept: text/html + 非 XHR + 非静态资源），
       并且只有地址命中 E9 菜单表 LeftMenuInfo 配置的菜单时才写库；
       任何异常都在采集端吞掉，绝不影响业务请求。
-      整体开关见 oaones.properties#op.log.enable（0 = 关闭采集），改动最多 1 分钟生效。
+      整体开关见 oaones.appsyn.properties#op.log.enable（0 = 关闭采集），改动最多 1 分钟生效。
     -->
     <filter>
         <filter-name>OaonesOpLogFilter</filter-name>

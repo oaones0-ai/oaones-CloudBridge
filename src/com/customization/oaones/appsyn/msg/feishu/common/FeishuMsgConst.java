@@ -8,7 +8,7 @@ import java.util.UUID;
 /**
  * 消息中心（OA -> 飞书推送）常量。
  *
- * <p>开关口径与 uf_oaones_app_bind.yx 保持一致：
+ * <p>开关口径与 uf_oaones_appsyn_app_bind.yx 保持一致：
  * {@code 0 = 启用 / 1 = 停用}；状态口径集中在 {@link FeishuMsgConst} 一处，页面与后端都按此判断。</p>
  *
  * <p><b>飞书消息形态</b>与企微、钉钉都不同，本连接器只保留四种：</p>

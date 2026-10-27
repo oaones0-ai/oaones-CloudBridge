@@ -2,7 +2,7 @@ package com.customization.oaones.appsyn.entity;
 
 /**
  * 会议 / 日程同步的「个人同步开关」实体（业务表：表名取
- * oaones.properties#oaones_mtg_sync_user_table，建模模块ID按表名反查，配置里不出现）。
+ * oaones.appsyn.properties#oaones_mtg_sync_user_table，建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一行 = 一个「业务（biz 0 会议 / 1 日程）+ 平台（type 0 企微 / 1 钉钉 / 2 飞书）
  * + 租户（cfgid）+ OA 人员（oa_user_id）」的个人选择，唯一键
@@ -26,7 +26,7 @@ public class MtgSyncUser {
     private Integer biz;
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书（{@code OaonesConst.TYPE_*}）。 */
     private Integer type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）。 */
     private Integer cfgid;
     /** OA 人员ID（本人）。 */
     private Integer oaUserId;
@@ -44,7 +44,7 @@ public class MtgSyncUser {
     private String modedatacreatetime;
     private Integer modedatamodifier;
     private String modedatamodifydatetime;
-    /** 关联查询字段：租户名称（uf_oaones_qywx_config.corp_name，只用于列表展示）。 */
+    /** 关联查询字段：租户名称（uf_oaones_appsyn_qywx_config.corp_name，只用于列表展示）。 */
     private String cfgName;
     /** 关联查询字段：OA 人员姓名（hrmresource.lastname，只用于列表展示）。 */
     private String oaUserName;

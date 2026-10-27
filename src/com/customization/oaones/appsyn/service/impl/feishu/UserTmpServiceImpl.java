@@ -294,12 +294,12 @@ public class UserTmpServiceImpl implements UserTmpService {
     }
 
 /**
- * 飞书成员侧“免绑定”标记：维护 uf_oaones_user_tmp.no_bind。
+ * 飞书成员侧“免绑定”标记：维护 uf_oaones_appsyn_user_tmp.no_bind。
  *
  * <p>本表只用 {@link OaonesConst#NO_BIND_MARK}（0）表达“免绑定”，取消其它状态值：
  * 标记免绑定写 0，取消免绑定把该列置回 NULL（正常态不写值）。
- * 口径与飞书部门侧（uf_oaones_dep_tmp.no_bind，1 = 免绑定）相反，两处不可混用；
- * OA 人员侧的免绑定已并入 uf_oaones_user_bind.bind_state（0 = 免绑定）。</p>
+ * 口径与飞书部门侧（uf_oaones_appsyn_dep_tmp.no_bind，1 = 免绑定）相反，两处不可混用；
+ * OA 人员侧的免绑定已并入 uf_oaones_appsyn_user_bind.bind_state（0 = 免绑定）。</p>
  */
 private JSONObject setNoBindFlag(String cfgId, String wxUserId, boolean noBind) {
         OaonesLog.step((noBind ? "标记飞书成员免绑定" : "取消飞书成员免绑定")

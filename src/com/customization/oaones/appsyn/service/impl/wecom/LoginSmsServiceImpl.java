@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  *
  * <p>不依赖其它定制包（如 `com.customization.ghedu.*`）、不沿用历史验证码表
  * （如 `uf_verificationcode`）：验证码、有效期、错误次数、发送频率全部落在本模块自己的表
- * {@code uf_oaones_login_sms} 上，两种验证方式同一张表、同一套口径
+ * {@code uf_oaones_appsyn_login_sms} 上，两种验证方式同一张表、同一套口径
  * （手机号写 {@code mobile} 列、邮箱写 {@code email} 列，另一个留空）。</p>
  *
  * <p>发送环节只调用平台标准能力：手机号走 {@link SMSManager#sendSMS(String, String)}
@@ -197,7 +197,7 @@ public class LoginSmsServiceImpl implements LoginSmsService {
         } catch (Throwable t) {
             OaonesLog.error("验证登录：写入验证码失败 " + (email ? "email=" : "mobile=") + mask(target), t);
             return fail("验证码生成失败：请确认已执行 sql/create_oaones_login_sms.sql 建好 "
-                    + "uf_oaones_login_sms 表、且 oaones.properties 的 oaones_login_sms_table 指向该表"
+                    + "uf_oaones_appsyn_login_sms 表、且 oaones.appsyn.properties 的 oaones_login_sms_table 指向该表"
                     + "（老库还要执行 oaones0006.sql 补 email 列、并把 mobile 改成可空）");
         }
         // 正文模板：{code} 验证码、{minutes} 有效分钟数；短信取 login.sms.template、
@@ -316,7 +316,7 @@ public class LoginSmsServiceImpl implements LoginSmsService {
      * 发送人（userid）与分部按**接收人**的账号填，便于分权取通道与事后对账。</p>
      *
      * <p>若本环境的“短信设置”没有启用平台短信服务（此时 {@link SMSManager#isValid()} 为 false），
-     * 允许在 {@code oaones.properties#login.sms.service.class} 里填一个
+     * 允许在 {@code oaones.appsyn.properties#login.sms.service.class} 里填一个
      * **实现了平台接口 {@code weaver.sms.SmsService} 的短信服务类名**，
      * 由本方法反射实例化后调用——这样既能用现场已有的自定义短信通道，
      * 又只依赖平台接口、编译期不引用任何其它定制包。</p>
@@ -362,7 +362,7 @@ public class LoginSmsServiceImpl implements LoginSmsService {
         String className = OaonesProps.loginSmsServiceClass();
         if (className.length() == 0) {
             return new SendResult(false, "短信服务不可用：请在后台“短信设置”启用短信通道，"
-                    + "或在 oaones.properties 的 login.sms.service.class 里配置短信服务类"
+                    + "或在 oaones.appsyn.properties 的 login.sms.service.class 里配置短信服务类"
                     + "（需实现 weaver.sms.SmsService），然后重试");
         }
         try {
@@ -370,7 +370,7 @@ public class LoginSmsServiceImpl implements LoginSmsService {
             Object instance = clazz.newInstance();
             if (!(instance instanceof weaver.sms.SmsService)) {
                 return new SendResult(false, "配置的短信服务类 " + className
-                        + " 没有实现 weaver.sms.SmsService 接口，请在 oaones.properties 里改正");
+                        + " 没有实现 weaver.sms.SmsService 接口，请在 oaones.appsyn.properties 里改正");
             }
             // 平台接口 weaver.sms.SmsService#sendSMS(短信/分权标识, 手机号, 内容)
             boolean ok = ((weaver.sms.SmsService) instance).sendSMS(
@@ -379,7 +379,7 @@ public class LoginSmsServiceImpl implements LoginSmsService {
                     : new SendResult(false, "短信发送失败：自定义短信服务类返回失败，请联系管理员检查通道配置");
         } catch (ClassNotFoundException e) {
             return new SendResult(false, "找不到配置的短信服务类：" + className
-                    + "（请检查 oaones.properties 的 login.sms.service.class）");
+                    + "（请检查 oaones.appsyn.properties 的 login.sms.service.class）");
         } catch (Throwable t) {
             OaonesLog.error("验证登录：调用自定义短信服务类异常 class=" + className
                     + " mobile=" + mask(mobile), t);

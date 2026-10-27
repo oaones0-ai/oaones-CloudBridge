@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 同步中心“同步设置”实体（对应业务表：表名取 oaones.properties#oaones_sync_plan_table，
+ * 同步中心“同步设置”实体（对应业务表：表名取 oaones.appsyn.properties#oaones_sync_plan_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一行 = 一条同步规则：同一个“平台 + 租户 + 同步方向”<b>可以有多条规则</b>
@@ -13,7 +13,7 @@ public class SyncPlanCfg {
     private Integer id;
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书（{@code OaonesConst.TYPE_*}）。 */
     private Integer type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）。 */
     private Integer cfgid;
     /** 同步方向：0 OA→平台 / 1 平台→OA。 */
     private Integer direction;

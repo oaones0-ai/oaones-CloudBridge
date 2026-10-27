@@ -10,7 +10,7 @@ import com.customization.oaones.appsyn.msg.feishu.entity.MsgConfig;
 /**
  * 消息中心系统参数服务（可视化热更新，无需改配置文件、无需重启）。
  *
- * <p>数据库无配置行时用 oaones.properties 的缺省值兜底，保证首次部署即可用。</p>
+ * <p>数据库无配置行时用 oaones.appsyn.properties 的缺省值兜底，保证首次部署即可用。</p>
  */
 public class MsgConfigService {
 
@@ -62,7 +62,7 @@ public class MsgConfigService {
         config.setDedupWindowSec(FeishuMsgProps.dedupWindow());
         config.setLogKeepDays(FeishuMsgProps.logKeepDays());
         config.setTaskKeepDays(FeishuMsgProps.taskKeepDays());
-        config.setRemark("缺省参数（oaones.properties），保存后以数据库为准");
+        config.setRemark("缺省参数（oaones.appsyn.properties），保存后以数据库为准");
         return config;
     }
 

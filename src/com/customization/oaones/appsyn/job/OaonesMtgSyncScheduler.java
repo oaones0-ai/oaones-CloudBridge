@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * 「会议同步 / 日程同步」的内置调度器：按页面上的**计划任务**跑一轮同步。
  *
- * <p>计划任务有两种同步方式（见 {@code uf_oaones_mtg_cron.plan_mode}）：<b>按时间段</b>
- * （明细表 {@code uf_oaones_mtg_plan_item}，页面上自由配多个时段 + 每段一个轮询间隔，
+ * <p>计划任务有两种同步方式（见 {@code uf_oaones_appsyn_mtg_cron.plan_mode}）：<b>按时间段</b>
+ * （明细表 {@code uf_oaones_appsyn_mtg_plan_item}，页面上自由配多个时段 + 每段一个轮询间隔，
  * 按工作日 / 非工作日区分）与<b>高级（cron 表达式）</b>；工作日口径取泛微标准考勤设置。
  * 到点判断在 {@link MtgSyncServiceImpl#planDue(java.util.Date, java.util.Date)}，本类只负责看表。</p>
  *
@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p>做法与同步中心的内置调度器（{@link OaonesSyncPlanScheduler}）一致：本模块自己在 E9 webapp 里
  * 起一个守护线程，每 {@code mtg.sync.tick.seconds}（默认 60 秒，收敛到 [30, 180]）**看一眼到点没有**；
- * 计划任务与到点判断都在服务端（表 {@code uf_oaones_mtg_cron}），本类只保留“上次跑了没 / 结果”的运行状态。</p>
+ * 计划任务与到点判断都在服务端（表 {@code uf_oaones_appsyn_mtg_cron}），本类只保留“上次跑了没 / 结果”的运行状态。</p>
  *
  * <p>多实例部署时“到点各跑一轮”可能重复：同步链路口径是“按映射快照比对，变了才调接口”，
  * 重复执行最多是同一轮里多查一次，不会重复创建对象。</p>
@@ -37,8 +37,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link OaonesSyncPlanSchedulerListener} 让 E9 一启动就跑（该监听器已同时拉起本调度器）。</p>
  *
  * <p>开关与频率：总开关 {@code mtg.sync.enable}，检查间隔 {@code mtg.sync.tick.seconds}，
- * 同步频率（时间段明细 / cron）在页面上维护（{@code uf_oaones_mtg_cron} +
- * {@code uf_oaones_mtg_plan_item}）。</p>
+ * 同步频率（时间段明细 / cron）在页面上维护（{@code uf_oaones_appsyn_mtg_cron} +
+ * {@code uf_oaones_appsyn_mtg_plan_item}）。</p>
  */
 public final class OaonesMtgSyncScheduler {
 

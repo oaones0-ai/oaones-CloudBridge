@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
 /**
- * 人员快照表维护（业务表名取 oaones.properties#oaones_user_tmp_table）。
+ * 人员快照表维护（业务表名取 oaones.appsyn.properties#oaones_user_tmp_table）。
  *
  * <p>租户连通测试成功后、人员绑定页手动刷新或定时任务执行时，
  * 把平台成员列表及其主要数据写入快照；App ID + wx_user_id 唯一。</p>

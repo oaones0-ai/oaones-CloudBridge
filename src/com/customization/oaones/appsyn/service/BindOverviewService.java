@@ -3,7 +3,7 @@ package com.customization.oaones.appsyn.service;
 import com.alibaba.fastjson.JSONObject;
 
 /**
- * 绑定总览（公共只读页 `/oaones/index/BindOverview.jsp`，action 前缀 overview.）。
+ * 绑定总览（公共只读页 `/oaones/appsyn/index/BindOverview.jsp`，action 前缀 overview.）。
  *
  * <p>把企微 / 钉钉 / 飞书三个连接器的**全部平台租户**放在一起，
  * 分别给出部门绑定、人员绑定的现状；只读、不写任何数据。</p>

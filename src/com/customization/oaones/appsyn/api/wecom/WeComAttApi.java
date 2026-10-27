@@ -27,7 +27,7 @@ import java.util.List;
  * 既不是通讯录 Secret，也不是工作台自建应用 Secret，所以每条设置要单独指定「考勤应用」
  * （默认不指定则不执行同步，也不静默回退）。</p>
  *
- * <p>接口（首次上线逐条实测，路径都可以在 oaones.properties 里改）：
+ * <p>接口（首次上线逐条实测，路径都可以在 oaones.appsyn.properties 里改）：
  * 考勤组 / 打卡规则两条路——按成员读 {@code /cgi-bin/checkin/getcheckinoption}
  * （请求体 {@code datetime} + {@code useridlist}，**两个字段都是必填**，
  * 2026-10-15 现场报的 {@code 40058 missing field useridlist} 就是这里的字段名写错造成的）、
@@ -351,13 +351,13 @@ public class WeComAttApi implements AttPullAdapter, AttPushAdapter {
         req.note("records[0].userid", "该 OA 人员绑定的企业微信成员 userid");
         req.note("records[0].checkin_time", "OA 那条打卡的时间（Unix 秒，按东八区挂钟时间换算）");
         req.note("records[0].location_title", "打卡地点标题（必填，固定值来自 "
-                + "oaones.properties#att.push.wecom.location.title）");
+                + "oaones.appsyn.properties#att.push.wecom.location.title）");
         req.note("records[0].location_detail", "打卡地点详情（必填，固定值来自 "
-                + "oaones.properties#att.push.wecom.location.detail）");
+                + "oaones.appsyn.properties#att.push.wecom.location.detail）");
         req.note("records[0].device_type", "打卡设备类型（必填，1 门禁 / 2 考勤机 / 3 其他；"
-                + "固定值来自 oaones.properties#att.push.wecom.device.type）");
+                + "固定值来自 oaones.appsyn.properties#att.push.wecom.device.type）");
         req.note("records[0].device_detail", "打卡设备品牌（必填，固定值来自 "
-                + "oaones.properties#att.push.wecom.device.detail）");
+                + "oaones.appsyn.properties#att.push.wecom.device.detail）");
         if (userId.length() == 0) {
             req.setPushError("该人员没有绑定企业微信账号，无法写入打卡记录");
         } else if (seconds <= 0L) {

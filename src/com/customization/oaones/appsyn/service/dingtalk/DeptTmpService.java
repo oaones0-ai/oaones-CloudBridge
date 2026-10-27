@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
 /**
- * 部门快照表维护（业务表名取 oaones.properties#oaones_dep_tmp_table）。
+ * 部门快照表维护（业务表名取 oaones.appsyn.properties#oaones_dep_tmp_table）。
  *
  * <p>租户连通测试成功后或定时任务执行时，把平台部门列表写入快照；
  * AppKey + 平台部门ID 唯一。</p>

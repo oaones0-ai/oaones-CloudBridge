@@ -11,7 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * OA 分部 - 平台租户映射控制器（action 前缀 orgmap.）。
  *
- * <p>页面通过独立的 /oaones/orgMap/api.jsp 调用，不参与现有三个连接器的业务路由。</p>
+ * <p>页面通过独立的 /oaones/appsyn/orgMap/api.jsp 调用，不参与现有三个连接器的业务路由。</p>
  */
 public class OrgMapController extends BaseController {
 

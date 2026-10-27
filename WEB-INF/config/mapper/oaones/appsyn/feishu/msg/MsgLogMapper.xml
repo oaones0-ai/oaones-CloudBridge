@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 推送日志（状态表 uf_oaones_appsyn_msg_log）
+
+  口径（接口日志中心方案 B）：本表只存业务状态（业务单号 / 消息类型 / 接收人 / 分片 /
+  去重键 / 卡片任务 / 重试计划），**不再存接口报文与结果**——请求 / 返回报文、返回码、
+  错误信息、耗时、异常堆栈统一在接口日志中心 uf_oaones_appsyn_api_log，用 api_log_id 关联。
+  列表 / 详情按 api_log_id 左关联接口日志，把耗时 / 结果 / 报文带出来给页面用。
+
+  时间字段统一使用建模系统标准字段：
+    modedatacreatedate / modedatacreatetime / modedatamodifydatetime
+  区间比较拆成“先比日期、日期相同再比时间”两段（timeRange 片段）。
+  SQL Server 分页统一用 row_number()，兼容 2008 及以上版本。
+-->
+<mapper namespace="com.customization.oaones.appsyn.msg.feishu.dao.MsgLogMapper">
+
+    <!-- 状态表自身列（联表时统一加 m. 前缀） -->
+    <sql id="colsM">
+        m.id, m.type, m.biz_type, m.biz_id, m.biz_title, m.std_type, m.type_name, m.wx_msgtype,
+        m.card_action, m.app_id, m.corp_id, m.agent_id, m.task_id, m.dedup_key, m.receiver_oa,
+        m.receiver_wx, m.receiver_count, m.shard_index, m.shard_total, m.status, m.retry_count,
+        m.next_retry_time, m.api_log_id, m.reason, m.src_json, m.operator_id,
+        m.modedatacreatedate, m.modedatacreatetime, m.modedatamodifydatetime
+    </sql>
+
+    <!-- 接口日志中心带出的只读列（列名以 api_ 前缀别名，映射到 MsgLog 的联表字段） -->
+    <sql id="colsApi">
+        a.cost_ms     as api_cost_ms,
+        a.err_code    as api_err_code,
+        a.err_msg     as api_err_msg,
+        a.req_body    as api_req_body,
+        a.resp_body   as api_resp_body,
+        a.error_stack as api_err_stack,
+        a.success     as api_success
+    </sql>
+
+    <!-- 区间条件：标准字段是“日期 + 时间”两列，比较时先比日期、日期相同再比时间 -->
+    <sql id="timeRange">
+        <if test="fromDate != null and fromDate != ''">
+            and (m.modedatacreatedate &gt; #{fromDate}
+                 or (m.modedatacreatedate = #{fromDate} and m.modedatacreatetime &gt;= #{fromTime}))
+        </if>
+        <if test="toDate != null and toDate != ''">
+            and (m.modedatacreatedate &lt; #{toDate}
+                 or (m.modedatacreatedate = #{toDate} and m.modedatacreatetime &lt;= #{toTime}))
+        </if>
+    </sql>
+
+    <sql id="conditions">
+        <include refid="timeRange"/>
+        <if test="bizId != null and bizId != ''">
+            and (m.biz_id like '%' + #{bizId} + '%' or m.biz_title like '%' + #{bizId} + '%'
+                 or m.task_id like '%' + #{bizId} + '%')
+        </if>
+        <if test="stdType != null">
+            and m.std_type = #{stdType}
+        </if>
+        <if test="status != null">
+            and m.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (m.receiver_oa like '%' + #{keyword} + '%'
+                 or m.receiver_wx like '%' + #{keyword} + '%'
+                 or m.reason like '%' + #{keyword} + '%'
+                 or m.biz_title like '%' + #{keyword} + '%'
+                 or a.err_msg like '%' + #{keyword} + '%')
+        </if>
+    </sql>
+
+    <!-- 状态表写入：只写业务状态，不写报文（报文由接口日志中心落库） -->
+    <insert id="insert">
+        insert into ${table}
+            (type, biz_type, biz_id, biz_title, std_type, type_name, wx_msgtype, card_action, app_id,
+             corp_id, agent_id, task_id, dedup_key, receiver_oa, receiver_wx, receiver_count,
+             shard_index, shard_total, status, retry_count, next_retry_time, api_log_id, reason,
+             src_json, operator_id,
+             modedatacreatedate, modedatacreatetime, modedatamodifydatetime)
+        values
+            (2, #{e.bizType}, #{e.bizId}, #{e.bizTitle}, #{e.stdType}, #{e.typeName}, #{e.wxMsgtype},
+             #{e.cardAction}, #{e.appId}, #{e.corpId}, #{e.agentId}, #{e.taskId}, #{e.dedupKey},
+             #{e.receiverOa}, #{e.receiverWx}, #{e.receiverCount}, #{e.shardIndex}, #{e.shardTotal},
+             #{e.status}, #{e.retryCount}, #{e.nextRetryTime}, #{e.apiLogId}, #{e.reason},
+             #{e.srcJson}, #{e.operatorId},
+
+             #{e.modedatacreatedate}, #{e.modedatacreatetime}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <!-- 重试 / 重推结果回写：只更新状态与关联的接口日志ID，报文仍在接口日志中心 -->
+    <update id="updateResult">
+        update ${table}
+        set status = #{e.status},
+            retry_count = #{e.retryCount},
+            next_retry_time = #{e.nextRetryTime},
+            api_log_id = #{e.apiLogId},
+            <if test="e.reason != null">reason = #{e.reason},</if>
+            <if test="e.taskId != null">task_id = #{e.taskId},</if>
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <select id="getById" resultType="com.customization.oaones.appsyn.msg.feishu.entity.MsgLog">
+        select <include refid="colsM"/>, <include refid="colsApi"/>
+        from ${table} m
+        left join ${apiTable} a on a.id = m.api_log_id
+        where m.id = #{id}
+    </select>
+
+    <select id="countDedup" resultType="java.lang.Integer">
+        select count(1) from ${table}
+        where type = 2 and dedup_key = #{dedupKey}
+          and (modedatacreatedate &gt; #{sinceDate}
+               or (modedatacreatedate = #{sinceDate} and modedatacreatetime &gt;= #{sinceTime}))
+          and status in (0, 1)
+    </select>
+
+    <select id="page" resultType="com.customization.oaones.appsyn.msg.feishu.entity.MsgLog">
+        select * from (
+            select row_number() over (order by m.id desc) as rn,
+                   <include refid="colsM"/>, <include refid="colsApi"/>
+            from ${table} m
+            left join ${apiTable} a on a.id = m.api_log_id
+            <where>
+                <include refid="conditions"/>
+            </where>
+        ) t
+        where t.rn &gt; #{offset} and t.rn &lt;= #{offset} + #{limit}
+        order by t.rn
+    </select>
+
+    <select id="count" resultType="java.lang.Integer">
+        select count(1) from ${table} m
+        left join ${apiTable} a on a.id = m.api_log_id
+        <where>
+                and m.type = 2
+                <include refid="conditions"/>
+        </where>
+    </select>
+
+    <select id="listRetryable" resultType="com.customization.oaones.appsyn.msg.feishu.entity.MsgLog">
+        select top ${limit} <include refid="colsM"/>
+        from ${table} m
+        where m.type = 2
+          and m.status = 2
+          and m.retry_count &lt; #{maxRetry}
+          and m.next_retry_time is not null
+          and m.next_retry_time &lt;= #{now}
+        order by m.id
+    </select>
+
+    <select id="sumStats" resultType="java.util.LinkedHashMap">
+        select
+            count(1) as totalCount,
+            sum(case when m.status = 1 then 1 else 0 end) as successCount,
+            sum(case when m.status = 2 then 1 else 0 end) as failCount,
+            sum(case when m.status = 3 then 1 else 0 end) as dedupCount,
+            sum(case when m.status = 4 then 1 else 0 end) as skipCount,
+            isnull(avg(case when a.cost_ms is not null then a.cost_ms else 0 end), 0) as avgCost
+        from ${table} m
+        left join ${apiTable} a on a.id = m.api_log_id
+        where 1 = 1 and m.type = 2
+        <include refid="timeRange"/>
+    </select>
+
+    <select id="groupByType" resultType="java.util.LinkedHashMap">
+        select
+            isnull(m.type_name, '未命名类型') as typeName,
+            isnull(m.wx_msgtype, '-') as wxMsgtype,
+            count(1) as totalCount,
+            sum(case when m.status = 1 then 1 else 0 end) as successCount,
+            sum(case when m.status = 2 then 1 else 0 end) as failCount
+        from ${table} m
+        where m.type = 2 and m.status in (1, 2)
+        <include refid="timeRange"/>
+        group by m.type_name, m.wx_msgtype
+        order by count(1) desc
+    </select>
+
+    <select id="failTop" resultType="java.util.LinkedHashMap">
+        select top ${limit}
+            isnull(a.err_msg, '未知错误') as errmsg,
+            count(1) as totalCount
+        from ${table} m
+        left join ${apiTable} a on a.id = m.api_log_id
+        where m.type = 2
+          and m.status = 2
+        <include refid="timeRange"/>
+        group by a.err_msg
+        order by count(1) desc
+    </select>
+
+    <delete id="deleteBefore">
+        delete from ${table}
+        where type = 2 and modedatacreatedate &lt; #{beforeDate}
+           or (modedatacreatedate = #{beforeDate} and modedatacreatetime &lt; #{beforeTime})
+    </delete>
+</mapper>

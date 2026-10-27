@@ -87,7 +87,7 @@ public class PersonalWxServiceImpl implements PersonalWxService {
     private void assertMaintain(String operatorId) {
         if (!canMaintain(operatorId)) {
             throw new RuntimeException("你不是「微信设置」的维护人，无权操作（仅系统管理员与 "
-                    + "oaones.properties#pw.admin.ids 中列出的人员可维护）");
+                    + "oaones.appsyn.properties#pw.admin.ids 中列出的人员可维护）");
         }
     }
 
@@ -167,7 +167,7 @@ public class PersonalWxServiceImpl implements PersonalWxService {
             return OaonesMyBatis.call(PersonalWxMapper.class, mapper -> mapper.findConfig(configTable()));
         } catch (Throwable t) {
             OaonesLog.error("读取个人微信授权密钥失败（请确认已执行 sql/public/create_oaones_personal_wx.sql，"
-                    + "且 oaones.properties 的 oaones_personal_wx_config_table 指向该表）", t);
+                    + "且 oaones.appsyn.properties 的 oaones_personal_wx_config_table 指向该表）", t);
             return null;
         }
     }
@@ -707,7 +707,7 @@ public class PersonalWxServiceImpl implements PersonalWxService {
         }
         String path = OaonesUtil.s(OaonesProps.loginScanPath()).trim();
         if (path.length() == 0) {
-            path = "/oaones/login/scan.jsp";
+            path = "/oaones/appsyn/login/scan.jsp";
         }
         if (!path.startsWith("/")) {
             path = "/" + path;
@@ -975,14 +975,14 @@ public class PersonalWxServiceImpl implements PersonalWxService {
             base = OaonesUtil.s(callbackBase).trim();
         }
         if (base.length() == 0) {
-            throw new RuntimeException("无法确定扫码回调地址，请在 oaones.properties 配置 pw.bind.callback.base");
+            throw new RuntimeException("无法确定扫码回调地址，请在 oaones.appsyn.properties 配置 pw.bind.callback.base");
         }
         while (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
         String path = OaonesUtil.s(OaonesProps.pwCallbackPath()).trim();
         if (path.length() == 0) {
-            path = "/oaones/personalWx/PersonalWxCallback.jsp";
+            path = "/oaones/appsyn/personalWx/PersonalWxCallback.jsp";
         }
         if (!path.startsWith("/")) {
             path = "/" + path;
@@ -1006,8 +1006,8 @@ public class PersonalWxServiceImpl implements PersonalWxService {
     private String writeError(String action, Throwable t) {
         OaonesLog.error(action + "失败", t);
         return action + "失败：请确认已执行 sql/public/create_oaones_personal_wx.sql 建好 "
-                + "uf_oaones_personal_wx_config / uf_oaones_personal_wx_bind 两张表，"
-                + "且 oaones.properties 的 oaones_personal_wx_config_table / "
+                + "uf_oaones_appsyn_personal_wx_config / uf_oaones_appsyn_personal_wx_bind 两张表，"
+                + "且 oaones.appsyn.properties 的 oaones_personal_wx_config_table / "
                 + "oaones_personal_wx_bind_table 指向它们"
                 + (t.getMessage() == null ? "" : "（数据库返回：" + t.getMessage() + "）");
     }

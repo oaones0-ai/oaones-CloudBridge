@@ -226,7 +226,7 @@ public final class OaonesSso {
         // 反向代理（Nginx/负载均衡终止 TLS）把请求转成 http 进来时 request.getScheme() 仍是 http，
         // 直接拼出来就是 http://…，而企业微信的“应用主页 / 网页授权”要求 https。
         // 这里优先取代理透传的协议与主机（X-Forwarded-Proto / X-Forwarded-Host），
-        // 仍然对不上时请在 oaones.properties 里显式配 app.entry.base。
+        // 仍然对不上时请在 oaones.appsyn.properties 里显式配 app.entry.base。
         String protoHeader = firstHeader(request, "X-Forwarded-Proto");
         if (protoHeader.length() == 0) {
             protoHeader = firstHeader(request, "X-Forwarded-Scheme");
@@ -263,7 +263,7 @@ public final class OaonesSso {
         if (base.startsWith("http://")) {
             OaonesLog.step("免登录入口地址前缀算出来是 " + base
                     + "：企业微信的应用主页与网页授权要求 https，"
-                    + "请在 oaones.properties 里配置 app.entry.base（协议+域名+端口）");
+                    + "请在 oaones.appsyn.properties 里配置 app.entry.base（协议+域名+端口）");
         }
         return base;
     }

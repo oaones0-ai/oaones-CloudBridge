@@ -1,14 +1,14 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 会议 / 日程同步「计划任务」实体（业务表：表名取 oaones.properties#oaones_mtg_cron_table）。
+ * 会议 / 日程同步「计划任务」实体（业务表：表名取 oaones.appsyn.properties#oaones_mtg_cron_table）。
  *
  * <p>这张表**只保留一行（id = 1）**：会议 / 日程同步（OA→第三方 推送 + 第三方→OA 拉取）
  * 由内置调度器按本行决定“什么时候跑一轮”。同步频率按公司上下班时间自由设置，
  * 因此本行有<b>两种同步方式</b>（{@code planMode}）：</p>
  * <ul>
  *   <li>{@code planMode = 0}（**默认**）按时间段：明细在子表 {@link MtgPlanItem}
- *       （{@code uf_oaones_mtg_plan_item}）里，页面上可自由加多个时间段、每段一个轮询间隔；</li>
+ *       （{@code uf_oaones_appsyn_mtg_plan_item}）里，页面上可自由加多个时间段、每段一个轮询间隔；</li>
  *   <li>{@code planMode = 1} 高级模式：直接写 Quartz cron（秒 分 时 日 月 周，频率下限 5 分钟），
  *       沿用原来的“白天 / 夜间”两档——{@code dayCron}（默认 9:00–18:00，见
  *       {@code mtg.pull.hour.from/to}）与 {@code nightCron}（其余时段，留空 = 该时段不跑）。</li>
@@ -20,14 +20,14 @@ package com.customization.oaones.appsyn.entity;
  * 由 {@code workdayGroupId} 指定用哪个考勤组（0 = 不指定，按周一至周五算）。
  * 时间段模式按明细行的 {@code dayType} 逐段区分；高级模式用 {@code cronDayType} 统一区分。</p>
  *
- * <p>没有本行、或本行为空时按 {@code oaones.properties} 里的默认值执行
+ * <p>没有本行、或本行为空时按 {@code oaones.appsyn.properties} 里的默认值执行
  * （白天 60 分钟 / 夜间 120 分钟两档 cron）。</p>
  */
 public class MtgCron {
 
     private Integer id;
     /**
-     * 同步方式：0 = 按时间段（明细表 {@code uf_oaones_mtg_plan_item}，默认）/
+     * 同步方式：0 = 按时间段（明细表 {@code uf_oaones_appsyn_mtg_plan_item}，默认）/
      * 1 = 高级（下面的两个 cron）。见 {@code OaonesConst#MTG_PLAN_MODE_ITEM}。
      */
     private Integer planMode;

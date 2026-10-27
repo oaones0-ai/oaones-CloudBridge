@@ -1,21 +1,21 @@
 package com.customization.oaones.appsyn.msg.dingtalk.entity;
 
 /**
- * 推送用钉钉应用视图（**不是独立表**，读的是“应用绑定”表 {@code uf_oaones_app_bind}
- * 关联钉钉租户配置 {@code uf_oaones_qywx_config} 的结果）。
+ * 推送用钉钉应用视图（**不是独立表**，读的是“应用绑定”表 {@code uf_oaones_appsyn_app_bind}
+ * 关联钉钉租户配置 {@code uf_oaones_appsyn_qywx_config} 的结果）。
  *
  * <p>一个钉钉自建应用只维护一次：应用名、AgentId、应用 Secret、所属租户、启停都在
  * “应用绑定”页维护；消息中心只引用同一行，并补充租户侧的企业ID与 Secret 兜底，
- * 因此不再有 {@code uf_oaones_msg_app} 表。</p>
+ * 因此不再有 {@code uf_oaones_appsyn_msg_app} 表。</p>
  */
 public class MsgApp {
 
-    /** uf_oaones_app_bind.id（消息类型 / 日志 / 卡片任务里的 app_id 即本ID）。 */
+    /** uf_oaones_appsyn_app_bind.id（消息类型 / 日志 / 卡片任务里的 app_id 即本ID）。 */
     private Integer id;
     private Integer cfgId;
-    /** 租户名称（uf_oaones_qywx_config.corp_name）。 */
+    /** 租户名称（uf_oaones_appsyn_qywx_config.corp_name）。 */
     private String cfgName;
-    /** 租户企业ID（uf_oaones_qywx_config.corp_id）。 */
+    /** 租户企业ID（uf_oaones_appsyn_qywx_config.corp_id）。 */
     private String corpId;
     /** 租户AppSecret（应用 Secret 留空时的兜底）。 */
     private String corpSecret;

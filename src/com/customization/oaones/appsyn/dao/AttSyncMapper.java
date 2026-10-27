@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 考勤同步的数据访问接口（Mapper XML：WEB-INF/config/mapper/oaones/AttSyncMapper.xml）。
+ * 考勤同步的数据访问接口（Mapper XML：WEB-INF/config/mapper/oaones/appsyn/AttSyncMapper.xml）。
  *
- * <p>涵盖：设置（uf_oaones_att_cfg，含“租户级开关”行）、批次（uf_oaones_att_log）、
- * 打卡明细（uf_oaones_att_log_item）、映射（uf_oaones_att_link），以及本模块自己写的那部分 SQL：
+ * <p>涵盖：设置（uf_oaones_appsyn_att_cfg，含“租户级开关”行）、批次（uf_oaones_appsyn_att_log）、
+ * 打卡明细（uf_oaones_appsyn_att_log_item）、映射（uf_oaones_appsyn_att_link），以及本模块自己写的那部分 SQL：
  * 范围人员（联 hrmresource / hrmdepartment / hrmsubcompany / 人员绑定表）、
  * 考勤应用候选（读“应用绑定”表，不下发 Secret）。</p>
  *
@@ -24,7 +24,7 @@ import java.util.Map;
  */
 public interface AttSyncMapper {
 
-    // ---------------- 同步设置（uf_oaones_att_cfg） ----------------
+    // ---------------- 同步设置（uf_oaones_appsyn_att_cfg） ----------------
 
     /**
      * 列设置：按平台（type）+ 可选租户（cfgId / cfgIds）+ 可选行类型（rowType）。
@@ -102,7 +102,7 @@ public interface AttSyncMapper {
     /** 平台账号 → OA 人员ID（反向同步 / 明细回填用；未绑定返回 null）。 */
     Integer mapOaUserByWx(Map<String, Object> params);
 
-    // ---------------- 批次（uf_oaones_att_log） ----------------
+    // ---------------- 批次（uf_oaones_appsyn_att_log） ----------------
 
     void insertLog(Map<String, Object> params);
 
@@ -123,7 +123,7 @@ public interface AttSyncMapper {
     /** 日志保留期清理：删除早于给定日期的明细。 */
     int cleanLogItem(Map<String, Object> params);
 
-    // ---------------- 打卡明细（uf_oaones_att_log_item） ----------------
+    // ---------------- 打卡明细（uf_oaones_appsyn_att_log_item） ----------------
 
     void insertLogItem(Map<String, Object> params);
 
@@ -135,7 +135,7 @@ public interface AttSyncMapper {
     /** 取一条打卡明细（「重推」按明细行定位时用）。 */
     AttSyncLogItem getLogItem(Map<String, Object> params);
 
-    // ---------------- 映射（uf_oaones_att_link） ----------------
+    // ---------------- 映射（uf_oaones_appsyn_att_link） ----------------
 
     /** 按“平台 + 租户 + 方向 + 人员 + 打卡时间 + 类型 + 来源”找映射（去重用）。 */
     AttSyncLink findLinkByKey(Map<String, Object> params);

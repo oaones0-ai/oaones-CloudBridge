@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * 推送日志（状态表）Mapper。
  *
- * <p>本表只存业务状态；报文与结果在接口日志中心 uf_oaones_api_log，读取时按
+ * <p>本表只存业务状态；报文与结果在接口日志中心 uf_oaones_appsyn_api_log，读取时按
  * {@code api_log_id} 左关联（{@code apiTable} 传入接口日志表名）带出。</p>
  */
 public interface MsgLogMapper {

@@ -3,8 +3,8 @@ package com.customization.oaones.appsyn.common;
 /**
  * 扫码登录的“扫码平台”：企业微信 / 钉钉 / 飞书 / 个人微信。
  *
- * <p>统一登录页（{@code /oaones/login/login.jsp}）上只有**一张**二维码：
- * 二维码内容只是本模块的扫码落地页（{@code /oaones/login/scan.jsp?t=票据}），
+ * <p>统一登录页（{@code /oaones/appsyn/login/login.jsp}）上只有**一张**二维码：
+ * 二维码内容只是本模块的扫码落地页（{@code /oaones/appsyn/login/scan.jsp?t=票据}），
  * 不带“是哪家平台 / 哪家企业”的信息；扫码方打开该页后，由 OA 侧按扫码客户端的
  * User-Agent 判断平台，再用该平台的租户配置依次换成员身份，因此同一张二维码
  * 三个企业应用的客户端都能扫（各平台能否扫由“登录设置”里对应的开关决定）。
@@ -24,7 +24,7 @@ public final class QrLoginPlatform {
      * 飞书（飞书 / Lark 客户端内置浏览器）。
 
      * <p>飞书连接器与企微、钉钉各自的落地页与控制器是分开的：飞书扫码登录走
-     * {@code /oaones/login/Feishu/scan.jsp} + {@code service.impl.feishu.ScanLoginServiceImpl}，
+     * {@code /oaones/appsyn/login/Feishu/scan.jsp} + {@code service.impl.feishu.ScanLoginServiceImpl}，
      * 用的是飞书租户的 App ID / App Secret，不跨连接器复用凭证。</p>
      */
     public static final String FEISHU = "feishu";
@@ -118,14 +118,14 @@ public final class QrLoginPlatform {
     /**
      * “登录设置”里**已经开启企业应用扫码**的平台标签（顺序固定：企业微信 / 钉钉 / 飞书）。
      *
-     * <p>统一登录页（{@code /oaones/login/login.jsp}）与手机扫码落地页
-     * （{@code /oaones/login/scan.jsp}）的提示文案都按它出：**没开启的平台不出现在文案里**
+     * <p>统一登录页（{@code /oaones/appsyn/login/login.jsp}）与手机扫码落地页
+     * （{@code /oaones/appsyn/login/scan.jsp}）的提示文案都按它出：**没开启的平台不出现在文案里**
      * （后台没启用飞书时不提飞书、没启用钉钉时不提钉钉，企微同理），
      * 与“扫码页签在至少开启一个平台时出现”（{@code LoginConfigServiceImpl#publicSettings}）
      * 同一口径——页面与控制器里都不再写死“企业微信 / 钉钉 / 飞书”三家的名字。
      * 个人微信有独立页签，不参与这张企业二维码的客户端名单。</p>
      *
-     * <p>入参是 {@code /oaones/login/loginAction.jsp?action=login.settings} 回的公开设置
+     * <p>入参是 {@code /oaones/appsyn/login/loginAction.jsp?action=login.settings} 回的公开设置
      * （{@code LoginConfigServiceImpl#publicSettings()}）；入参为 {@code null} 时一律视为未开启，
      * 返回空列表，调用方据此走“扫码登录已关闭”的兜底文案。</p>
      */
@@ -156,7 +156,7 @@ public final class QrLoginPlatform {
      * 企微连接器的扫码落地逻辑（{@code ScanLoginServiceImpl}）是否处理该平台。
      *
      * <p>三个连接器的租户范围与应用凭证是分开的，所以换身份必须由**对应连接器**的实现来做：
-     * 统一扫码落地页（{@code /oaones/login/scan.jsp}）先按客户端分派到对应连接器的控制器，
+     * 统一扫码落地页（{@code /oaones/appsyn/login/scan.jsp}）先按客户端分派到对应连接器的控制器，
      * 再由该连接器换身份；企微这份实现只处理企业微信身份，
      * 不跨连接器换身份（否则会把企微租户的 Secret 用到钉钉/飞书接口上）。</p>
      */

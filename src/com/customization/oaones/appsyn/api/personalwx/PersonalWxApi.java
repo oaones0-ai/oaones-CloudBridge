@@ -23,7 +23,7 @@ import java.util.Map;
  * 每次扫码授权换回的 code 只能换一次，换回来的 {@code access_token} 只用于
  * 紧接着读一次用户信息，因此本类不做 token 缓存（也避免把 A 应用令牌用到 B 应用上）。</p>
  *
- * <p>接口域名取自 {@code oaones.properties#pw.api.base}（默认微信开放平台
+ * <p>接口域名取自 {@code oaones.appsyn.properties#pw.api.base}（默认微信开放平台
  * {@code https://api.weixin.qq.com}），换网关不用改代码。</p>
  */
 public class PersonalWxApi {

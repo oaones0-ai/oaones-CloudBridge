@@ -17,13 +17,13 @@ import weaver.interfaces.schedule.BaseCronJob;
  * {@code com.customization.oaones.appsyn.job.OaonesSyncPlanCronJob}，
  * 建议<b>每分钟执行一次</b>（如 cron：{@code 0 * * * * ?}）。</p>
  *
- * <p>本类只做“到点判断 + 触发”：读 `uf_oaones_sync_plan` 里 enabled=1 且
+ * <p>本类只做“到点判断 + 触发”：读 `uf_oaones_appsyn_sync_plan` 里 enabled=1 且
  * next_run_time 已到点的设置（一个“平台 + 租户 + 同步方向”一行），
  * 交给该平台连接器的同步服务执行，执行完按 cron 重算下次执行时间
  * （从当前时刻往后算，避免停机后“补跑”一堆历史任务）。</p>
  *
  * <p>三个平台共用这一个计划任务类；不需要再为企微/钉钉/飞书分别配任务
- * （各家原有的 {@code OaonesCronJob} 仍按 oaones.properties 的口径跑全量同步，两者互不影响）。</p>
+ * （各家原有的 {@code OaonesCronJob} 仍按 oaones.appsyn.properties 的口径跑全量同步，两者互不影响）。</p>
  */
 public class OaonesSyncPlanCronJob extends BaseCronJob {
 

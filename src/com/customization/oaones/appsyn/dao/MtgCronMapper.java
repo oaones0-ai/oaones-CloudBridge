@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Param;
  */
 public interface MtgCronMapper {
 
-    /** 取唯一一行（没有则返回 null，调用方按 oaones.properties 的默认频率处理）。 */
+    /** 取唯一一行（没有则返回 null，调用方按 oaones.appsyn.properties 的默认频率处理）。 */
     MtgCron findFirst(@Param("table") String table);
 
     /** 写入第一行（id = 1）。 */

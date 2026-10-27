@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>token 失效（40001/40014/41001/42001）时强制刷新并自动重试一次，无需人工干预；</li>
  *   <li>工作通知走 {@code /topapi/message/corpconversation/asyncsend_v2}，
  *       待办（task_card）走 {@code /topapi/workrecord/add|update}；</li>
- *   <li>**接口网关取 {@code oaones.properties#dd.api.base}（默认 https://oapi.dingtalk.com）**：
+ *   <li>**接口网关取 {@code oaones.appsyn.properties#dd.api.base}（默认 https://oapi.dingtalk.com）**：
  *       上述 /topapi 与 /gettoken 都属于钉钉服务端网关，不能落到企微网关
  *       （落到 qyapi.weixin.qq.com 会一律返回 404/400，消息永远发不出去）；</li>
  *   <li>所有调用记录请求/响应报文，由上层写入推送日志。</li>
@@ -144,7 +144,7 @@ public class DingTalkMsgApi {
      * 新增钉钉待办（{@code /topapi/workrecord/add}）。
      *
      * <p>钉钉待办会进入员工的“待办”列表；返回体 {@code result.record_id} 就是后续更新用的
-     * 待办ID（由推送层回写到 {@code uf_oaones_msg_task.task_id}）。</p>
+     * 待办ID（由推送层回写到 {@code uf_oaones_appsyn_msg_task.task_id}）。</p>
      */
     public JSONObject addWorkRecord(JSONObject body) throws Exception {
         JSONObject card = body.getJSONObject("task_card");
@@ -230,7 +230,7 @@ public class DingTalkMsgApi {
     /**
      * 带 access_token 的 POST（/topapi 老接口：token 放在查询串里）。
      *
-     * <p>网关固定取 {@link OaonesProps#ddApiBase()}（oaones.properties#dd.api.base），
+     * <p>网关固定取 {@link OaonesProps#ddApiBase()}（oaones.appsyn.properties#dd.api.base），
      * 与 {@code api.dingtalk.DingTalkApi} 的 topapi 调用保持同一个网关；
      * 换环境（如私有化代理）只改配置，不改代码。</p>
      */

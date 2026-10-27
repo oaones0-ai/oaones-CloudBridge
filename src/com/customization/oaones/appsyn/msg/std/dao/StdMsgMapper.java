@@ -16,7 +16,7 @@ import java.util.Map;
  * 同一口径。三个连接器（企微 / 钉钉 / 飞书）共用本 Mapper，天然一致。</p>
  *
  * <p>SQL 里标准表的名称是<b>平台固定表名</b>（不是本模块的业务表），因此不配到
- * {@code oaones.properties}；本模块自己的业务表仍然只从 properties 取表名。</p>
+ * {@code oaones.appsyn.properties}；本模块自己的业务表仍然只从 properties 取表名。</p>
  */
 public interface StdMsgMapper {
 

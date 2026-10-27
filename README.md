@@ -57,7 +57,7 @@
 ### 4.2 Sql执行
 
 ```text
-请将项目下的data/「database」/oaones下文件，按照顺序，进行执行。
+请将项目下的data/「database」/oaones/appsyn下文件，按照顺序，进行执行。
 ```
 
 ### 4.3 配置oa
@@ -110,7 +110,7 @@ server {
     location = /_oaones_session_check {
         internal;
 
-        proxy_pass http://127.0.0.1:82/oaones/auth/session.jsp;
+        proxy_pass http://127.0.0.1:82/oaones/appsyn/auth/session.jsp; //路径一定要正确，务必文件可以访问
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
 
@@ -171,32 +171,34 @@ server {
 
 ```text
 这里需要ecode对标准组件进行拦截和重写，可自行编写ecode或者登录oaones网站进行下载已有代码，部署ecode
+或访问：
 ```
 ### 4.7 菜单URL设置
 
 ```text
-1.个人账号中心：/oaones/accountCenter/MyAccount.jsp
-2.登录页：/oaones/login/login.jsp 别名：/oaones/login
-3.租户平台 企微/钉钉/飞书：/oaones/index/TenantIndex.jsp?platform=wecom/dingtalk/feishu
-4.微信绑定/oaones/personalWx/config.jsp?showSetting=true（不加参数默认不显示appid和密钥）
-5.绑定预览:/oaones/index/BindOverview.jsp
-6.微信绑定预览：/oaones/personalWx/config.jsp
-7.同步中心：/oaones/syncCenter/syncCenter.jsp
-8.会议同步：/oaones/meetingSync/meetingSync.jsp
-9.日程同步：/oaones/scheduleSync/scheduleSync.jsp
-10：考勤同步：/oaones/attSync/attSync.jsp
-11.消息推送：/oaones/msgCenter/msgCenter.jsp
-12.登录设置：/oaones/loginConfig/config.jsp
-13.应用设置：/oaones/appCenter/AppList.jsp
-14.启动台：/oaones/appCenter/Desktop.jsp
-15.接口日志中心:/oaones/apiLog/apiLog.jsp
-16.操作监控平台:/oaones/opMonitor/opMonitor.jsp
-17.统一认证报表:/oaones/authReport/authReport.jsp
-18.分部租户映射：/oaones/orgMap/orgMap.jsp
-19.人员同步日志：/oaones/syncCenter/syncResult.jsp
-指定平台和租户：/oaones/syncCenter/syncResult.jsp?platform=wecom&cfg_id=123&requestid=456
-跨平台按流程查询：/oaones/syncCenter/syncResult.jsp?requestid=456
-按同步批次查询：/oaones/syncCenter/syncResult.jsp?platform=wecom&cfg_id=123&log_id=789
+1.个人账号中心：/oaones/appsyn/accountCenter/MyAccount.jsp
+2.登录页：/oaones/appsyn/login/login.jsp 别名：/oaones/login，如需修改别名，请在prop中修改。
+3.租户平台 企微/钉钉/飞书：/oaones/appsyn/index/TenantIndex.jsp?platform=wecom/dingtalk/feishu
+4.微信绑定/oaones/appsyn/personalWx/config.jsp?showSetting=true（不加参数默认不显示appid和密钥）
+5.绑定预览:/oaones/appsyn/index/BindOverview.jsp
+6.微信绑定预览：/oaones/appsyn/personalWx/config.jsp
+7.同步中心：/oaones/appsyn/syncCenter/syncCenter.jsp
+8.会议同步：/oaones/appsyn/meetingSync/meetingSync.jsp
+9.日程同步：/oaones/appsyn/scheduleSync/scheduleSync.jsp
+10：考勤同步：/oaones/appsyn/attSync/attSync.jsp
+11.消息推送：/oaones/appsyn/msgCenter/msgCenter.jsp
+12.登录设置：/oaones/appsyn/loginConfig/config.jsp
+13.应用设置：/oaones/appsyn/appCenter/AppList.jsp
+14.启动台：/oaones/appsyn/appCenter/Desktop.jsp
+15.接口日志中心:/oaones/appsyn/apiLog/apiLog.jsp
+16.操作监控平台:/oaones/appsyn/opMonitor/opMonitor.jsp
+17.统一认证报表:/oaones/appsyn/authReport/authReport.jsp
+18.分部租户映射：/oaones/appsyn/orgMap/orgMap.jsp
+19.人员同步日志：/oaones/appsyn/syncCenter/syncResult.jsp
+指定平台和租户：/oaones/appsyn/syncCenter/syncResult.jsp?platform=wecom&cfg_id=123&requestid=456
+跨平台按流程查询：/oaones/appsyn/syncCenter/syncResult.jsp?requestid=456
+按同步批次查询：/oaones/appsyn/syncCenter/syncResult.jsp?platform=wecom&cfg_id=123&log_id=789
 hide_filters=1：隐藏全部搜索条件。
 hide_summary=1：隐藏统计行和明细截断提示。
+20.日志设置（系统设置）：/oaones/appsyn/systemSettings/systemSettings.jsp
 ```

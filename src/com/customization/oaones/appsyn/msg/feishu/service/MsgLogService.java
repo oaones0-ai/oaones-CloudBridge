@@ -49,7 +49,7 @@ public class MsgLogService {
             try {
                 insert(log);
                 OaonesLog.step("[msg] 推送日志已按 " + limits[i] + " 字符截断后写入（表列长度不足）；"
-                        + "请确认 uf_oaones_msg_log.src_json / uf_oaones_api_log 报文列是 nvarchar(max)/longtext");
+                        + "请确认 uf_oaones_appsyn_msg_log.src_json / uf_oaones_appsyn_api_log 报文列是 nvarchar(max)/longtext");
                 return;
             } catch (Throwable t) {
                 OaonesLog.step("[msg] 推送日志按 " + limits[i] + " 字符截断写入仍失败：" + firstLine(t));
@@ -309,7 +309,7 @@ public class MsgLogService {
             try {
                 OaonesMyBatis.run(MsgLogMapper.class, mapper -> mapper.updateResult(FeishuMsgProps.logTable(), log));
                 OaonesLog.step("[msg] 重试结果已按 " + limits[i] + " 字符截断后回写；"
-                        + "请确认 uf_oaones_msg_log.src_json 是 nvarchar(max)/longtext");
+                        + "请确认 uf_oaones_appsyn_msg_log.src_json 是 nvarchar(max)/longtext");
                 return;
             } catch (Throwable t) {
                 OaonesLog.step("[msg] 重试结果按 " + limits[i] + " 字符截断回写仍失败：" + firstLine(t));

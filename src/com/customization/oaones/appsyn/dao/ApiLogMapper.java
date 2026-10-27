@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 接口日志 Mapper（表名由调用方按 {@code oaones.properties#oaones_api_log_table} 传入）。
+ * 接口日志 Mapper（表名由调用方按 {@code oaones.appsyn.properties#oaones_api_log_table} 传入）。
  */
 public interface ApiLogMapper {
 

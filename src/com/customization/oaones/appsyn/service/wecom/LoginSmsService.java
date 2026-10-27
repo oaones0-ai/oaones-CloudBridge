@@ -10,7 +10,7 @@ import com.alibaba.fastjson.JSONObject;
  * （`/api/encrypt/secondauthsetting/getSecDynamicPassword`，取的是**已登录会话**的当前用户），
  * 两者都不能当作“免密登录”用；邮箱侧平台也没有现成的“登录验证码”能力。
  * 因此本模块按自己的业务口径实现：验证码、有效期、错误次数、发送频率全部落在自己的表
- * {@code uf_oaones_login_sms}（不沿用任何历史验证码表），两种验证方式同一张表、同一套口径。</p>
+ * {@code uf_oaones_appsyn_login_sms}（不沿用任何历史验证码表），两种验证方式同一张表、同一套口径。</p>
  *
  * <p><b>发送环节只复用平台标准能力</b>：手机号走 {@code weaver.sms.SMSManager#sendSMS}
  * （后台“短信设置”里配置的通道，含自定义通道，并落平台“我的短信”）；

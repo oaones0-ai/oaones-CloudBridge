@@ -8,7 +8,7 @@ package com.customization.oaones.appsyn.appsso;
  */
 public class AppSsoContext {
 
-    /** 应用记录ID（uf_oaones_app.id）。 */
+    /** 应用记录ID（uf_oaones_appsyn_app.id）。 */
     private int appId;
     private String appName;
     /** 应用默认访问地址（实现类可在此基础上追加参数）。 */

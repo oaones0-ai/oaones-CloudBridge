@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 统一登录设置（uf_oaones_appsyn_login_config）
+  表名由 OaonesParam 统一放入入参 Map。
+  本表只保留一行（取 id 最小的一条）：登录页按它决定显示哪些登录方式、二维码有效期多少秒。
+  登录方式里的“验证登录”有两种验证方式：mobile_enable（手机号）/ email_enable（邮箱）。
+  feishu_qr_enable = 允许飞书扫同一张扫码二维码（统一登录页的扫码页签由三者共同决定）；
+  personal_wx_enable 只保存配置（尚未接入）。本文件是飞书连接器自己的视图，
+  统一登录设置页实际走的是公共的 mapper（oaones/LoginConfigMapper.xml，含 feishu_qr_enable）。
+  logo = 登录页右侧登录框内部上方的图片（同一行配置，三个连接器共用；本视图同样读写它，
+  这样从飞书入口保存设置时不会把 logo 抹掉）。
+  bg_image = 登录页整页背景图（同一套上传口径，前缀 loginbg_）；
+  brand_html = 登录页左侧的富文本（HTML，设置什么显示什么）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.feishu.LoginConfigMapper">
+
+    <select id="findFirst" resultType="com.customization.oaones.appsyn.entity.feishu.LoginConfig">
+        select top 1 id, password_enable, mobile_enable, email_enable, wecom_qr_enable,
+               feishu_qr_enable, personal_wx_enable, qr_ttl_seconds,
+               logo, bg_image, brand_html, remark,
+               modedatacreater, modedatacreatedate, modedatacreatetime,
+               modedatamodifier, modedatamodifydatetime
+        from ${table}
+        order by id
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (password_enable, mobile_enable, email_enable, wecom_qr_enable, feishu_qr_enable, personal_wx_enable,
+             qr_ttl_seconds, logo, bg_image, brand_html, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.passwordEnable}, #{e.mobileEnable}, #{e.emailEnable}, #{e.wecomQrEnable}, #{e.feishuQrEnable},
+             #{e.personalWxEnable}, #{e.qrTtlSeconds}, #{e.logo}, #{e.bgImage}, #{e.brandHtml}, #{e.remark},
+
+             #{e.modedatacreater}, #{e.modedatacreatedate},
+             #{e.modedatacreatetime}, #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="update">
+        update ${table}
+        set password_enable = #{e.passwordEnable},
+            mobile_enable = #{e.mobileEnable},
+            email_enable = #{e.emailEnable},
+            wecom_qr_enable = #{e.wecomQrEnable},
+            feishu_qr_enable = #{e.feishuQrEnable},
+            personal_wx_enable = #{e.personalWxEnable},
+            qr_ttl_seconds = #{e.qrTtlSeconds},
+            logo = #{e.logo},
+            bg_image = #{e.bgImage},
+            brand_html = #{e.brandHtml},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+</mapper>

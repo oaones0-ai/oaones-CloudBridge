@@ -14,7 +14,7 @@ public class MtgPullContext {
 
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书。 */
     private int type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）。 */
     private int cfgId;
     /** 企业标识：企微 corpid / 钉钉 AppKey / 飞书 App ID。 */
     private String corpId;

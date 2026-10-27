@@ -3,7 +3,7 @@ package com.customization.oaones.appsyn.service.dingtalk;
 import com.alibaba.fastjson.JSONArray;
 
 /**
- * 统一登录页（`/oaones/login/login.jsp`）里的**钉钉**租户视图（三个平台共用同一个登录页）。
+ * 统一登录页（`/oaones/appsyn/login/login.jsp`）里的**钉钉**租户视图（三个平台共用同一个登录页）。
  *
  * <p>本接口只负责“登录页能看到什么租户”：登录页没有登录人，无法按维护人过滤，
  * 因此列出**全部启用中**的租户，并对配置不全（缺 AppKey / AgentId / Secret）的租户

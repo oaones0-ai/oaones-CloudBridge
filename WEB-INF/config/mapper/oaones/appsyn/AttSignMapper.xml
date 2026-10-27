@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 考勤同步：E9 标准考勤打卡表（HrmScheduleSign）的读写。
+
+  表名由 ${attSignTable} 传入（oaones.appsyn.properties#att.sign.table，默认 HrmScheduleSign），
+  换 E9 版本 / 换表名只改配置、不动代码（需求 3.6.8）。
+  写入字段与 E9 自己的考勤导入完全一致（KQScheduleSignImport / SynDingTalkDataCmd）：
+    userid / usertype=1 / signtype（1 签到 / 2 签退）/ signdate / signtime /
+    isincom=1 / isimport=1 / signfrom（平台来源标识；补卡写 card: 前缀）/
+    clientaddress / longitude / latitude / addr（平台只给摘要时留空）。
+  只写打卡记录 + 由 Service 触发标准格式化，不改考勤组 / 排班 / 节假日 / 异常规则（需求 3.6.5）。
+  人名字段做兼容：E9 不同版本 signdate / signtime 可能是 varchar 或 datetime，
+  这里一律按字符串比较写入（与平台自己的写法一致）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.AttSignMapper">
+
+    <insert id="insertSign" useGeneratedKeys="true" keyProperty="oaSignId">
+        insert into ${attSignTable}
+            (userid, usertype, signtype, signdate, signtime, clientaddress, isincom, isimport,
+             signfrom, longitude, latitude, addr)
+        values
+            (#{oaUserId}, 1, #{signType}, #{signDate}, #{signTime}, #{clientAddress}, 1, #{isImport},
+             #{signFrom}, #{longitude}, #{latitude}, #{addr})
+    </insert>
+
+    <delete id="deleteSignByUserDate">
+        delete from ${attSignTable}
+        where userid = #{oaUserId} and signdate = #{signDate} and signfrom = #{signFrom}
+    </delete>
+
+    <!--
+      「先删后插」的批量口径（需求 3.6.6 / Q7）：
+      只删**本平台来源**（signfrom in 平台来源集合：正常 + 补卡）、落在**本次时间窗**内
+      （signdate between winFromDate ~ winToDate）且属于本次处理人员的记录；
+      其它来源（e9pc / e9mobile / card: 真补卡流程 / importExcel …）一律不碰。
+      时间窗按“打卡日期 + 1 天”覆盖跨天班次（前一天 21:00 上班、当天 06:00 下班那种）。
+    -->
+    <delete id="deleteSignByWindow">
+        delete from ${attSignTable}
+        where signdate &gt;= #{winFromDate} and signdate &lt;= #{winToDate}
+          and signfrom in
+          <foreach collection="signFroms" item="src" open="(" separator="," close=")">#{src}</foreach>
+          <if test="userIds != null and userIds.size() > 0">
+              and userid in
+              <foreach collection="userIds" item="uid" open="(" separator="," close=")">#{uid}</foreach>
+          </if>
+    </delete>
+
+    <select id="countSignByKey" resultType="int">
+        select count(1) from ${attSignTable}
+        where userid = #{oaUserId} and signdate = #{signDate} and signtime = #{signTime}
+          and signtype = #{signType} and signfrom in
+          <foreach collection="signFroms" item="src" open="(" separator="," close=")">#{src}</foreach>
+    </select>
+
+    <!-- 反向同步幂等：OA 侧是否已经有一条同样“人员 + 打卡时间 + 类型”的打卡（同一次打卡只推一次） -->
+    <select id="findSignIdByKey" resultType="java.lang.String">
+        select top 1 cast(id as varchar(64)) from ${attSignTable}
+        where userid = #{oaUserId} and signdate = #{signDate} and signtime = #{signTime}
+          and signtype = #{signType}
+        order by id
+    </select>
+
+    <!--
+      反向同步取数（OA → 第三方）：时间窗内的 OA 打卡记录。
+      只取 OA 侧真实产生的打卡：排除 excludeSources 里的来源（本功能从第三方导入回来的记录、
+      E9 自带导入来源），避免来回搬运（需求 3.9.1 / Q9）。
+      明细里再按映射表二次排除（source = 0 的导入映射）。
+    -->
+    <select id="listOaPunch" resultType="com.customization.oaones.appsyn.dto.AttOaPunch">
+        select top (#{limit})
+               cast(id as varchar(64)) as sign_id,
+               cast(userid as int) as oa_user_id,
+               signdate as sign_date,
+               signtime as sign_time,
+               isnull(signdate, '') + ' ' + isnull(signtime, '') as sign_datetime,
+               cast(signtype as int) as sign_type,
+               isnull(signfrom, '') as sign_from
+        from ${attSignTable}
+        where signdate &gt;= #{fromDate} and signdate &lt;= #{toDate}
+        <if test="userIds != null and userIds.size() > 0">
+            and userid in
+            <foreach collection="userIds" item="uid" open="(" separator="," close=")">#{uid}</foreach>
+        </if>
+        <if test="signTypes != null and signTypes.size() > 0">
+            and signtype in
+            <foreach collection="signTypes" item="st" open="(" separator="," close=")">#{st}</foreach>
+        </if>
+        <if test="excludeSources != null and excludeSources.size() > 0">
+            and (signfrom is null or signfrom = '' or signfrom not in
+            <foreach collection="excludeSources" item="src" open="(" separator="," close=")">#{src}</foreach>
+            )
+        </if>
+        order by signdate, signtime, userid
+    </select>
+
+    <select id="getOaPunch" resultType="com.customization.oaones.appsyn.dto.AttOaPunch">
+        select cast(id as varchar(64)) as sign_id,
+               cast(userid as int) as oa_user_id,
+               signdate as sign_date,
+               signtime as sign_time,
+               isnull(signdate, '') + ' ' + isnull(signtime, '') as sign_datetime,
+               cast(signtype as int) as sign_type,
+               isnull(signfrom, '') as sign_from
+        from ${attSignTable}
+        where id = #{signId}
+    </select>
+</mapper>

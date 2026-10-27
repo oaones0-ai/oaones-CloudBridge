@@ -28,7 +28,7 @@ import java.util.Set;
  *
  * <p>OA 侧读 E9 组织缓存（SubCompanyComInfo / DepartmentComInfo 快照，见
  * {@link OaServiceImpl#listSubCompaniesFromCache()} / {@link OaServiceImpl#listDepartmentsFromCache()}），
- * 企微侧读部门快照（{@code uf_oaones_dep_tmp}，不实时调用企业微信）。</p>
+ * 企微侧读部门快照（{@code uf_oaones_appsyn_dep_tmp}，不实时调用企业微信）。</p>
  */
 public class SyncScopeServiceImpl implements SyncScopeService {
 

@@ -10,8 +10,8 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * 接口日志中心控制器（action 前缀 apilog.，三个连接器共用同一实现）。
  *
- * <p>入口：一级菜单「接口日志中心」`/oaones/apiLog/apiLog.jsp`（自带接口入口
- * `/oaones/apiLog/api.jsp`，也按 action 前缀路由到本控制器，见三个连接器的
+ * <p>入口：一级菜单「接口日志中心」`/oaones/appsyn/apiLog/apiLog.jsp`（自带接口入口
+ * `/oaones/appsyn/apiLog/api.jsp`，也按 action 前缀路由到本控制器，见三个连接器的
  * {@code controller.*.OaonesController#route}）。</p>
  *
  * <p>只读 + 清理：没有设置类写入口。查询 / 详情按登录人权限过滤

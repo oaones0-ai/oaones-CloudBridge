@@ -7,7 +7,7 @@ import com.alibaba.fastjson.JSONObject;
  *
  * <p>为什么要自建二维码：飞书托管的 {@code qrConnect} 二维码页是按“单个企业的单个应用”
  * 生成的，一个二维码只能服务一家企业；而 OA 侧自己生成的二维码内容只是
- * {@code /oaones/login/scan.jsp?t=<ticket>}（统一扫码落地页识别到飞书客户端后分派到本实现），扫码方（飞书客户端）打开后
+ * {@code /oaones/appsyn/login/scan.jsp?t=<ticket>}（统一扫码落地页识别到飞书客户端后分派到本实现），扫码方（飞书客户端）打开后
  * 由 OA 按扫码客户端判断平台、再依次用它已对接的租户配置换成员身份——
  * 于是一张二维码可以同时服务**多个飞书租户**，后续接飞书也不用换二维码。</p>
  *

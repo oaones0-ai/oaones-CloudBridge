@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.customization.oaones.appsyn.common.OaonesRules;
 
 /**
- * 默认人员绑定规则配置（业务表名取 oaones.properties#oaones_user_rule_table）。
+ * 默认人员绑定规则配置（业务表名取 oaones.appsyn.properties#oaones_user_rule_table）。
  *
  * <p>cfg_id 为空/0 表示“默认配置”；非空表示某个钉钉租户的独立配置。
  * “绑定详情 → 默认批量绑定”优先取当前租户独立配置，租户未配置时自动回退默认配置。</p>

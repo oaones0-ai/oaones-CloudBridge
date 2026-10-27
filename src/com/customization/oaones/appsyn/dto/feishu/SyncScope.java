@@ -13,7 +13,7 @@ import java.util.List;
  *   <li>OA 侧：页面上选择的 OA 分部 / OA 部门（分部自动含其下级分部与部门，部门自动含其下级部门），
  *       解析后落在 {@link #getOaDepts()}（按“父 → 子”层级排序）；</li>
  *   <li>飞书侧：页面上选择的飞书租户下部门（自动含其下级部门）；
- *       <b>不指定部门时取租户配置的 root 节点</b>（{@code uf_oaones_qywx_config.root_dept_id}），
+ *       <b>不指定部门时取租户配置的 root 节点</b>（{@code uf_oaones_appsyn_qywx_config.root_dept_id}），
  *       解析后落在 {@link #getWxDepts()}（按“父 → 子”层级排序）。</li>
  * </ul>
  *

@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * E9 标准考勤打卡表（HrmScheduleSign）的读写 Mapper
- * （表名由 {@code oaones.properties#att.sign.table} 配置，经 {@code ${attSignTable}} 传入）。
+ * （表名由 {@code oaones.appsyn.properties#att.sign.table} 配置，经 {@code ${attSignTable}} 传入）。
  *
  * <p>口径与 E9 自己的“考勤数据导入”完全一致（见平台源码
  * {@code com.engine.kq.biz.KQScheduleSignImport#ExcelToDB} 与

@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.dingtalk;
 
 /**
- * 统一登录设置实体（对应业务表：表名取 oaones.properties#oaones_login_config_table，
+ * 统一登录设置实体（对应业务表：表名取 oaones.appsyn.properties#oaones_login_config_table，
  * 建模模块ID按表名反查，配置里不出现）。
  *
  * <p>一行 = 统一登录页的一套设置：开哪些登录方式（账号密码 / 验证登录 / 扫码登录）、
@@ -28,14 +28,14 @@ public class LoginConfig {
     private Integer dingtalkQrEnable;
     /** 个人微信登录：0 关 / 1 开（仅保留配置项，尚未接入）。 */
     private Integer personalWxEnable;
-    /** 扫码二维码有效期（秒）；空/0 时用 oaones.properties 的 login.qr.ttl。 */
+    /** 扫码二维码有效期（秒）；空/0 时用 oaones.appsyn.properties 的 login.qr.ttl。 */
     private Integer qrTtlSeconds;
     /**
-     * 登录页 logo 的站内地址（页面上传后落 {@code /oaones/img/loginlogo_xxx.png}）；空 = 登录页不显示 logo。
+     * 登录页 logo 的站内地址（页面上传后落 {@code /oaones/appsyn/img/loginlogo_xxx.png}）；空 = 登录页不显示 logo。
      */
     private String logo;
     /**
-     * 登录页**整页背景图**的站内地址（页面上传后落 {@code /oaones/img/loginbg_xxx.png}）；
+     * 登录页**整页背景图**的站内地址（页面上传后落 {@code /oaones/appsyn/img/loginbg_xxx.png}）；
      * 空 = 用系统默认底色（{@code --oa-g-50}）。
      */
     private String bgImage;

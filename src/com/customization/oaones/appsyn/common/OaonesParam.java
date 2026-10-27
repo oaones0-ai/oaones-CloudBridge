@@ -38,13 +38,13 @@ public final class OaonesParam {
     /** 应用中心表（第三方应用列表：默认地址 + 单点登录实现类）物理名。 */
     public static final String APP_TABLE = "appTable";
 
-    /** 会议 / 日程同步设置表物理名（uf_oaones_mtg_sync，biz 区分会议 / 日程）。 */
+    /** 会议 / 日程同步设置表物理名（uf_oaones_appsyn_mtg_sync，biz 区分会议 / 日程）。 */
     public static final String MTG_SYNC_TABLE = "mtgSyncTable";
-    /** 会议 / 日程同步记录表物理名（uf_oaones_mtg_sync_log）。 */
+    /** 会议 / 日程同步记录表物理名（uf_oaones_appsyn_mtg_sync_log）。 */
     public static final String MTG_SYNC_LOG_TABLE = "mtgSyncLogTable";
-    /** 会议 / 日程同步「个人同步开关」表物理名（uf_oaones_mtg_sync_user）。 */
+    /** 会议 / 日程同步「个人同步开关」表物理名（uf_oaones_appsyn_mtg_sync_user）。 */
     public static final String MTG_SYNC_USER_TABLE = "mtgSyncUserTable";
-    /** 会议 / 日程同步「对象映射」表物理名（uf_oaones_mtg_link）。 */
+    /** 会议 / 日程同步「对象映射」表物理名（uf_oaones_appsyn_mtg_link）。 */
     public static final String MTG_LINK_TABLE = "mtgLinkTable";
     /** OA 会议来源表物理名（E9 Meeting，可配）。 */
     public static final String MTG_MEETING_TABLE = "mtgMeetingTable";
@@ -55,15 +55,15 @@ public final class OaonesParam {
     /** OA 日程参与人表物理名（E9 workplanMember，可配）。 */
     public static final String MTG_SCHEDULE_MEMBER_TABLE = "mtgScheduleMemberTable";
 
-    /** 考勤同步设置表物理名（uf_oaones_att_cfg，一行 = 平台 + 租户 + 方向，可多条）。 */
+    /** 考勤同步设置表物理名（uf_oaones_appsyn_att_cfg，一行 = 平台 + 租户 + 方向，可多条）。 */
     public static final String ATT_CFG_TABLE = "attCfgTable";
-    /** 考勤同步「计划任务」时间段明细表物理名（uf_oaones_att_plan_item）。 */
+    /** 考勤同步「计划任务」时间段明细表物理名（uf_oaones_appsyn_att_plan_item）。 */
     public static final String ATT_PLAN_ITEM_TABLE = "attPlanItemTable";
-    /** 考勤同步批次表物理名（uf_oaones_att_log）。 */
+    /** 考勤同步批次表物理名（uf_oaones_appsyn_att_log）。 */
     public static final String ATT_LOG_TABLE = "attLogTable";
-    /** 考勤同步打卡明细表物理名（uf_oaones_att_log_item）。 */
+    /** 考勤同步打卡明细表物理名（uf_oaones_appsyn_att_log_item）。 */
     public static final String ATT_LOG_ITEM_TABLE = "attLogItemTable";
-    /** 考勤同步映射表物理名（uf_oaones_att_link）。 */
+    /** 考勤同步映射表物理名（uf_oaones_appsyn_att_link）。 */
     public static final String ATT_LINK_TABLE = "attLinkTable";
     /** E9 标准考勤打卡表物理名（HrmScheduleSign，可配）：正向同步的写入目标。 */
     public static final String ATT_SIGN_TABLE = "attSignTable";

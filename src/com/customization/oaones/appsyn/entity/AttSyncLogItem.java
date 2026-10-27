@@ -1,10 +1,10 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 考勤同步**打卡明细**实体（业务表：表名取 {@code oaones.properties#oaones_att_log_item_table}）。
+ * 考勤同步**打卡明细**实体（业务表：表名取 {@code oaones.appsyn.properties#oaones_att_log_item_table}）。
  *
  * <p>一行 = 一条打卡的一次同步动作（新增 / 更新 / 跳过 / 失败），是问题追溯的**最小单位**：
- * 「这条打卡为什么没进 OA」在批次（{@link AttSyncLog}）+ 明细（本类）+ 接口报文（{@code uf_oaones_api_log}）
+ * 「这条打卡为什么没进 OA」在批次（{@link AttSyncLog}）+ 明细（本类）+ 接口报文（{@code uf_oaones_appsyn_api_log}）
  * 三层信息里都查得到（需求 3.8 / 验收 9）。</p>
  *
  * <p>个人信息控制（需求 5.3）：只落必要字段，平台原始的打卡类型 / 设备 / 地点只存**摘要**
@@ -13,13 +13,13 @@ package com.customization.oaones.appsyn.entity;
 public class AttSyncLogItem {
 
     private Integer id;
-    /** 所属批次ID（{@code uf_oaones_att_log.id}）。 */
+    /** 所属批次ID（{@code uf_oaones_appsyn_att_log.id}）。 */
     private Integer logId;
     /** 平台类型：0 企微 / 1 钉钉 / 2 飞书。 */
     private Integer type;
     /** 租户配置ID。 */
     private Integer cfgid;
-    /** 同步设置ID（{@code uf_oaones_att_cfg.id}）。 */
+    /** 同步设置ID（{@code uf_oaones_appsyn_att_cfg.id}）。 */
     private Integer cfgId;
     /** 方向：1 第三方→OA / 2 OA→第三方。 */
     private Integer dir;
@@ -55,7 +55,7 @@ public class AttSyncLogItem {
     private String oaSignId;
     /** 平台侧记录标识（平台返回的打卡记录ID / 补卡单号）。 */
     private String wxRecordId;
-    /** 关联的接口日志ID（{@code uf_oaones_api_log.id}），明细行可直接跳报文。 */
+    /** 关联的接口日志ID（{@code uf_oaones_appsyn_api_log.id}），明细行可直接跳报文。 */
     private Integer apiLogId;
     /** 打卡时间所在日（时间窗过滤的归类日期，页面按天筛选用）。 */
     private String winDate;

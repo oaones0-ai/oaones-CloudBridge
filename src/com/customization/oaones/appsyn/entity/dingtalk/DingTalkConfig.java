@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.dingtalk;
 
 /**
- * 钉钉租户配置实体（对应业务表：表名取 oaones.properties#oaones_qywx_config_table，
+ * 钉钉租户配置实体（对应业务表：表名取 oaones.appsyn.properties#oaones_qywx_config_table，
  * 建模模块ID按表名反查，配置里不出现）。
  */
 public class DingTalkConfig {

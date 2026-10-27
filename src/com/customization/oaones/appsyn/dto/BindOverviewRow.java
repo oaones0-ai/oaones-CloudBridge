@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.dto;
 
 /**
- * 绑定总览行（`/oaones/index/BindOverview.jsp` 用，只读）。
+ * 绑定总览行（`/oaones/appsyn/index/BindOverview.jsp` 用，只读）。
  *
  * <p>总览页把三个连接器（企微 / 钉钉 / 飞书）的全部平台租户放在一起展示，
  * 两类绑定各有各的列，本 DTO 用一份字段承载两类行的并集：</p>

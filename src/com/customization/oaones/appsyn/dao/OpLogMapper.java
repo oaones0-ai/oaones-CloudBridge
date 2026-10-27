@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 操作监控日志 Mapper（表名由调用方按 {@code oaones.properties#oaones_op_log_table} 传入）。
+ * 操作监控日志 Mapper（表名由调用方按 {@code oaones.appsyn.properties#oaones_op_log_table} 传入）。
  *
  * <p>另带两条与 E9 平台表（不做改名）的只读查询：菜单索引 {@link #listMenus()}、
  * 人员信息 {@link #findUser(int)}——它们都不是本模块的业务表，固定读 E9 标准表名。</p>

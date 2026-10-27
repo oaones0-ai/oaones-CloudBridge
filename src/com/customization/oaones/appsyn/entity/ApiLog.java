@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity;
 
 /**
- * 接口日志（表名取 oaones.properties#oaones_api_log_table）。
+ * 接口日志（表名取 oaones.appsyn.properties#oaones_api_log_table）。
  *
  * <p>一行 = 一次接口调用：既包含 OAones 发往第三方平台（企业微信 / 钉钉 / 飞书 / 个人微信）
  * 的请求，也包含第三方平台调用 OAones 的入口（统一消息接口 / 工作台免登 / 扫码回调）。
@@ -16,7 +16,7 @@ public class ApiLog {
     private Long id;
     /** 平台类型：0 企业微信 / 1 钉钉 / 2 飞书 / 3 个人微信（无租户）。 */
     private Integer type;
-    /** 租户配置ID（uf_oaones_qywx_config.id）；个人微信 / 无法归属的调用为 0。 */
+    /** 租户配置ID（uf_oaones_appsyn_qywx_config.id）；个人微信 / 无法归属的调用为 0。 */
     private Integer cfgId;
     /** 租户名称（落库快照，便于日志不依赖配置表）。 */
     private String corpName;

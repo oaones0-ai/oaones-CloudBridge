@@ -14,17 +14,17 @@ import javax.servlet.http.HttpServletRequest;
  *
  * <p>两条入口共用本控制器：</p>
  * <ul>
- *   <li><b>个人账号中心 → 个人微信</b>（`/oaones/accountCenter/MyAccount.jsp?tab=personalwx`）：
+ *   <li><b>个人账号中心 → 个人微信</b>（`/oaones/appsyn/accountCenter/MyAccount.jsp?tab=personalwx`）：
  *       {@code pw.mine} / {@code pw.qrStart}（不带 oa_user_id = 本人）/ {@code pw.unbind}（同上），
  *       本人自助，所有读写都限定在登录会话本人的那一行；</li>
- *   <li><b>微信设置</b>（`/oaones/personalWx/config.jsp`，独立一级菜单）：
+ *   <li><b>微信设置</b>（`/oaones/appsyn/personalWx/config.jsp`，独立一级菜单）：
  *       {@code pw.config} / {@code pw.save} 维护微信授权密钥，
  *       {@code pw.list} 取“一行一个 OA 有效账号（含超管账号）”的绑定列表，
  *       {@code pw.qrStart} / {@code pw.unbind} 带 {@code oa_user_id} 时为员工绑定 / 解绑
  *       （服务端再校验一次维护人权限）。</li>
  * </ul>
  *
- * <p>{@code pw.scanConfirm} 由回调页 {@code /oaones/personalWx/PersonalWxCallback.jsp} 直接调用
+ * <p>{@code pw.scanConfirm} 由回调页 {@code /oaones/appsyn/personalWx/PersonalWxCallback.jsp} 直接调用
  * （不经 api.jsp）：扫码回调可能发生在没有登录会话的场景，发起人身份取自带签名且未过期的 state。</p>
  */
 public class PersonalWxController extends BaseController {
@@ -79,7 +79,7 @@ public class PersonalWxController extends BaseController {
      * 扫码回调地址前缀：协议 + 域名 + 端口（不含路径）。
      *
      * <p>redirect_uri 必须与微信开放平台该应用登记的回调域一致；反向代理 / 多域名部署时
-     * 用 oaones.properties 的 {@code pw.bind.callback.base} 显式指定，未配置时按
+     * 用 oaones.appsyn.properties 的 {@code pw.bind.callback.base} 显式指定，未配置时按
      * 系统设置里的 OA 访问地址 → 代理透传头 → 浏览器访问地址依次兜底。</p>
      */
     private String callbackBase(HttpServletRequest request) {

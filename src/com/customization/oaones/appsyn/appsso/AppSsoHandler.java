@@ -3,7 +3,7 @@ package com.customization.oaones.appsyn.appsso;
 /**
  * 应用单点登录实现接口 —— 「应用中心」指向的“具体类”都必须实现本接口。
  *
- * <p>在应用列表（{@code /oaones/appCenter/AppList.jsp}）里给某个应用填写
+ * <p>在应用列表（{@code /oaones/appsyn/appCenter/AppList.jsp}）里给某个应用填写
  * {@code sso_class}（本接口实现类的全限定名）后，员工在桌面启动台点击该应用时，
  * 系统会把当前 OA 登录人交给该实现类，由它完成<b>对对方系统的身份认证</b>
  * （生成签名票据 / 一次性令牌 / 免登录地址等），并返回最终要跳转的地址。</p>

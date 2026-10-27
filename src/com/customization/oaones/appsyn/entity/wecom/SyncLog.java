@@ -1,7 +1,7 @@
 package com.customization.oaones.appsyn.entity.wecom;
 
 /**
- * 同步日志实体（对应业务表：表名取 oaones.properties#oaones_sync_log_table，
+ * 同步日志实体（对应业务表：表名取 oaones.appsyn.properties#oaones_sync_log_table，
  * 建模模块ID按表名反查，配置里不出现）。
  */
 public class SyncLog {

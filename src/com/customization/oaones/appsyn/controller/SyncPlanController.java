@@ -13,8 +13,8 @@ import java.util.List;
 /**
  * 同步中心“同步设置”控制器（action 前缀 syncplan.，三个连接器共用同一实现）。
  *
- * <p>入口：一级菜单“同步中心”（`/oaones/syncCenter/syncCenter.jsp`）与
- * 各连接器的同步中心页（`/oaones/syncCenter/{WeCom,DingTalk,Feishu}/sync.jsp`），
+ * <p>入口：一级菜单“同步中心”（`/oaones/appsyn/syncCenter/syncCenter.jsp`）与
+ * 各连接器的同步中心页（`/oaones/appsyn/syncCenter/{WeCom,DingTalk,Feishu}/sync.jsp`），
  * 页面按当前平台走对应的 api.jsp（WeCom / DingTalk / Feishu），三个入口都路由到本控制器。</p>
  *
  * <p>分权：带 cfg_id 的请求（保存 / 删除 / 立即执行 / 单租户列表）都按“租户维护人”校验；

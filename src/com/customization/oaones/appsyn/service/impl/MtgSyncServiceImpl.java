@@ -64,7 +64,7 @@ import java.util.Set;
  *
  * <p>会议（{@code biz = 0}，来源 E9 Meeting）与日程（{@code biz = 1}，来源 E9 WorkPlan）
  * 共用同一套逻辑：按租户的设置取“分部范围”内的对象，逐个推送到该平台（企微 / 钉钉 / 飞书）的日程，
- * 逐条写 {@code uf_oaones_mtg_sync_log}；页面「同步记录」直接读这张表。</p>
+ * 逐条写 {@code uf_oaones_appsyn_mtg_sync_log}；页面「同步记录」直接读这张表。</p>
  *
  * <p>平台差异收敛在 {@link MtgPushAdapter}（企微 / 钉钉 / 飞书各一个实现），本类只做分派。</p>
  */
@@ -106,7 +106,7 @@ public class MtgSyncServiceImpl implements MtgSyncService {
      */
     private static final int PLAN_ITEM_LOOKAHEAD_DAYS = 60;
 
-    /** 计划任务那一行的主键：{@code uf_oaones_mtg_cron} 与时间段明细 {@code plan_id} 都用它。 */
+    /** 计划任务那一行的主键：{@code uf_oaones_appsyn_mtg_cron} 与时间段明细 {@code plan_id} 都用它。 */
     private static final int PLAN_ID = 1;
 
     /** 计划（cron）预测用的时间格式：yyyy-MM-dd HH:mm:ss。 */
@@ -1508,7 +1508,7 @@ public class MtgSyncServiceImpl implements MtgSyncService {
         } catch (Throwable t) {
             if (PLAN_ITEM_ERROR_LOGGED.compareAndSet(false, true)) {
                 OaonesLog.error("[mtgSync] 读取计划任务的时间段明细失败（请确认已执行 "
-                        + "uf_oaones_mtg_plan_item 建表 / 升级脚本并重启 E9）", t);
+                        + "uf_oaones_appsyn_mtg_plan_item 建表 / 升级脚本并重启 E9）", t);
             }
             return new ArrayList<MtgPlanItem>();
         }
@@ -1538,7 +1538,7 @@ public class MtgSyncServiceImpl implements MtgSyncService {
         json.put("day_cron", dayCron);
         json.put("night_cron", nightCron);
         json.put("cron_day_type", cronDayType);
-        // 「恢复默认」用：白天每小时一次、其余时段每 2 小时一次（oaones.properties 的两个默认值）
+        // 「恢复默认」用：白天每小时一次、其余时段每 2 小时一次（oaones.appsyn.properties 的两个默认值）
         json.put("default_day_cron", cronOfMinutes(OaonesProps.mtgPullHourlyMinutes()));
         json.put("default_night_cron", cronOfMinutes(OaonesProps.mtgPullOffhourMinutes()));
         json.put("day_from", OaonesProps.mtgPullHourFrom());
@@ -1612,8 +1612,8 @@ public class MtgSyncServiceImpl implements MtgSyncService {
     }
 
     /**
-     * 读计划任务那一行（表 {@code uf_oaones_mtg_cron} 只保留一行 id = 1）：
-     * 没有行 / 表还没升级时返回 null，调用方按 {@code oaones.properties} 的默认频率处理。
+     * 读计划任务那一行（表 {@code uf_oaones_appsyn_mtg_cron} 只保留一行 id = 1）：
+     * 没有行 / 表还没升级时返回 null，调用方按 {@code oaones.appsyn.properties} 的默认频率处理。
      */
     private MtgCron planRow() {
         try {
@@ -1621,8 +1621,8 @@ public class MtgSyncServiceImpl implements MtgSyncService {
         } catch (Throwable t) {
             // 每 60 秒见一次，表没建好时不要把日志刷满：同一个 JVM 只提示一次
             if (PLAN_ERROR_LOGGED.compareAndSet(false, true)) {
-                OaonesLog.error("[mtgSync] 读取计划任务失败（按 oaones.properties 的默认频率执行；"
-                        + "请确认已执行 uf_oaones_mtg_cron 建表脚本并重启 E9）", t);
+                OaonesLog.error("[mtgSync] 读取计划任务失败（按 oaones.appsyn.properties 的默认频率执行；"
+                        + "请确认已执行 uf_oaones_appsyn_mtg_cron 建表脚本并重启 E9）", t);
             }
             return null;
         }
@@ -2208,7 +2208,7 @@ public class MtgSyncServiceImpl implements MtgSyncService {
     }
 
     // ==================================================================
-    // 对象映射（uf_oaones_mtg_link）：变更快照 + 删除对账
+    // 对象映射（uf_oaones_appsyn_mtg_link）：变更快照 + 删除对账
     // ==================================================================
 
     /** 按 OA 对象ID 找映射（没有返回 null）。 */

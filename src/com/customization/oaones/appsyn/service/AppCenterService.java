@@ -10,7 +10,7 @@ import java.util.Map;
  *
  * <p>「应用中心」是**没有租户维度**的公共菜单（与个人微信同口径）：
  * 一套部署只有一份应用列表，因此接口里没有 cfg_id，也不做租户分权，
- * 维护权限按“系统管理员 + {@code oaones.properties#appc.admin.ids}”判定。</p>
+ * 维护权限按“系统管理员 + {@code oaones.appsyn.properties#appc.admin.ids}”判定。</p>
  */
 public interface AppCenterService {
 
@@ -55,11 +55,11 @@ public interface AppCenterService {
     JSONObject delete(String id, String operatorId);
 
     /**
-     * 图标上传（页面上传，不手填地址）：把上传的图片落到 {@code oaones/img/} 下，
+     * 图标上传（页面上传，不手填地址）：把上传的图片落到 {@code oaones/appsyn/img/} 下，
      * 返回该图片的站内地址给页面回填到记录里。
      *
      * <p>只做“校验 + 落盘 + 回地址”，不写业务表：维护人上传完图标后按保存，
-     * 地址才随 {@link #save} 一起写进 {@code uf_oaones_app.icon}。
+     * 地址才随 {@link #save} 一起写进 {@code uf_oaones_appsyn_app.icon}。
      * 这也是本模块唯一的文件上传入口，因此：
      * 只有 {@code appc.admin.ids} 与系统管理员能调（{@code assertMaintain}），
      * 文件类型按**文件头**判定（客户改后缀名传上来的其它文件会被拒），

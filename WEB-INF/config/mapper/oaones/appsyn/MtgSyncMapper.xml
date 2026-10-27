@@ -1,0 +1,673 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 会议 / 日程同步（uf_oaones_appsyn_mtg_sync / uf_oaones_appsyn_mtg_sync_log）
+
+  一行设置 = 一个「业务（会议 / 日程）+ 平台 + 租户」（biz 0 会议 / 1 日程，type 0 企微 / 1 钉钉 / 2 飞书）；
+  一行记录 = 一个 OA 会议 / 日程 在某次同步里的一个动作（0 新增 / 1 更新 / 2 跳过 / 3 失败）。
+  会议取 E9 Meeting（分部在 hrmSubCompanys，逗号分隔）、日程取 E9 WorkPlan（分部在 subcompanyId）；
+  来源表名可配（OaonesProps#mtgMeetingTable 等），这里用 ${...} 占位。
+  数据库方言与其它 oaones Mapper 一致（分页/取一条都用 SQL Server 的 top）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.MtgSyncMapper">
+
+    <sql id="colsCfg">
+        id, biz, type, cfgid, enabled, dir_oa2third, dir_third2oa, app_id, remark,
+        modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <sql id="colsLog">
+        l.id, l.biz, l.type, l.cfgid, l.batch_id, l.oa_id, l.oa_title, l.oa_sub_id, l.oa_sub_name,
+        l.oa_dept_id, l.oa_dept_name, l.begin_time, l.end_time, l.wx_id, l.op, l.message,
+        l.modedatacreater, l.modedatacreatedate, l.modedatacreatetime, l.modedatamodifier, l.modedatamodifydatetime
+    </sql>
+
+    <!-- 按业务 + 平台（+ 可选租户 / 可维护租户集合）列设置 -->
+    <select id="listCfg" resultType="com.customization.oaones.appsyn.entity.MtgSyncCfg">
+        select <include refid="colsCfg"/> from ${mtgSyncTable}
+        <where>
+            <if test="biz != null">and biz = #{biz}</if>
+            <if test="type != null">and type = #{type}</if>
+            <if test="cfgId != null">and cfgid = #{cfgId}</if>
+            <if test="cfgIds != null">
+                <choose>
+                    <when test="cfgIds.size() > 0">
+                        and cfgid in
+                        <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+                    </when>
+                    <otherwise>and 1 = 0</otherwise>
+                </choose>
+            </if>
+        </where>
+        order by cfgid, id
+    </select>
+
+    <select id="getCfg" resultType="com.customization.oaones.appsyn.entity.MtgSyncCfg">
+        select top 1 <include refid="colsCfg"/> from ${mtgSyncTable}
+        where biz = #{biz} and type = #{type} and cfgid = #{cfgId}
+        order by id
+    </select>
+
+    <select id="getCfgById" resultType="com.customization.oaones.appsyn.entity.MtgSyncCfg">
+        select <include refid="colsCfg"/> from ${mtgSyncTable} where id = #{id}
+    </select>
+
+    <!-- 内置调度器扫描：启用中的设置（enabled = 1），按业务 / 平台可选过滤 -->
+    <select id="listEnabledCfg" resultType="com.customization.oaones.appsyn.entity.MtgSyncCfg">
+        select top ${limit} <include refid="colsCfg"/> from ${mtgSyncTable}
+        where enabled = 1
+        <if test="biz != null">and biz = #{biz}</if>
+        <if test="type != null">and type = #{type}</if>
+        order by id
+    </select>
+
+    <insert id="insertCfg">
+        insert into ${mtgSyncTable}
+            (biz, type, cfgid, enabled, dir_oa2third, dir_third2oa, app_id, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.biz}, #{e.type}, #{e.cfgid}, #{e.enabled}, #{e.dirOa2Third}, #{e.dirThird2Oa}, #{e.appId}, #{e.remark},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="updateCfg">
+        update ${mtgSyncTable}
+        set enabled = #{e.enabled},
+            dir_oa2third = #{e.dirOa2Third},
+            dir_third2oa = #{e.dirThird2Oa},
+            app_id = #{e.appId},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <!-- “每个租户单独开关”：只改 enabled -->
+    <update id="updateEnabled">
+        update ${mtgSyncTable}
+        set enabled = #{enabled},
+            modedatamodifier = #{modifier},
+            modedatamodifydatetime = #{modifyTime}
+        where id = #{id}
+    </update>
+
+    <!-- 「绑定应用」：只改 app_id（会议 / 日程同步用哪个“应用绑定”记录调平台日程接口） -->
+    <update id="updateApp">
+        update ${mtgSyncTable}
+        set app_id = #{appId},
+            modedatamodifier = #{modifier},
+            modedatamodifydatetime = #{modifyTime}
+        where id = #{id}
+    </update>
+
+    <!--
+      「绑定应用」下拉候选：该平台（type）当前登录人可维护租户下的应用绑定记录。
+      只取页面要显示的字段 + 两个“Secret 是否已配置”标志位（应用自己的 / 租户配置兜底的），
+      **不取 Secret 本身**（密钥不下发到页面；真正取凭据走后端 getAppById）。
+    -->
+    <select id="listAppOptions" resultType="com.customization.oaones.appsyn.dto.MtgAppOption">
+        select b.id, b.cfg_id, b.app_name, b.agent_id, b.yx,
+               case when b.app_secret is null or b.app_secret = '' then 0 else 1 end as secret_configured,
+               case when c.corp_secret is null or c.corp_secret = '' then 0 else 1 end as cfg_secret_configured
+        from ${appBindTable} b
+        left join ${cfgTable} c on c.id = b.cfg_id
+        where c.type = #{type}
+        <if test="cfgIds != null">
+            <choose>
+                <when test="cfgIds.size() > 0">
+                    and b.cfg_id in
+                    <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+                </when>
+                <otherwise>and 1 = 0</otherwise>
+            </choose>
+        </if>
+        order by b.cfg_id, b.id
+    </select>
+
+    <!-- 后端取凭据：按应用绑定记录ID 取一条（带应用 Secret 与租户 corpId / corpSecret，供“用哪份 Secret”判断） -->
+    <select id="getAppById" resultType="com.customization.oaones.appsyn.dto.MtgAppOption">
+        select b.id, b.cfg_id, b.app_name, b.agent_id, b.app_secret, b.yx,
+               c.corp_id as cfg_corp_id, c.corp_secret as cfg_corp_secret
+        from ${appBindTable} b
+        left join ${cfgTable} c on c.id = b.cfg_id
+        where b.id = #{appId} and c.type = #{type}
+    </select>
+
+    <insert id="insertLog">
+        insert into ${mtgSyncLogTable}
+            (biz, type, cfgid, batch_id, oa_id, oa_title, oa_sub_id, oa_sub_name,
+             oa_dept_id, oa_dept_name, begin_time, end_time, wx_id, op, message,
+             modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.biz}, #{e.type}, #{e.cfgid}, #{e.batchId}, #{e.oaId}, #{e.oaTitle}, #{e.oaSubId}, #{e.oaSubName},
+             #{e.oaDeptId}, #{e.oaDeptName}, #{e.beginTime}, #{e.endTime}, #{e.wxId}, #{e.op}, #{e.message},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <sql id="logWhere">
+        <where>
+            l.biz = #{biz} and l.type = #{type}
+            <if test="cfgId != null">and l.cfgid = #{cfgId}</if>
+            <if test="cfgIds != null">
+                <choose>
+                    <when test="cfgIds.size() > 0">
+                        and l.cfgid in
+                        <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+                    </when>
+                    <otherwise>and 1 = 0</otherwise>
+                </choose>
+            </if>
+            <if test="op != null">and l.op = #{op}</if>
+            <if test="batchId != null and batchId != ''">and l.batch_id = #{batchId}</if>
+            <if test="keyword != null and keyword != ''">
+                and (l.oa_title like #{keywordLike} or l.oa_sub_name like #{keywordLike}
+                     or l.oa_dept_name like #{keywordLike} or l.oa_id like #{keywordLike})
+            </if>
+            <if test="fromDate != null and fromDate != ''">
+                and (l.modedatacreatedate &gt; #{fromDate}
+                     or (l.modedatacreatedate = #{fromDate} and l.modedatacreatetime &gt;= #{fromTime}))
+            </if>
+            <if test="toDate != null and toDate != ''">
+                and (l.modedatacreatedate &lt; #{toDate}
+                     or (l.modedatacreatedate = #{toDate} and l.modedatacreatetime &lt;= #{toTime}))
+            </if>
+        </where>
+    </sql>
+
+    <select id="listLog" resultType="com.customization.oaones.appsyn.entity.MtgSyncLog">
+        select top ${limit}
+            <include refid="colsLog"/>, c.corp_name as cfg_name
+        from ${mtgSyncLogTable} l
+        left join ${cfgTable} c on c.id = l.cfgid
+        <include refid="logWhere"/>
+        order by l.modedatacreatedate desc, l.modedatacreatetime desc, l.id desc
+    </select>
+
+    <select id="countLog" resultType="int">
+        select count(1) from ${mtgSyncLogTable} l
+        <include refid="logWhere"/>
+    </select>
+
+    <select id="lastLogOp" resultType="java.lang.Integer">
+        select top 1 l.op from ${mtgSyncLogTable} l
+        where l.biz = #{biz} and l.type = #{type} and l.cfgid = #{cfgId} and l.oa_id = #{oaId}
+        order by l.id desc
+    </select>
+
+    <select id="lastSuccessWxId" resultType="java.lang.String">
+        select top 1 l.wx_id from ${mtgSyncLogTable} l
+        where l.biz = #{biz} and l.type = #{type} and l.cfgid = #{cfgId} and l.oa_id = #{oaId}
+          and l.op in (0, 1) and l.wx_id is not null and l.wx_id &lt;&gt; ''
+        order by l.id desc
+    </select>
+
+    <!-- 「只同步一次」：这批 OA 对象里已经有同步记录（不限动作，含跳过 / 失败）的对象ID。
+         内置调度器（createOnly）据此跳过“已经处理过”的对象——失败 / 跳过不再每轮自动重推，
+         要重推由页面「同步清单」手工点「重推」。命中的都是本租户本平台的对象，
+         走 IDX_OAONES_MTG_SYNC_LOG_OA（biz, type, cfgid, oa_id）索引。 -->
+    <select id="listAttemptedOaIds" resultType="java.lang.String">
+        select distinct cast(l.oa_id as varchar(64)) from ${mtgSyncLogTable} l
+        where l.biz = #{biz} and l.type = #{type} and l.cfgid = #{cfgId}
+          and l.oa_id in
+          <foreach collection="oaIds" item="oid" open="(" separator="," close=")">#{oid}</foreach>
+    </select>
+
+    <!-- 某个 OA 对象在这个“业务 + 平台 + 租户”下的**最近一条**同步记录。
+         删除对账用它：① 源端删了对象后，记录里仍能带出标题 / 开始时间（不至于是一条空白记录）；
+         ② 上次“平台删除失败”是不是刚试过（同一对象在节流窗口内不重复试，免得每轮刷失败记录）。 -->
+    <select id="lastLog" resultType="com.customization.oaones.appsyn.entity.MtgSyncLog">
+        select top 1 <include refid="colsLog"/> from ${mtgSyncLogTable} l
+        where l.biz = #{biz} and l.type = #{type} and l.cfgid = #{cfgId} and l.oa_id = #{oaId}
+        order by l.id desc
+    </select>
+
+    <!-- 「同步清单」：按 OA 对象（会议 / 日程）维度取“最近一条”同步结果（一行一个对象，含重推后的最新状态），
+         供页面按会议维度看同步结果、对“跳过 / 失败”行重推。
+         try_count = 该对象累计同步次数（第一次 + 每次重推各算一次，与「同步记录」里的行数一致）。 -->
+    <select id="listItems" resultType="com.customization.oaones.appsyn.entity.MtgSyncLog">
+        select top ${limit}
+            <include refid="colsLog"/>, c.corp_name as cfg_name,
+            (select count(1) from ${mtgSyncLogTable} x
+              where x.biz = l.biz and x.type = l.type and x.cfgid = l.cfgid and x.oa_id = l.oa_id) as try_count
+        from ${mtgSyncLogTable} l
+        left join ${cfgTable} c on c.id = l.cfgid
+        where l.biz = #{biz} and l.type = #{type}
+          and l.id = (select max(x2.id) from ${mtgSyncLogTable} x2
+                       where x2.biz = l.biz and x2.type = l.type and x2.cfgid = l.cfgid and x2.oa_id = l.oa_id)
+          <if test="cfgId != null">and l.cfgid = #{cfgId}</if>
+          <if test="cfgIds != null">
+              <choose>
+                  <when test="cfgIds.size() > 0">
+                      and l.cfgid in
+                      <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+                  </when>
+                  <otherwise>and 1 = 0</otherwise>
+              </choose>
+          </if>
+          <if test="op != null">and l.op = #{op}</if>
+          <if test="keyword != null and keyword != ''">
+              and (l.oa_title like #{keywordLike} or l.oa_sub_name like #{keywordLike} or l.oa_id like #{keywordLike})
+          </if>
+        order by l.modedatacreatedate desc, l.modedatacreatetime desc, l.id desc
+    </select>
+
+    <!-- OA 侧来源：会议（Meeting）
+         开始 / 结束时间：优先 beginDateTime / endDateTime（E9 现成的时间串），但它**只有日期**
+         （10 位、没带时分，例如 "2026-10-10"）或为空时，改用 begindate + begintime 拼，
+         免得“OA 里明明填了开始 / 结束时间，取出来却没有时分”。取出来的可能是 "yyyy-MM-dd HH:mm"
+         （E9 的 begintime 有的版本不带秒），解析交给 OaonesUtil#parseDateTime（已兼容）。
+         分部取 hrmSubCompanys（逗号分隔），为空时退回创建人所在分部（子查询）。
+         时间窗：**新建日期在窗口内**（createdate）或**开始日期在窗口内**（begindate）都算命中，
+         这样“刚创建的会议”即便开始日期较远也能被轮询发现并同步。 -->
+    <sql id="meetingCols">
+        cast(m.id as varchar(64)) as oa_id,
+        m.name as title,
+        m.desc_n as content,
+        case
+            when len(isnull(nullif(m.beginDateTime, ''), '')) &gt;= 16 then m.beginDateTime
+            when isnull(m.begindate, '') &lt;&gt; '' then isnull(m.begindate, '') + ' ' + isnull(m.begintime, '')
+            else isnull(nullif(m.beginDateTime, ''), '')
+        end as begin_time,
+        case
+            when len(isnull(nullif(m.endDateTime, ''), '')) &gt;= 16 then m.endDateTime
+            when isnull(m.enddate, '') &lt;&gt; '' then isnull(m.enddate, '') + ' ' + isnull(m.endtime, '')
+            else isnull(nullif(m.endDateTime, ''), '')
+        end as end_time,
+        case
+            when m.hrmSubCompanys is null or m.hrmSubCompanys = ''
+            then (select cast(h.subcompanyid1 as varchar(32)) from hrmresource h where h.id = m.creater)
+            else m.hrmSubCompanys
+        end as raw_sub_ids,
+        m.hrmDepartments as dept_id,
+        cast(m.creater as varchar(32)) as owner_id,
+        m.address as location,
+        case when m.cancel = '1' then 1 else 0 end as deleted
+    </sql>
+
+    <select id="listMeetings" resultType="com.customization.oaones.appsyn.dto.MtgOaItem">
+        select top ${limit} <include refid="meetingCols"/>
+        from ${mtgMeetingTable} m
+        where (m.cancel is null or m.cancel &lt;&gt; '1')
+          and ((m.createdate &gt;= #{fromDate} and m.createdate &lt;= #{toDate})
+               or (m.begindate &gt;= #{fromDate} and m.begindate &lt;= #{toDate}))
+        order by m.begindate, m.begintime, m.id
+    </select>
+
+    <!-- 按 OA 会议ID 取单条（“重推”用；不带时间窗，历史会议也能重推） -->
+    <select id="getMeeting" resultType="com.customization.oaones.appsyn.dto.MtgOaItem">
+        select <include refid="meetingCols"/>
+        from ${mtgMeetingTable} m
+        where m.id = #{oaId}
+    </select>
+
+    <select id="listMeetingMembers" resultType="java.lang.String">
+        select cast(mm.memberid as varchar(32))
+        from ${mtgMeetingMemberTable} mm
+        where mm.meetingid = #{oaId} and mm.membertype = 0
+    </select>
+
+    <!-- OA 侧来源：日程（WorkPlan）
+         只取“有分部”的日程（subcompanyId 非空），未删除；
+         时间窗同会议：新建日期或开始日期命中窗口即可。 -->
+    <sql id="scheduleCols">
+        cast(w.id as varchar(64)) as oa_id,
+        w.name as title,
+        w.description as content,
+        isnull(w.begindate, '') + ' ' + isnull(w.begintime, '') as begin_time,
+        isnull(w.enddate, '') + ' ' + isnull(w.endtime, '') as end_time,
+        cast(w.subcompanyId as varchar(32)) as sub_id,
+        cast(w.deptId as varchar(32)) as dept_id,
+        cast(w.createrid as varchar(32)) as owner_id,
+        w.location as location,
+        case when w.deleted = '1' then 1 else 0 end as deleted
+    </sql>
+
+    <select id="listSchedules" resultType="com.customization.oaones.appsyn.dto.MtgOaItem">
+        select top ${limit} <include refid="scheduleCols"/>
+        from ${mtgScheduleTable} w
+        where (w.deleted is null or w.deleted &lt;&gt; '1')
+          and w.subcompanyId is not null
+          and ((w.createdate &gt;= #{fromDate} and w.createdate &lt;= #{toDate})
+               or (w.begindate &gt;= #{fromDate} and w.begindate &lt;= #{toDate}))
+        order by w.begindate, w.begintime, w.id
+    </select>
+
+    <!-- 按 OA 日程ID 取单条（“重推”用） -->
+    <select id="getSchedule" resultType="com.customization.oaones.appsyn.dto.MtgOaItem">
+        select <include refid="scheduleCols"/>
+        from ${mtgScheduleTable} w
+        where w.id = #{oaId}
+    </select>
+    <select id="listScheduleMembers" resultType="java.lang.String">
+        select distinct cast(wm.resourceid as varchar(32))
+        from ${mtgScheduleMemberTable} wm
+        where wm.workplanid = #{oaId} and wm.resourceid is not null
+    </select>
+
+    <!-- 一批 OA 人员ID -> 该租户已绑定的平台成员ID（未绑定的不返回） -->
+    <select id="resolvePlatformUserIds" resultType="java.lang.String">
+        select distinct b.x_user_id
+        from ${userBindTable} b
+        where b.cfg_id = #{cfgId}
+          and b.bind_state = 1
+          and b.x_user_id is not null and b.x_user_id &lt;&gt; ''
+          and b.oa_user_id in
+          <foreach collection="oaUserIds" item="uid" open="(" separator="," close=")">#{uid}</foreach>
+    </select>
+
+    <!-- ============ 个人同步开关（uf_oaones_appsyn_mtg_sync_user） ============
+         一行 = 一个「业务（biz）+ 平台（type）+ 租户（cfgid）+ OA 人员（oa_user_id）」的个人选择：
+         enabled 1 允许同步 / 0 不同步；没有行 = 默认允许同步（租户开启后默认所有人同步）。
+         这张表只影响“会议 / 日程要不要推给第三方平台”，不参与租户维护人分权。 -->
+    <sql id="colsUserPref">
+        id, biz, type, cfgid, oa_user_id, enabled, dir_mode, dir_oa2third, dir_third2oa, remark,
+        modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <select id="listUserPref" resultType="com.customization.oaones.appsyn.entity.MtgSyncUser">
+        select <include refid="colsUserPref"/> from ${mtgSyncUserTable}
+        <where>
+            <if test="biz != null">and biz = #{biz}</if>
+            <if test="type != null">and type = #{type}</if>
+            <if test="cfgId != null">and cfgid = #{cfgId}</if>
+            <if test="oaUserId != null">and oa_user_id = #{oaUserId}</if>
+            <if test="enabled != null">and enabled = #{enabled}</if>
+            <if test="cfgIds != null">
+                <choose>
+                    <when test="cfgIds.size() > 0">
+                        and cfgid in
+                        <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+                    </when>
+                    <otherwise>and 1 = 0</otherwise>
+                </choose>
+            </if>
+        </where>
+        order by cfgid, biz, id
+    </select>
+
+    <select id="getUserPref" resultType="com.customization.oaones.appsyn.entity.MtgSyncUser">
+        select top 1 <include refid="colsUserPref"/> from ${mtgSyncUserTable}
+        where biz = #{biz} and type = #{type} and cfgid = #{cfgId} and oa_user_id = #{oaUserId}
+        order by id
+    </select>
+
+    <insert id="insertUserPref">
+        insert into ${mtgSyncUserTable}
+            (biz, type, cfgid, oa_user_id, enabled, dir_mode, dir_oa2third, dir_third2oa, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.biz}, #{e.type}, #{e.cfgid}, #{e.oaUserId}, #{e.enabled},
+             #{e.dirMode}, #{e.dirOa2Third}, #{e.dirThird2Oa}, #{e.remark},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <update id="updateUserPref">
+        update ${mtgSyncUserTable}
+        set enabled = #{e.enabled},
+            dir_mode = #{e.dirMode},
+            dir_oa2third = #{e.dirOa2Third},
+            dir_third2oa = #{e.dirThird2Oa},
+            remark = #{e.remark},
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        where id = #{e.id}
+    </update>
+
+    <!-- 「个人同步方向」只读列表：非“遵循系统设置”的个人（dir_mode = 1）及其具体方向，
+         联合租户名称、OA 人员姓名与其所在分部 / 部门（列表按分部 / 部门显示并支持筛选）。
+         管理员只能查看，不能改（本人到个人中心改）。
+         筛选：租户（cfgId / cfgIds）+ 分部（subIds，页面已展开成“含下级”）+ 部门（deptIds，同上）
+              + 同步方向（direction：oa2 仅 OA→第三方 / t2oa 仅 第三方→OA / both 双向）
+              + 人员关键字（keyword，姓名 / 登录名）。 -->
+    <select id="listUserDirPref" resultType="com.customization.oaones.appsyn.entity.MtgSyncUser">
+        select top ${limit}
+            u.id, u.biz, u.type, u.cfgid, u.oa_user_id, u.enabled,
+            u.dir_mode, u.dir_oa2third, u.dir_third2oa, u.remark, u.modedatamodifydatetime,
+            c.corp_name as cfg_name, h.lastname as oa_user_name, h.loginid as oa_user_loginid,
+            h.subcompanyid1 as oa_sub_id, s.subcompanyname as oa_sub_name,
+            h.departmentid as oa_dept_id, d.departmentname as oa_dept_name
+        from ${mtgSyncUserTable} u
+        left join ${cfgTable} c on c.id = u.cfgid
+        left join hrmresource h on h.id = u.oa_user_id
+        left join hrmdepartment d on d.id = h.departmentid
+        left join hrmsubcompany s on s.id = h.subcompanyid1
+        <where>
+            u.biz = #{biz} and u.type = #{type} and u.dir_mode = 1
+            <if test="cfgId != null">and u.cfgid = #{cfgId}</if>
+            <if test="cfgIds != null">
+                <choose>
+                    <when test="cfgIds.size() > 0">
+                        and u.cfgid in
+                        <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+                    </when>
+                    <otherwise>and 1 = 0</otherwise>
+                </choose>
+            </if>
+            <if test="subIds != null and subIds.size() > 0">
+                and h.subcompanyid1 in
+                <foreach collection="subIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+            </if>
+            <if test="deptIds != null and deptIds.size() > 0">
+                and h.departmentid in
+                <foreach collection="deptIds" item="did" open="(" separator="," close=")">#{did}</foreach>
+            </if>
+            <if test="direction != null and direction != ''">
+                <choose>
+                    <when test='direction == "oa2"'>and u.dir_oa2third = 1 and u.dir_third2oa = 0</when>
+                    <when test='direction == "t2oa"'>and u.dir_oa2third = 0 and u.dir_third2oa = 1</when>
+                    <when test='direction == "both"'>and u.dir_oa2third = 1 and u.dir_third2oa = 1</when>
+                </choose>
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (h.lastname like #{keywordLike} or h.loginid like #{keywordLike})
+            </if>
+        </where>
+        order by u.modedatamodifydatetime desc, u.id desc
+    </select>
+
+    <!-- ============ 对象映射（uf_oaones_appsyn_mtg_link）：第三方向拉取与去重 ============ -->
+    <sql id="colsLink">
+        id, biz, type, cfgid, oa_id, wx_id, source, oa_hash, wx_hash, last_pull_time, remark,
+        modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime
+    </sql>
+
+    <select id="findLinkByWx" resultType="com.customization.oaones.appsyn.entity.MtgSyncLink">
+        select top 1 <include refid="colsLink"/> from ${mtgLinkTable}
+        where biz = #{biz} and type = #{type} and cfgid = #{cfgId} and wx_id = #{wxId}
+        order by id
+    </select>
+
+    <select id="findLinkByOa" resultType="com.customization.oaones.appsyn.entity.MtgSyncLink">
+        select top 1 <include refid="colsLink"/> from ${mtgLinkTable}
+        where biz = #{biz} and type = #{type} and cfgid = #{cfgId} and oa_id = #{oaId}
+        order by id
+    </select>
+
+    <!-- 由“第三方→OA”拉取建立的 OA 对象ID：OA→第三方 推送时据此跳过（平台已有，不重复推） -->
+    <select id="listPlatformOriginOaIds" resultType="java.lang.String">
+        select oa_id from ${mtgLinkTable}
+        where biz = #{biz} and type = #{type} and cfgid = #{cfgId} and source = 1
+    </select>
+
+    <insert id="insertLink">
+        insert into ${mtgLinkTable}
+            (biz, type, cfgid, oa_id, wx_id, source, oa_hash, wx_hash, last_pull_time, remark,
+             modedatacreater, modedatacreatedate, modedatacreatetime, modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.biz}, #{e.type}, #{e.cfgid}, #{e.oaId}, #{e.wxId}, #{e.source},
+             #{e.oaHash}, #{e.wxHash}, #{e.lastPullTime}, #{e.remark},
+             #{e.modedatacreater}, #{e.modedatacreatedate}, #{e.modedatacreatetime},
+             #{e.modedatamodifier}, #{e.modedatamodifydatetime})
+    </insert>
+
+    <!-- 映射列表（“删除对账”与“变了才同步”都按它逐个对象比对）：
+         按 业务 + 平台 + 租户（可选来源）取这批映射，供引擎逐条检查“OA 还在不在 / 平台还在不在”。 -->
+    <select id="listLink" resultType="com.customization.oaones.appsyn.entity.MtgSyncLink">
+        select top ${limit} <include refid="colsLink"/> from ${mtgLinkTable}
+        where biz = #{biz} and type = #{type} and cfgid = #{cfgId}
+        <if test="source != null">and source = #{source}</if>
+        order by id
+    </select>
+
+    <!-- 兼容升级：映射表还没有行时，从推送日志里按平台对象ID 反查 OA 对象ID（op 0 新增 / 1 更新 且 wx_id 命中）。 -->
+    <select id="findLoggedOaIdByWx" resultType="java.lang.String">
+        select top 1 cast(l.oa_id as varchar(64)) from ${mtgSyncLogTable} l
+        where l.biz = #{biz} and l.type = #{type} and l.cfgid = #{cfgId} and l.wx_id = #{wxId}
+          and l.op in (0, 1) and l.oa_id is not null and l.oa_id &lt;&gt; ''
+        order by l.id desc
+    </select>
+
+    <!-- 更新映射：拉取（第三方→OA）更新后只动 last_pull_time / remark；
+         推送（OA→第三方）与“变了才同步”的快照列（wx_id / oa_hash / wx_hash）按需带上（带才更新）。 -->
+    <update id="updateLink">
+        update ${mtgLinkTable}
+        <set>
+            last_pull_time = #{e.lastPullTime},
+            remark = #{e.remark},
+            <if test="e.wxId != null and e.wxId != ''">wx_id = #{e.wxId},</if>
+            <if test="e.oaHash != null">oa_hash = #{e.oaHash},</if>
+            <if test="e.wxHash != null">wx_hash = #{e.wxHash},</if>
+            modedatamodifier = #{e.modedatamodifier},
+            modedatamodifydatetime = #{e.modedatamodifydatetime}
+        </set>
+        where id = #{e.id}
+    </update>
+
+    <!-- 清掉一条映射：源端删除并已同步到接收方（或对象已不存在、没必要再跟踪）后调用 -->
+    <delete id="deleteLink">
+        delete from ${mtgLinkTable} where id = #{id}
+    </delete>
+
+    <!-- ============ 平台成员 ⇄ OA 人员（第三方向拉取用） ============ -->
+    <select id="listBoundPlatformUserIds" resultType="java.lang.String">
+        select distinct b.x_user_id
+        from ${userBindTable} b
+        where b.cfg_id = #{cfgId}
+          and b.bind_state = 1
+          and b.x_user_id is not null and b.x_user_id &lt;&gt; ''
+    </select>
+
+    <select id="mapOaUserByWx" resultType="java.lang.String">
+        select top 1 cast(b.oa_user_id as varchar(64)) from ${userBindTable} b
+        where b.cfg_id = #{cfgId} and b.bind_state = 1 and b.x_user_id = #{wxId}
+        order by b.id
+    </select>
+
+    <!-- 一批平台成员ID -> OA 人员ID（参与人批量换算；未绑定的不返回） -->
+    <select id="mapOaUsersByWx" resultType="java.util.Map">
+        select distinct cast(b.x_user_id as varchar(128)) as wx_user_id,
+               cast(b.oa_user_id as varchar(64)) as oa_user_id
+        from ${userBindTable} b
+        where b.cfg_id = #{cfgId} and b.bind_state = 1
+          and b.x_user_id in
+          <foreach collection="wxIds" item="wid" open="(" separator="," close=")">#{wid}</foreach>
+    </select>
+
+    <!-- 取 OA 会议 / 日程的创建人（拉取更新前做本人的开关 / 方向校验） -->
+    <select id="getOaOwnerId" resultType="java.lang.String">
+        <choose>
+            <when test="biz == 1">
+                select cast(w.createrid as varchar(32)) from ${mtgScheduleTable} w where w.id = #{oaId}
+            </when>
+            <otherwise>
+                select cast(m.creater as varchar(32)) from ${mtgMeetingTable} m where m.id = #{oaId}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- ============ 第三方向拉取：写入 / 更新 OA 侧对象 ============
+         会议 Meeting：id 自增；meetingstatus / requestid 是 NOT NULL，正常会议取 2 / 0。
+         日程 WorkPlan：id 自增；日程取 type_n = '3'、status = '2'、urgentLevel = '1'、createrType = '1'、deleted = '0'
+         （与 E9 自己的日程写入口径一致，见 weaver/email/MailAction 的 INSERT）。 -->
+    <insert id="insertMeeting">
+        <selectKey keyProperty="e.id" resultType="int" order="AFTER">select SCOPE_IDENTITY()</selectKey>
+        insert into ${mtgMeetingTable}
+            (name, address, begindate, begintime, enddate, endtime, desc_n, description,
+             creater, createdate, createtime, hrmSubCompanys, hrmDepartments,
+             beginDateTime, endDateTime, meetingstatus, requestid, cancel, totalmember)
+        values
+            (#{e.title}, #{e.location}, #{e.beginDate}, #{e.beginTime}, #{e.endDate}, #{e.endTime},
+             #{e.content}, #{e.content}, #{e.ownerId}, #{e.createDate}, #{e.createTime},
+             cast(#{e.subId} as varchar(32)), cast(#{e.deptId} as varchar(32)),
+             #{e.beginDateTime}, #{e.endDateTime}, 2, 0, '0',
+             <choose><when test="e.memberCount != null">#{e.memberCount}</when><otherwise>0</otherwise></choose>)
+    </insert>
+
+    <!-- 标记删除 OA 会议：平台侧删除 / 取消后由订阅回调或删除对账调用，按约定不物理删行
+         （listMeetings 已过滤 cancel = '1'，打标记后不再进入同步候选） -->
+    <update id="markMeetingDeleted">
+        update ${mtgMeetingTable} set cancel = '1' where id = #{oaId}
+    </update>
+
+    <update id="updateMeeting">
+        update ${mtgMeetingTable}
+        set name = #{e.title},
+            address = #{e.location},
+            begindate = #{e.beginDate},
+            begintime = #{e.beginTime},
+            enddate = #{e.endDate},
+            endtime = #{e.endTime},
+            desc_n = #{e.content},
+            description = #{e.content},
+            beginDateTime = #{e.beginDateTime},
+            endDateTime = #{e.endDateTime}
+        where id = #{e.id}
+    </update>
+
+    <delete id="deleteMeetingMembers">
+        delete from ${mtgMeetingMemberTable} where meetingid = #{meetingId} and membertype = 0
+    </delete>
+
+    <insert id="insertMeetingMember">
+        insert into ${mtgMeetingMemberTable} (meetingid, membertype, memberid, membermanager)
+        values (#{meetingId}, 0, #{memberId}, 0)
+    </insert>
+
+    <insert id="insertWorkPlan">
+        <selectKey keyProperty="e.id" resultType="int" order="AFTER">select SCOPE_IDENTITY()</selectKey>
+        insert into ${mtgScheduleTable}
+            (type_n, name, resourceid, begindate, begintime, enddate, endtime, description,
+             status, urgentLevel, createrid, createrType, createdate, createtime,
+             subcompanyId, deptId, location, deleted)
+        values
+            ('3', #{e.title}, #{e.resourceId}, #{e.beginDate}, #{e.beginTime}, #{e.endDate}, #{e.endTime},
+             #{e.content}, '2', '1', #{e.ownerId}, '1', #{e.createDate}, #{e.createTime},
+             #{e.subId}, #{e.deptId}, #{e.location}, '0')
+    </insert>
+
+    <!-- 标记删除 OA 日程：同 markMeetingDeleted，置 deleted = '1'（listSchedules 已过滤） -->
+    <update id="markWorkPlanDeleted">
+        update ${mtgScheduleTable} set deleted = '1' where id = #{oaId}
+    </update>
+
+    <update id="updateWorkPlan">
+        update ${mtgScheduleTable}
+        <set>
+            name = #{e.title},
+            description = #{e.content},
+            begindate = #{e.beginDate},
+            begintime = #{e.beginTime},
+            enddate = #{e.endDate},
+            endtime = #{e.endTime},
+            location = #{e.location},
+            <!-- 只有平台确实返回了参与人时才更新 resourceid（否则保留 OA 侧原值） -->
+            <if test="e.resourceId != null">resourceid = #{e.resourceId},</if>
+        </set>
+        where id = #{e.id}
+    </update>
+
+    <delete id="deleteWorkplanMembers">
+        delete from ${mtgScheduleMemberTable} where workplanid = #{workplanId}
+    </delete>
+
+    <insert id="insertWorkplanMember">
+        insert into ${mtgScheduleMemberTable}
+            (workplanid, resourceid, workplantype, begindate, begintime, enddate, endtime, status)
+        values
+            (#{workplanId}, #{memberId}, 3, #{beginDate}, #{beginTime}, #{endDate}, #{endTime}, 2)
+    </insert>
+</mapper>

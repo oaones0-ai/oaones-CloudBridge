@@ -2,7 +2,7 @@ package com.customization.oaones.appsyn.entity;
 
 /**
  * 考勤同步「计划任务」的**时间段明细**（业务表：表名取
- * {@code oaones.properties#oaones_att_plan_item_table}）。
+ * {@code oaones.appsyn.properties#oaones_att_plan_item_table}）。
  *
  * <p>与会议 / 日程同步的时间段明细同构：一行 = 一个时间段 = <b>适用日 + 开始时间 + 结束时间 +
  * 轮询间隔（分钟）</b>，挂在某一条同步设置上（{@code cfg_id}，需求 Q2：计划任务**每条设置一份**）。</p>
@@ -20,7 +20,7 @@ package com.customization.oaones.appsyn.entity;
 public class AttPlanItem {
 
     private Integer id;
-    /** 所属同步设置ID（{@code uf_oaones_att_cfg.id}）：计划任务每条设置一份（需求 Q2）。 */
+    /** 所属同步设置ID（{@code uf_oaones_appsyn_att_cfg.id}）：计划任务每条设置一份（需求 Q2）。 */
     private Integer cfgId;
     /** 适用日：0 每天 / 1 工作日 / 2 非工作日。 */
     private Integer dayType;

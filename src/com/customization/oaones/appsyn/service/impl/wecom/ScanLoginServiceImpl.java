@@ -115,7 +115,7 @@ public class ScanLoginServiceImpl implements ScanLoginService {
         data.put("browser_key", key);
         data.put("qr_text", qrText);
         // 二维码图片是统一登录页自己的接口（本站渲染的 SVG；旧的平台目录下只剩 302 跳转）
-        data.put("qr_image_url", base + "/oaones/login/qrImage.jsp?t=" + ticket);
+        data.put("qr_image_url", base + "/oaones/appsyn/login/qrImage.jsp?t=" + ticket);
         data.put("expire_at", entity.getExpireTime());
         data.put("ttl_seconds", ttl / 1000);
         data.put("poll_ms", OaonesProps.loginQrPollMs());

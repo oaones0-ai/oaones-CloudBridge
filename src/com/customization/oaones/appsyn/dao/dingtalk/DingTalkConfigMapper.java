@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 钉钉租户配置表 Mapper（增删改查）。
  *
- * <p>表名由 oaones.properties 配置，通过 {@code ${table}} 传入；
+ * <p>表名由 oaones.appsyn.properties 配置，通过 {@code ${table}} 传入；
  * 钉钉与企微、飞书共用同一张租户表，本连接器一律按 {@code type = 1}（钉钉）过滤，
  * 企微 / 飞书连接器分别按 {@code type = 0} / {@code type = 2} 过滤，互不可见。</p>
  */

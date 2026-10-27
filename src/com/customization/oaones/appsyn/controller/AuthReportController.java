@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * 统一认证报表控制器（action 前缀 {@code authreport.}）。
  *
- * <p>页面 {@code /oaones/authReport/authReport.jsp} 是**独立的一级菜单**、**跨平台只读看板**：
+ * <p>页面 {@code /oaones/appsyn/authReport/authReport.jsp} 是**独立的一级菜单**、**跨平台只读看板**：
  * 把企微 / 钉钉 / 飞书三个连接器的全部平台租户放在一起，展示
  * “各租户总人数 / 已绑定 / 未绑定”“今日新增绑定 / 今日统一认证登录”与按日 / 按月的走势。</p>
  *

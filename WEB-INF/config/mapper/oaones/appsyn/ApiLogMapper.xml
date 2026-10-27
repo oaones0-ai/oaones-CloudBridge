@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 接口日志（uf_oaones_appsyn_api_log）
+
+  一行 = 一次接口调用（OA→第三方平台 的请求 / 第三方平台→OA 的入口调用）。
+  时间字段沿用本模块统一的建模审计字段名：
+    modedatacreatedate  调用日期 yyyy-MM-dd
+    modedatacreatetime  调用时间 HH:mm:ss
+  区间比较拆成“先比日期、日期相同再比时间”两段（timeRange 片段）。
+  SQL Server 分页统一用 row_number()，兼容 2008 及以上版本（与 MsgLogMapper.xml 同口径）。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.ApiLogMapper">
+
+    <sql id="cols">
+        id, type, cfg_id, corp_name, api_type, direction, method, api_path, api_url,
+        req_body, resp_body, http_status, success, err_code, err_msg, cost_ms, error_stack,
+        operator_id, modedatacreatedate, modedatacreatetime
+    </sql>
+
+    <sql id="timeRange">
+        <if test="fromDate != null and fromDate != ''">
+            and (modedatacreatedate &gt; #{fromDate}
+                 or (modedatacreatedate = #{fromDate} and modedatacreatetime &gt;= #{fromTime}))
+        </if>
+        <if test="toDate != null and toDate != ''">
+            and (modedatacreatedate &lt; #{toDate}
+                 or (modedatacreatedate = #{toDate} and modedatacreatetime &lt;= #{toTime}))
+        </if>
+    </sql>
+
+    <sql id="conditions">
+        <include refid="timeRange"/>
+        <if test="type != null">
+            and type = #{type}
+        </if>
+        <if test="cfgId != null">
+            and cfg_id = #{cfgId}
+        </if>
+        <if test="apiType != null and apiType != ''">
+            and api_type = #{apiType}
+        </if>
+        <if test="direction != null">
+            and direction = #{direction}
+        </if>
+        <if test="success != null">
+            and success = #{success}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (api_path like '%' + #{keyword} + '%'
+                 or api_url like '%' + #{keyword} + '%'
+                 or corp_name like '%' + #{keyword} + '%'
+                 or err_msg like '%' + #{keyword} + '%'
+                 or err_code like '%' + #{keyword} + '%')
+        </if>
+        <!-- 维护人分权：只返回当前登录人可维护租户的日志；空集合表示无可见租户（个人微信 cfg_id=0 只对系统管理员可见） -->
+        <if test="cfgIds != null">
+            <choose>
+                <when test="cfgIds.size() > 0">
+                    and cfg_id in
+                    <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">
+                        #{cid}
+                    </foreach>
+                </when>
+                <otherwise>
+                    and 1 = 0
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <!-- useGeneratedKeys：把自增主键回填到 e.id，供业务侧（消息推送状态表）做外键关联 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="e.id">
+        insert into ${table}
+            (type, cfg_id, corp_name, api_type, direction, method, api_path, api_url,
+             req_body, resp_body, http_status, success, err_code, err_msg, cost_ms, error_stack,
+             operator_id, modedatacreatedate, modedatacreatetime)
+        values
+            (#{e.type}, #{e.cfgId}, #{e.corpName}, #{e.apiType}, #{e.direction}, #{e.method},
+             #{e.apiPath}, #{e.apiUrl}, #{e.reqBody}, #{e.respBody}, #{e.httpStatus}, #{e.success},
+             #{e.errCode}, #{e.errMsg}, #{e.costMs}, #{e.errorStack}, #{e.operatorId},
+             #{e.modedatacreatedate}, #{e.modedatacreatetime})
+    </insert>
+
+    <select id="getById" resultType="com.customization.oaones.appsyn.entity.ApiLog">
+        select <include refid="cols"/> from ${table} where id = #{id}
+    </select>
+
+    <select id="page" resultType="com.customization.oaones.appsyn.entity.ApiLog">
+        select * from (
+            select row_number() over (order by id desc) as rn, <include refid="cols"/>
+            from ${table}
+            <where>
+                <include refid="conditions"/>
+            </where>
+        ) t
+        where t.rn &gt; #{offset} and t.rn &lt;= #{offset} + #{limit}
+        order by t.rn
+    </select>
+
+    <select id="count" resultType="java.lang.Integer">
+        select count(1) from ${table}
+        <where>
+            <include refid="conditions"/>
+        </where>
+    </select>
+
+    <select id="sumStats" resultType="java.util.LinkedHashMap">
+        select
+            count(1) as totalCount,
+            sum(case when success = 1 then 1 else 0 end) as successCount,
+            sum(case when success = 0 then 1 else 0 end) as failCount,
+            isnull(avg(case when cost_ms is not null then cost_ms else 0 end), 0) as avgCost
+        from ${table}
+        where 1 = 1
+        <include refid="conditions"/>
+    </select>
+
+    <select id="groupByPlatform" resultType="java.util.LinkedHashMap">
+        select
+            type as typeCode,
+            count(1) as totalCount,
+            sum(case when success = 1 then 1 else 0 end) as successCount,
+            sum(case when success = 0 then 1 else 0 end) as failCount
+        from ${table}
+        where 1 = 1
+        <include refid="timeRange"/>
+        <if test="cfgIds != null">
+            <choose>
+                <when test="cfgIds.size() > 0">
+                    and cfg_id in
+                    <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">
+                        #{cid}
+                    </foreach>
+                </when>
+                <otherwise>
+                    and 1 = 0
+                </otherwise>
+            </choose>
+        </if>
+        group by type
+        order by count(1) desc
+    </select>
+
+    <select id="groupByApiType" resultType="java.util.LinkedHashMap">
+        select
+            api_type as apiType,
+            count(1) as totalCount,
+            sum(case when success = 1 then 1 else 0 end) as successCount,
+            sum(case when success = 0 then 1 else 0 end) as failCount
+        from ${table}
+        where 1 = 1
+        <include refid="timeRange"/>
+        <if test="cfgIds != null">
+            <choose>
+                <when test="cfgIds.size() > 0">
+                    and cfg_id in
+                    <foreach collection="cfgIds" item="cid" open="(" separator="," close=")">
+                        #{cid}
+                    </foreach>
+                </when>
+                <otherwise>
+                    and 1 = 0
+                </otherwise>
+            </choose>
+        </if>
+        group by api_type
+        order by count(1) desc
+    </select>
+
+    <!-- 记日志时按“平台 + 企业标识”反查租户（corp_id 列在三个连接器共用同一张配置表） -->
+    <select id="findCfg" resultType="java.util.LinkedHashMap">
+        select top 1 id, corp_name from ${cfgTable}
+        where type = #{type} and corp_id = #{corpId}
+        order by id asc
+    </select>
+
+    <delete id="deleteBefore">
+        delete from ${table}
+        where (modedatacreatedate &lt; #{beforeDate}
+               or (modedatacreatedate = #{beforeDate} and modedatacreatetime &lt; #{beforeTime}))
+    </delete>
+</mapper>

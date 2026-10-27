@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 企微租户配置表 Mapper（增删改查）。
  *
- * <p>表名由 oaones.properties 配置，通过 {@code ${table}} 传入；
+ * <p>表名由 oaones.appsyn.properties 配置，通过 {@code ${table}} 传入；
  * 租户表与钉钉连接器共用（设置类表结构可复用时不新建表），
  * 本连接器一律按 {@code type = 0}（企微）过滤。</p>
  */

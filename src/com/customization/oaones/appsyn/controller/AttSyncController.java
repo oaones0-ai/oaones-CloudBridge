@@ -11,7 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * 考勤同步控制器（action 前缀 {@code attsync.}，三个连接器共用同一实现）。
  *
- * <p>入口是独立的一级菜单「考勤同步」：{@code /oaones/attSync/attSync.jsp?platform=wecom|dingtalk|feishu}，
+ * <p>入口是独立的一级菜单「考勤同步」：{@code /oaones/appsyn/attSync/attSync.jsp?platform=wecom|dingtalk|feishu}，
  * 页面按当前平台走对应的 {@code api.jsp}（企微 / 钉钉 / 飞书），三个入口都路由到本控制器，
  * 用 {@code type}（0 企微 / 1 钉钉 / 2 飞书）区分平台。</p>
  *
