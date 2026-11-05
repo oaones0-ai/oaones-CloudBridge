@@ -69,6 +69,16 @@
 INSERT INTO [Int_WhiteList] ([exclude_],[type_],[desc_],[orderNum],[creater],[modifier],[modifydate],[modifytime],[is_sys]) VALUES ('/oaones/appsyn/login/login.jsp','url','统一登录页','100','null','null,null,null,null');
 ```
 
+```text
+logjint.properties最后增加内容，不然日志报错：
+log4j.logger.mylog=INFO,mylog
+log4j.appender.mylog=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.mylog.DatePattern='_'yyyyMMdd'.log'
+log4j.appender.mylog.File=@mylog/mylog.log
+log4j.appender.mylog.layout=org.apache.log4j.PatternLayout
+log4j.appender.mylog.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [Thread:%t] %m%n
+log4j.additivity.mylog=false
+```
 ### 4.4 配置WEB-INF/resin-web-post.xml
 没有则新增文件，仅限resin中间件，其他配置请咨询AI
 
