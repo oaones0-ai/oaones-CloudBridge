@@ -77,6 +77,8 @@ public final class OaonesProps {
     private static final String DEF_OP_LOG_TABLE = "uf_oaones_appsyn_op_log";
     /** 日志保留设置表（oaones.appsyn.properties#oaones_log_retention_table）默认表名。 */
     private static final String DEF_LOG_RETENTION_TABLE = "uf_oaones_appsyn_log_retention";
+    /** 系统设置 → 功能设置开关表。 */
+    private static final String DEF_FEATURE_SETTING_TABLE = "uf_oaones_appsyn_feature_setting";
     /** OA 分权（选择 OA 组织架构时按登录人范围过滤）三类候选各自对应的 E9 分权权限点。 */
     private static final String DEF_SEC_RIGHT_SUB = "Subcompanys:decentralization";
     private static final String DEF_SEC_RIGHT_DEPT = "Departments:decentralization";
@@ -547,6 +549,11 @@ public final class OaonesProps {
         return tableOf("oaones_log_retention_table", DEF_LOG_RETENTION_TABLE);
     }
 
+    /** 功能设置开关表（{@code oaones_feature_setting_table}，默认 uf_oaones_appsyn_feature_setting）。 */
+    public static String featureSettingTable() {
+        return tableOf("oaones_feature_setting_table", DEF_FEATURE_SETTING_TABLE);
+    }
+
     /**
      * 是否采集操作监控（oaones.appsyn.properties#op.log.enable，默认 1 = 开启）。
      *
@@ -1002,11 +1009,16 @@ public final class OaonesProps {
      * 登录成功后的默认落地页（未指定 gopage 时用，`#` 之后的页面参数要整段保留，
      * 见 {@link OaonesSso#internalPath}）。
      *
-     * <p>默认落工作台对外地址 `/oaones/appsyn/desktop`（路由到应用中心桌面启动台，不再进系统首页）；
-     * 想回系统首页把 {@code login.landing.url} 配成 `/wui/index.html#/main` 即可。</p>
+     * <p>优先取 {@code oaones.appsyn.properties#login.landing.url} 作为显式覆盖；
+     * 该项留空时，按 {@code route.*} 中桌面启动台实际页面的对外路由自动反查。
+     * 代码里不维护第二份对外地址，修改路由配置即可全局生效。</p>
      */
     public static String loginLandingUrl() {
-        return prop("login.landing.url", "/oaones/appsyn/desktop");
+        String configured = prop("login.landing.url", "");
+        if (configured.length() > 0) {
+            return configured;
+        }
+        return OaonesRoutes.publicUrl("/oaones/appsyn/appCenter/Desktop.jsp");
     }
 
     /**

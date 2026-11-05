@@ -54,12 +54,16 @@
     <title>个人账号中心 - OAones</title>
     <%-- 当前登录人：页面提示语按角色分别显示（sysAdmin = 系统管理员或超管角色成员，见后端 OaonesAdmin.isTotalAdmin） --%>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/appsyn/script/js/featureConfig.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/featureGate.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <%-- 合并页是独立页壳：不引用模块导航（navbar.jsp），
@@ -164,7 +168,8 @@
 <%-- 页壳自己的接口封装（Oaones / Oaones.apiAt）在公共脚本里，必须在页壳脚本与片段渲染之前引：
      片段本身的脚本只做注册，真正调用 Oaones.* 是在取数之后渲染时，因此放在这里与其它页面同一口径。
      漏引这一个文件会让本页取数直接报错（列表空白），改动本页时不要把它删掉。 --%>
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 /** 三个平台各自的接口入口（未登录也能用的统一入口，见 js/api.js#apiAt） */
@@ -195,7 +200,7 @@ function esc(v) { return Oaones.esc(v); }
 /**
  * 页面统一提示：mode 0 普通提示 / 1 警告 / 2 操作错误 / 3 系统错误，
  * duration 为显示毫秒数（不传用各模式默认值，<=0 表示常驻）。
- * 禁止使用原生 alert / confirm，统一由 /oaones/appsyn/js/toast.js 弹出。
+ * 禁止使用原生 alert / confirm，统一由 /oaones/scripts/js/toast.js 弹出。
  */
 function showToast(msg, mode, duration) {
     if (msg === null || msg === undefined || String(msg) === "") { return; }
@@ -352,6 +357,9 @@ function renderAccountFamily() {
             + '</tr>';
     });
     byId("accountFamilyBody").innerHTML = html;
+    if (window.OaonesTable) {
+        OaonesTable.resizable(byId("accountFamilyTable"), { key: "accountCenter.familyTable" });
+    }
     byId("accountFamilyHint").textContent = isSub
         ? "你登录的是子账户：上表同时列出归属的主账户与全部子账户。"
         : (subCount > 0
@@ -436,7 +444,7 @@ byId("accountTabs").addEventListener("click", function (e) {
 if (!window.Oaones || typeof window.Oaones.apiAt !== "function") {
     var acTip = byId("accountPermTip");
     acTip.textContent = "页面公共脚本 js/api.js 未加载，个人信息、我的账户与三个平台的绑定列表都无法读取；"
-        + "请刷新页面，若仍然如此请联系管理员检查 /oaones/appsyn/js/api.js。";
+        + "请刷新页面，若仍然如此请联系管理员检查 /oaones/scripts/js/api.js。";
     acTip.style.display = "";
 } else {
     loadAccount();

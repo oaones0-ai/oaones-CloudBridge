@@ -13,7 +13,7 @@
      * 预览不读数据库、也不写任何配置：设置页把当前表单值（含尚未保存的修改）通过
      * OaonesLoginPreview.apply(...) 传进来，这里只负责画出来。
      *
-     * 版式直接复用 css/login.css 的真实类名，避免预览与实际登录页出现两套观感；
+     * 版式直接复用 script/css/login.css 的真实类名，避免预览与实际登录页出现两套观感；
      * 页面里不放表单提交、二维码生成等真实登录逻辑。
      */
     String oaonesPreviewTitle = OaonesUtil.s(OaonesProps.loginPageTitle());
@@ -27,8 +27,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>登录页效果预览</title>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <link rel="stylesheet" href="/oaones/appsyn/css/login.css?v=<%=oaonesAssetV%>">
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <link rel="stylesheet" href="/oaones/appsyn/script/css/login.css?v=<%=oaonesAssetV%>">
 </head>
 <body class="login-page login-preview-frame login-page-default">
 <div class="login-wrap">

@@ -19,7 +19,7 @@ function check(name, ok) {
 }
 
 var page = read("oaones/appsyn/orgMap/orgMap.jsp");
-var script = read("oaones/appsyn/js/orgMap.js");
+var script = read("oaones/appsyn/script/js/orgMap.js");
 var apiPage = read("oaones/appsyn/orgMap/api.jsp");
 var orgMapService = read("src/com/customization/oaones/appsyn/service/impl/OrgMapServiceImpl.java");
 var sql = read("sqlupgrade-sql/Mysql/oaones/appsyn/oaones0016_sub_tenant_map.sql");

@@ -51,7 +51,7 @@
     var config = read(path.join(root, "loginConfig", "config.jsp"));
     var appListPanel = read(path.join(root, "appCenter", "appListPanel.jsp"));
     var login = read(path.join(root, "login", "login.jsp"));
-    var loginCss = read(path.join(root, "css", "login.css"));
+    var loginCss = read(path.join(root, "..", "appsyn", "script", "css", "login.css"));
     var desktop = read(path.join(root, "appCenter", "Desktop.jsp"));
     var impl = read(path.join(eco, "src", "com", "customization", "oaones", "appsyn",
         "service", "impl", "wecom", "LoginConfigServiceImpl.java"));
@@ -62,6 +62,9 @@
     var sso = read(path.join(eco, "src", "com", "customization", "oaones", "appsyn",
         "common", "OaonesSso.java"));
     var mapper = read(path.join(eco, "WEB-INF", "config", "mapper", "oaones", "appsyn", "LoginConfigMapper.xml"));
+    var props = read(path.join(eco, "WEB-INF", "prop", "oaones.appsyn.properties"));
+    var desktopRouteMatch = props.match(/^\s*route\.([^=\r\n]+)=[^|\r\n]*\/appCenter\/Desktop\.jsp(?:[|\r\n]|$)/m);
+    var desktopPublicPath = desktopRouteMatch ? desktopRouteMatch[1].trim() : "";
 
     console.log("【1】设置页：可视化预览与保存参数");
     [
@@ -138,6 +141,13 @@
         desktop.indexOf("new LoginConfigServiceImpl().gopageSeconds()") >= 0);
     check("Desktop.jsp 无条件读取自动跳转秒数",
         desktop.indexOf("int oaonesGopageSeconds = new LoginConfigServiceImpl().gopageSeconds();") >= 0);
+    check("Desktop.jsp 的登录页地址由 URL 路由配置反查",
+        desktop.indexOf('OaonesRoutes.publicUrl("/oaones/appsyn/login/login.jsp")') >= 0
+        && desktop.indexOf('data-login-path="<%=oaonesAttr(oaonesLoginPublicPath)%>"') >= 0);
+    check("Desktop.jsp 按当前访问路径判断自身，不写死桌面对外地址",
+        desktop.indexOf("window.location.pathname") >= 0
+        && desktopPublicPath.length > 0
+        && desktop.indexOf('targetPath === "' + desktopPublicPath + '"') < 0);
     check("没有 gopage 时回退跳转到站点根路径",
         desktop.indexOf('var effectiveTarget = target || "/";') >= 0);
     check("外部 gopage 的倒计时文案显示目标网址",

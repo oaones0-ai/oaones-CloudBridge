@@ -20,7 +20,7 @@
      *   * 个人同步方向：非“遵循系统设置”的个人及其方向，只读，位置在「同步记录」后面
      *     （可按租户 / 分部 / 部门 / 人员 / 同步方向筛选；分部与部门是多选弹框、自动含下级、
      *     候选按 OA 分权过滤）。
-     * 会议与日程共用同一套面板与脚本（js/mtgSync.js），用 biz 区分：本页 biz=0，
+     * 会议与日程共用同一套面板与脚本（script/js/mtgSync.js），用 biz 区分：本页 biz=0，
      * 日程同步页（/oaones/appsyn/scheduleSync/scheduleSync.jsp）biz=1。
      */
     request.setCharacterEncoding("UTF-8");
@@ -77,13 +77,17 @@
     window.OAONES_MTG_TITLE = "<%=oaonesBizTitle%>";
     window.OAONES_MTG_LABEL = "<%=oaonesBizLabel%>";
     window.OAONES_MTG_TAB = "<%=oaonesMtgTab%>";</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/datetime.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tabs.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/clipboard.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/datetime.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <%-- 一级标题只属于本菜单（“会议同步”）：不链到租户设置，也不链到登录设置 / 日程同步 --%>
@@ -175,23 +179,19 @@
         <jsp:include page="mtgSyncPanel.jsp"/>
     </div>
 </div>
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
-<script src="/oaones/appsyn/js/mtgSync.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/featureConfig.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/featureGate.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/mtgSync.js?v=<%=oaonesAssetV%>"></script>
 <script>
-/* 页签切换：与消息中心同一套口径（切到哪个载哪个，重复载幂等） */
+/* 页签切换：公共 tabs.js 统一维护按钮/面板激活态，业务脚本只接收 onChange */
 (function () {
     "use strict";
+    var tabs;
     function switchTab(tab) {
-        if (tab !== "setting" && tab !== "item" && tab !== "log" && tab !== "diruser") { return; }
-        var tabs = document.querySelectorAll("#mtgTabs button");
-        for (var i = 0; i < tabs.length; i++) {
-            tabs[i].classList.toggle("active", tabs[i].getAttribute("data-tab") === tab);
-        }
-        var panels = document.querySelectorAll("[data-mtg-panel]");
-        for (var j = 0; j < panels.length; j++) {
-            panels[j].classList.toggle("active", panels[j].getAttribute("data-mtg-panel") === tab);
-        }
-        if (window.OaonesMtgSync) { window.OaonesMtgSync.switchTo(tab); }
+        if (tab !== "setting" && tab !== "item" && tab !== "log" && tab !== "diruser") { return false; }
+        return tabs.switchTo(tab);
     }
     window.MtgCenterTabs = { switchTo: switchTab };
     function init() {
@@ -201,12 +201,16 @@
                 ? "你是系统管理员，可维护全部租户的会议同步"
                 : "本页只列出你被指定为维护人的租户";
         }
-        var tabs = document.querySelectorAll("#mtgTabs button");
-        for (var i = 0; i < tabs.length; i++) {
-            tabs[i].addEventListener("click", function () {
-                switchTab(this.getAttribute("data-tab"));
-            });
-        }
+        var initial = window.OAONES_MTG_TAB;
+        if (initial !== "item" && initial !== "log" && initial !== "diruser") { initial = "setting"; }
+        tabs = OaonesTabs.bind({
+            buttons: "#mtgTabs button",
+            panels: "[data-mtg-panel]",
+            initial: initial,
+            onChange: function (tab) {
+                if (window.OaonesMtgSync) { window.OaonesMtgSync.switchTo(tab); }
+            }
+        });
         var refresh = document.getElementById("mtgRefreshBtn");
         if (refresh) {
             refresh.addEventListener("click", function () {
@@ -214,8 +218,6 @@
             });
         }
         if (window.OaonesMtgSync) { window.OaonesMtgSync.init(); }
-        var initial = window.OAONES_MTG_TAB;
-        if (initial !== "item" && initial !== "log" && initial !== "diruser") { initial = "setting"; }
         switchTab(initial);
     }
     if (document.readyState === "loading") {

@@ -3,6 +3,7 @@
 <%@ page import="weaver.hrm.HrmUserVarify" %>
 <%@ page import="weaver.hrm.User" %>
 <%@ page import="com.customization.oaones.appsyn.common.OaonesAdmin" %>
+<%@ page import="com.customization.oaones.appsyn.common.OaonesRoutes" %>
 <%@ page import="com.customization.oaones.appsyn.common.OaonesSso" %>
 <%@ page import="com.customization.oaones.appsyn.common.OaonesUtil" %>
 <%@ page import="com.customization.oaones.appsyn.service.impl.wecom.LoginConfigServiceImpl" %>
@@ -21,7 +22,7 @@
     /*
      * 应用中心 —— 桌面启动台（展示页，/oaones/appsyn/appCenter/Desktop.jsp）
      *
-     * 把“应用列表”里启用中的应用以 **macOS 桌面样式**展示（布局见 css/desktop.css）：
+     * 把“应用列表”里启用中的应用以 **macOS 桌面样式**展示（布局见 script/css/desktop.css）：
      *   顶部菜单栏（只有“返回 OA”与时钟）+ 中间安全区里的桌面图标区（**没有底部 Dock**）；
      *   **应用图标只出现在中间区域**：图标区左右各留白 20%、上下各留白 10%，图标在该区域内居中换行；
      *   桌面图标 144px（原来 72px 的 2 倍），鼠标移上去放大，
@@ -47,10 +48,12 @@
     String oaonesGopageLower = oaonesGopage.toLowerCase();
     boolean oaonesGopageExternal = oaonesGopageLower.startsWith("http://")
             || oaonesGopageLower.startsWith("https://");
+    // 登录页对外地址由 URL 路由配置反查，不在页面里维护第二份地址。
+    String oaonesLoginPublicPath = OaonesRoutes.publicUrl("/oaones/appsyn/login/login.jsp");
     User user = HrmUserVarify.getUser(request, response);
     if (user == null) {
         // 未登录直接回统一登录页；带上 gopage，登录后仍先回桌面，再由桌面倒计时后跳目标页
-        String oaonesLogin = "/oaones/appsyn/login";
+        String oaonesLogin = oaonesLoginPublicPath;
         if (oaonesGopage.length() > 0) {
             oaonesLogin += "?gopage=" + java.net.URLEncoder.encode(oaonesGopage, "UTF-8");
         }
@@ -71,22 +74,23 @@
     <%-- 桌面页不按角色显示提示语，但仍注入登录人，避免公共脚本按角色取值时报错 --%>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };</script>
     <%-- 本页用两套样式：style.css 提供提示框（toast）等公共样式，desktop.css 是桌面与图标的专用样式 --%>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <link rel="stylesheet" href="/oaones/appsyn/css/desktop.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <link rel="stylesheet" href="/oaones/appsyn/script/css/desktop.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body class="mac-body">
 
 <%-- 自动跳转目标与秒数：有 gopage 时跳 gopage，否则由页面脚本回退到站点根路径 / --%>
 <div id="oaonesDesktopMeta" data-gopage="<%=oaonesAttr(oaonesGopage)%>"
-     data-seconds="<%=oaonesGopageSeconds%>" hidden></div>
+     data-seconds="<%=oaonesGopageSeconds%>"
+     data-login-path="<%=oaonesAttr(oaonesLoginPublicPath)%>" hidden></div>
 
 <%-- 自动跳转倒计时：秒数 > 0 时显示 --%>
 <div class="mac-countdown" id="macCountdown" hidden>
     <b id="macCountdownSeconds">0</b>秒后，跳转到<%=oaonesGopageExternal ? "目标网址" : "OA默认首页"%>
 </div>
 
-<%-- 顶部菜单栏：只保留右侧的“返回 OA”与时钟（js/appDesktop.js 每 10 秒刷新），
+<%-- 顶部菜单栏：只保留右侧的“返回 OA”与时钟（script/js/appDesktop.js 每 10 秒刷新），
      **不放**苹果标与“应用中心”标题（按需求去掉）。
      本页不设任何菜单关联：不放“桌面启动台 / 管理应用”等页签或入口，
      也不与「应用列表」互链（两个页面各自单独显示）。 --%>
@@ -97,14 +101,15 @@
     </span>
 </div>
 
-<%-- 桌面图标区（js/appDesktop.js 渲染）：只占中间的“安全区”，四周留白不出现图标 --%>
+<%-- 桌面图标区（script/js/appDesktop.js 渲染）：只占中间的“安全区”，四周留白不出现图标 --%>
 <div class="mac-desktop" id="macDesktop"></div>
 
 <%-- 空状态：还没有启用中的应用时提示去哪里添加 --%>
 <div class="mac-empty" id="macEmpty" style="display:none;"></div>
 
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
-<script src="/oaones/appsyn/js/appDesktop.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appDesktop.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 /* 页壳初始化：自动跳转目标从上方隐藏节点读取；应用列表初始化放在 DOMContentLoaded。 */
@@ -112,15 +117,34 @@
     var meta = document.getElementById("oaonesDesktopMeta");
     var target = meta ? String(meta.getAttribute("data-gopage") || "").trim() : "";
     var effectiveTarget = target || "/";
-    var targetPath = effectiveTarget.split("#")[0].split("?")[0];
+    var loginPath = meta ? String(meta.getAttribute("data-login-path") || "").trim() : "";
+    function pathKey(value) {
+        var path = String(value || "").trim();
+        if (/^https?:\/\//i.test(path)) {
+            try {
+                var anchor = document.createElement("a");
+                anchor.href = path;
+                path = anchor.pathname || "";
+            } catch (e) {
+                path = "";
+            }
+        }
+        path = path.split("#")[0].split("?")[0];
+        while (path.length > 1 && path.charAt(path.length - 1) === "/") {
+            path = path.slice(0, -1);
+        }
+        return path;
+    }
+    var targetPath = pathKey(effectiveTarget);
+    var currentPath = pathKey(window.location.pathname);
+    var configuredLoginPath = pathKey(loginPath);
     var seconds = meta ? parseInt(meta.getAttribute("data-seconds") || "0", 10) : 0;
     if (!isFinite(seconds) || seconds < 0) { seconds = 0; }
-    // 指回桌面/登录页时不再自动跳，避免倒计时循环
+    // 指回当前桌面页或配置中的登录页时不再自动跳，避免倒计时循环；
+    // 当前页用浏览器地址判断，因此改 route.* 后无需同步修改这里。
     var skip = seconds <= 0
-        || targetPath === "/oaones/appsyn/desktop" || targetPath === "/oaones/appsyn/desktop/"
-        || targetPath === "/oaones/appsyn/appCenter/Desktop.jsp"
-        || targetPath === "/oaones/appsyn/login" || targetPath === "/oaones/appsyn/login/"
-        || targetPath === "/oaones/appsyn/login/login.jsp";
+        || (targetPath.length > 0 && targetPath === currentPath)
+        || (configuredLoginPath.length > 0 && targetPath === configuredLoginPath);
     if (!skip) {
         var countdownEl = document.getElementById("macCountdown");
         var countdownSecondsEl = document.getElementById("macCountdownSeconds");

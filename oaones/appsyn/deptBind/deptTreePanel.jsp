@@ -54,33 +54,6 @@
     <div class="empty" id="deptTreeEmpty" style="display:none;">暂无可展示的分部/部门</div>
 </div>
 
-<%-- 分部 / 部门 多选弹框（列表式 / 树状 + 全选，交互与“OA数据基准”页的分部/部门筛选一致） --%>
-<div class="modal-mask" id="deptTreePickMask"></div>
-<div class="modal wx-pick-modal" id="deptTreePickModal">
-    <div class="modal-head">
-        <span id="deptTreePickTitle">选择分部</span>
-        <button type="button" class="link" id="deptTreePickCloseBtn" title="关闭">×</button>
-    </div>
-    <div class="modal-body">
-        <div class="pick-view-bar">
-            <input type="text" id="deptTreePickSearch" placeholder="输入名称/编码/ID搜索" autocomplete="off">
-            <div class="view-switch mini" id="deptTreePickViewSwitch" data-view-key="deptTreePick">
-                <button type="button" class="view-btn" data-view="list">列表式</button>
-                <button type="button" class="view-btn active" data-view="tree">树状</button>
-            </div>
-            <button type="button" class="btn small secondary pick-all-btn" id="deptTreePickAllBtn"
-                    data-pick-all="deptTreePick" title="全选/全不选当前列表（受搜索与前置条件过滤影响）">全选</button>
-        </div>
-        <div class="wx-pick-list" id="deptTreePickList"></div>
-        <div class="muted wx-pick-note" id="deptTreePickNote"></div>
-    </div>
-    <div class="modal-foot">
-        <button type="button" class="btn secondary" id="deptTreePickClearBtn">清空</button>
-        <button type="button" class="btn secondary" id="deptTreePickCancelBtn">取消</button>
-        <button type="button" class="btn" id="deptTreePickOkBtn">确定</button>
-    </div>
-</div>
-
 <script>
 "use strict";
 /**
@@ -116,8 +89,6 @@ var deptTreeDeptIds = [];
 /** 上次渲染的租户：切换租户时重置收起状态与全部筛选 */
 var deptTreeStateCfg = null;
 /** 分部/部门选择弹框：当前选择对象（fb / dept）与待确定的选择 */
-var deptTreePickType = "";
-var deptTreePickSelected = [];
 /** 本次渲染的节点列表、顶层节点与汇总 */
 var deptTreeNodeList = [];
 var deptTreeRootIds = [];
@@ -617,211 +588,40 @@ function deptTreeRenderFilterInputs() {
  * （列表式/树状、双击确定、全选、先选分部再选部门的前置条件过滤）。
  * ------------------------------------------------------------------ */
 
-function deptTreePickRows(keyword) {
-    var rows = deptTreePickType === "fb" ? (oaSubOptions || []).slice() : (oaDeptOptions || []).slice();
-    var k = String(keyword == null ? (byId("deptTreePickSearch").value || "") : keyword).trim().toLowerCase();
-    if (!k) { return rows; }
-    return rows.filter(function (d) {
-        var text = [d.id, d.code, d.name, d.fullname].map(function (v) {
-            return String(v == null ? "" : v);
-        }).join(" ");
-        return text.toLowerCase().indexOf(k) >= 0;
-    });
-}
-
-/** 前置条件：选择部门时只显示已选分部（含下级）下的部门；未选分部时显示全部。 */
-function deptTreePickPrecondition() {
-    if (deptTreePickType !== "dept") {
-        return { tip: "支持多选，选中分部时其下级分部自动一并选中" };
-    }
-    var fbIds = (deptTreeFbIds || []).map(String);
-    if (!fbIds.length) {
-        return { tip: "未选分部时显示全部部门；先选择分部后，这里只显示该分部（含下级）下的部门" };
-    }
-    return {
-        tip: "仅显示所选 " + fbIds.length + " 个分部（含下级）下的部门；选中部门时其下级部门自动一并选中",
-        filter: function (d) {
-            return fbIds.indexOf(String(d.subcompanyid1 == null ? "" : d.subcompanyid1)) >= 0;
-        }
-    };
-}
-
-function deptTreePickAllIds() {
-    var rows = OaonesPicker.applyPrecondition("deptTreePick", deptTreePickRows(null));
-    return rows.map(function (d) { return String(d.id); });
-}
-
 function deptTreeOpenPick(type) {
-    deptTreePickType = type;
-    deptTreePickSelected = (type === "fb" ? deptTreeFbIds : deptTreeDeptIds).slice();
-    byId("deptTreePickTitle").textContent = type === "fb" ? "选择分部" : "选择部门";
-    byId("deptTreePickSearch").value = "";
-    // 前置条件说明随当前选择实时生成
-    OaonesPicker.preconditionTip("deptTreePick", "deptTreePickNote");
-    // 树状默认收起分支：每次打开弹框重置展开状态
-    OaonesPicker.resetTree("deptTreePick");
-    deptTreeRenderPickList();
-    byId("deptTreePickMask").style.display = "block";
-    byId("deptTreePickModal").style.display = "block";
-    byId("deptTreePickSearch").focus();
-}
-
-function deptTreeHidePick() {
-    byId("deptTreePickMask").style.display = "none";
-    byId("deptTreePickModal").style.display = "none";
-    deptTreePickType = "";
-    deptTreePickSelected = [];
-}
-
-function deptTreePickOptionHtml(d, isSub, partialMap) {
-    var id = String(d.id);
-    var active = deptTreePickSelected.indexOf(id) >= 0;
-    var partial = !active && !!partialMap && !!partialMap[id];
-    var cls = "wx-pick-option pick-cols3" + (active ? " active" : (partial ? " partial" : ""));
-    var tip = (active ? "点击取消选择" : "点击选择")
-        + (isSub ? "；选中分部会自动选中其全部下级分部" : "；选中部门会自动选中其全部下级部门")
-        + "；双击直接确定"
-        + "｜" + (d.fullname || d.name || "")
-        + (d.code ? "（编码 " + d.code + "）" : "");
-    return "<button type='button' class='" + cls + "'"
-        + " data-id='" + esc(id) + "'"
-        + " title='" + esc(tip) + "'>"
-        + "<span>" + esc(id) + "</span>"
-        + "<span>" + esc(d.code || "-") + "</span>"
-        + "<span>" + esc(d.name || "-") + "</span>"
-        + "</button>";
-}
-
-function deptTreeRenderPickList() {
-    var isSub = deptTreePickType === "fb";
-    var title = isSub ? "选择分部" : "选择部门";
-    byId("deptTreePickTitle").textContent = deptTreePickSelected.length
-        ? title + "（已选 " + deptTreePickSelected.length + " 个）"
-        : title;
-    var mode = OaonesPicker.mode("deptTreePick");
-    var empty = isSub ? "没有匹配的分部" : "没有匹配的部门";
-    // 前置条件过滤（先选分部再选部门）由 OaonesPicker 统一套用，两种显示模式一致
-    var rows = OaonesPicker.applyPrecondition("deptTreePick", deptTreePickRows(mode === "tree" ? "" : null));
-    // 先按当前搜索 + 前置条件算好“全选”状态，再渲染列表
-    var allOn = deptTreeSyncPickAllState();
-    var partialMap = isSub
-        ? OaonesPicker.partialSelected(deptTreePickSelected, oaSubChildMap)
-        : OaonesPicker.partialSelected(deptTreePickSelected, deptTreeChildMap);
-    var listEl = byId("deptTreePickList");
-    var html = "";
-    if (mode === "tree") {
-        html = OaonesPicker.renderTree("deptTreePick", rows, {
-            parentOf: function (d) { return d.parent; },
-            textOf: function (d) { return [d.id, d.code, d.name, d.fullname].join(" "); },
-            keyword: byId("deptTreePickSearch").value,
-            emptyText: empty,
-            optionHtml: function (d) { return deptTreePickOptionHtml(d, isSub, partialMap); }
-        });
-    } else if (!rows.length) {
-        html = "<div class='wx-pick-empty'>" + empty + "</div>";
-    } else {
-        html = "<div class='wx-pick-head pick-cols3'><span>ID</span><span>编码</span><span>简称</span></div>";
-        rows.forEach(function (d) { html += deptTreePickOptionHtml(d, isSub, partialMap); });
-    }
-    listEl.className = "wx-pick-list" + (mode === "tree" ? " is-tree" : "");
-    listEl.innerHTML = html;
-    OaonesPicker.syncSelectAll("deptTreePick", allOn);
-}
-
-/** 单击选项：只改选中态（双击或“确定”才落定并过滤），不重建列表以免打断双击。 */
-function deptTreeTogglePick(btn) {
-    var id = btn.getAttribute("data-id");
-    var isSub = deptTreePickType === "fb";
-    var idx = deptTreePickSelected.indexOf(id);
-    if (idx >= 0) {
-        // 取消父节点时其下级一并取消（与 A 页口径一致）
-        var removes = isSub ? oaFbDescendantIds(id) : deptTreeDescendantIds(id);
-        deptTreePickSelected = deptTreePickSelected.filter(function (v) { return removes.indexOf(v) < 0; });
-    } else {
-        var next = deptTreePickSelected.concat([id]);
-        deptTreePickSelected = isSub ? expandFbIds(next) : deptTreeExpandDeptIds(next);
-    }
-    deptTreeRefreshPickDom();
-}
-
-function deptTreeApplyPick() {
-    if (deptTreePickType === "fb") {
-        deptTreeFbIds = expandFbIds(deptTreePickSelected);
-        // 保留仍属于所选分部（含下级）范围的部门筛选，避免出现空交集
-        var keep = deptTreeToSet(deptTreeFbIds);
-        deptTreeDeptIds = (deptTreeDeptIds || []).filter(function (id) {
-            var dept = deptTreeFindOption(oaDeptOptions, id);
-            return dept && keep[String(dept.subcompanyid1 == null ? "" : dept.subcompanyid1)];
-        });
-    } else {
-        deptTreeDeptIds = deptTreeExpandDeptIds(deptTreePickSelected);
-    }
-    deptTreeHidePick();
-    // 筛选条件变化后展开全部，保证命中的节点不被折叠在分支里
-    deptTreeCollapsed = {};
-    deptTreeRenderFilterInputs();
-    renderDeptTree();
-}
-
-function deptTreeClearPickSelection() {
-    deptTreePickSelected = [];
-    deptTreeRenderPickList();
-}
-
-function deptTreeRefreshPickDom() {
-    var isSub = deptTreePickType === "fb";
-    var partialMap = isSub
-        ? OaonesPicker.partialSelected(deptTreePickSelected, oaSubChildMap)
-        : OaonesPicker.partialSelected(deptTreePickSelected, deptTreeChildMap);
-    var opts = byId("deptTreePickList").querySelectorAll(".wx-pick-option");
-    for (var i = 0; i < opts.length; i++) {
-        var id = String(opts[i].getAttribute("data-id"));
-        var active = deptTreePickSelected.indexOf(id) >= 0;
-        opts[i].classList.toggle("active", active);
-        opts[i].classList.toggle("partial", !active && !!partialMap[id]);
-    }
-    var title = isSub ? "选择分部" : "选择部门";
-    byId("deptTreePickTitle").textContent = deptTreePickSelected.length
-        ? title + "（已选 " + deptTreePickSelected.length + " 个）"
-        : title;
-    // 单行勾选/取消后同步“全选”按钮状态
-    deptTreeSyncPickAllState();
-}
-
-function deptTreeSyncPickAllState() {
-    var ids = deptTreePickAllIds();
-    var allOn = ids.length > 0 && ids.every(function (id) { return deptTreePickSelected.indexOf(id) >= 0; });
-    OaonesPicker.syncSelectAll("deptTreePick", allOn);
-    return allOn;
-}
-
-OaonesPicker.register("deptTreePick", function () { deptTreeRenderPickList(); });
-OaonesPicker.setPrecondition("deptTreePick", deptTreePickPrecondition);
-OaonesPicker.setSelectAll("deptTreePick", function () {
-    var isSub = deptTreePickType === "fb";
-    var ids = deptTreePickAllIds();
-    var on = deptTreeSyncPickAllState();
-    var next;
-    if (on) {
-        var drop = {};
-        ids.forEach(function (id) {
-            (isSub ? oaFbDescendantIds(id) : deptTreeDescendantIds(id)).forEach(function (v) { drop[v] = true; });
-        });
-        next = deptTreePickSelected.filter(function (v) { return !drop[v]; });
-    } else {
-        next = isSub ? expandFbIds(deptTreePickSelected.concat(ids))
-            : deptTreeExpandDeptIds(deptTreePickSelected.concat(ids));
-    }
-    var seen = {};
-    deptTreePickSelected = next.filter(function (v) {
-        v = String(v);
-        if (seen[v]) { return false; }
-        seen[v] = true;
-        return true;
+    var isSub = type === "fb";
+    var fbIds = (deptTreeFbIds || []).map(String);
+    OaonesPicker.open({
+        key: "deptTreePick:" + type,
+        title: isSub ? "选择分部" : "选择部门",
+        multiple: true,
+        selectChildren: true,
+        initialSelected: (isSub ? deptTreeFbIds : deptTreeDeptIds) || [],
+        rows: isSub ? oaSubOptions : oaDeptOptions,
+        idOf: function (d) { return d.id; },
+        parentOf: function (d) { return d.parent; },
+        textOf: function (d) { return d.name || d.fullname; },
+        detailOf: function (d) { return [d.code, d.fullname].filter(Boolean).join(" / "); },
+        filter: function (d) {
+            return isSub || !fbIds.length || fbIds.indexOf(String(d.subcompanyid1)) >= 0;
+        },
+        onConfirm: function (selection) {
+            if (isSub) {
+                deptTreeFbIds = expandFbIds(selection.ids);
+                var keepSub = deptTreeToSet(deptTreeFbIds);
+                deptTreeDeptIds = (deptTreeDeptIds || []).filter(function (id) {
+                    var dept = deptTreeFindOption(oaDeptOptions, id);
+                    return dept && keepSub[String(dept.subcompanyid1 == null ? "" : dept.subcompanyid1)];
+                });
+            } else {
+                deptTreeDeptIds = deptTreeExpandDeptIds(selection.ids);
+            }
+            deptTreeCollapsed = {};
+            deptTreeRenderFilterInputs();
+            renderDeptTree();
+        }
     });
-    deptTreeRenderPickList();
-    return deptTreeSyncPickAllState();
-});
+}
 
 /* ------------------------------------------------------------------
  * 页面事件
@@ -853,27 +653,6 @@ byId("deptTreeDeptClear").addEventListener("click", function (e) {
     e.stopPropagation();
     deptTreeClearDeptFilter();
 });
-byId("deptTreePickCloseBtn").addEventListener("click", deptTreeHidePick);
-byId("deptTreePickMask").addEventListener("click", function (e) {
-    if (e.target === this) { deptTreeHidePick(); }
-});
-byId("deptTreePickSearch").addEventListener("input", function () {
-    if (deptTreePickType) { deptTreeRenderPickList(); }
-});
-byId("deptTreePickClearBtn").addEventListener("click", deptTreeClearPickSelection);
-byId("deptTreePickCancelBtn").addEventListener("click", deptTreeHidePick);
-byId("deptTreePickOkBtn").addEventListener("click", deptTreeApplyPick);
-// 双击选项：立即确定并退出弹框
-byId("deptTreePickList").addEventListener("dblclick", function (e) {
-    var option = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
-    if (!option || option.hasAttribute("data-group") || !deptTreePickType) { return; }
-    // 双击前已收到两次单击（选中→取消），这里确保该行处于选中态后再确定
-    if (deptTreePickSelected.indexOf(option.getAttribute("data-id")) < 0) {
-        deptTreeTogglePick(option);
-    }
-    deptTreeApplyPick();
-});
-
 byId("deptTreeKeyword").addEventListener("input", function () {
     deptTreeKeyword = this.value;
     // 筛选变化后展开全部，保证命中的节点不被折叠在分支里

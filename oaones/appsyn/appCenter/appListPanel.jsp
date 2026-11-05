@@ -140,7 +140,7 @@
             <input id="appcUrl" placeholder="https://example.com/portal 或 /wui/index.html#/main"></div></div>
         <div class="form-row"><label>打开方式</label><div class="field">
             <%-- 打开方式（表列 open_mode）：0 默认 = 只在当前页面/框架里打开（外层 OA 框架不动）；
-                 1 = 新标签页；2 = 原标签页（整个页面 reload）。桌面脚本 js/appDesktop.js 按它分派。 --%>
+                 1 = 新标签页；2 = 原标签页（整个页面 reload）。桌面脚本 script/js/appDesktop.js 按它分派。 --%>
             <select id="appcOpenMode">
                 <option value="0">默认（在当前页面打开，外层 OA 框架不动）</option>
                 <option value="1">新标签页（新开一个浏览器标签页打开）</option>
@@ -314,34 +314,6 @@
     </div>
 </div>
 
-<%-- 多选选择弹框（维护人 + 可见范围的分部/部门/人员共用）：
-     打开哪个选择框就把 key 切到它（各选择框分别记忆列表式/树状），骨架与拖动由 js/picker.js 提供 --%>
-<div class="modal-mask" id="appcPickMask"></div>
-<div class="modal wx-pick-modal" id="appcPickModal" style="width:700px;">
-    <div class="modal-head"><span id="appcPickTitle">选择</span>
-        <button type="button" class="modal-x" id="appcPickCloseBtn" title="关闭" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
-    <div class="modal-body">
-        <div class="pick-view-bar">
-            <input type="text" id="appcPickSearch" placeholder="输入名称 / 登录名 / 工号 / 编号 / ID 搜索"
-                   autocomplete="off">
-            <div class="view-switch mini" id="appcPickViewSwitch" data-view-key="appcPick:maintainer">
-                <button type="button" class="view-btn" data-view="list">列表式</button>
-                <button type="button" class="view-btn active" data-view="tree">树状</button>
-            </div>
-            <button type="button" class="btn small secondary pick-all-btn" id="appcPickAllBtn"
-                    data-pick-all="appcPick:maintainer"
-                    title="全选/全不选当前列表（搜索后为命中的前 200 个）">全选</button>
-        </div>
-        <div class="wx-pick-list" id="appcPickList"></div>
-        <div class="muted wx-pick-note" id="appcPickNote"></div>
-    </div>
-    <div class="modal-foot">
-        <button type="button" class="btn secondary" id="appcPickClearBtn">清空已选</button>
-        <button type="button" class="btn secondary" id="appcPickCancelBtn">取消</button>
-        <button type="button" class="btn" id="appcPickOkBtn">确定</button>
-    </div>
-</div>
-
 <script>
 "use strict";
 /* 片段内自带 byId（片段的脚本比页壳脚本先执行，见 skill.md 第一节第 7 条） */
@@ -375,7 +347,7 @@ var appcPager = OaonesTable.pager({
     onChange: function () { renderAppcList(); }
 });
 
-/** 图标底色（与桌面页 js/appDesktop.js 同一套算法与配色：两边看到的颜色一致） */
+/** 图标底色（与桌面页 script/js/appDesktop.js 同一套算法与配色：两边看到的颜色一致） */
 var APPC_PALETTE = [
     "linear-gradient(160deg,#ff9a44,#fc6076)",
     "linear-gradient(160deg,#42e695,#3bb2b8)",
@@ -401,7 +373,7 @@ function appcTileBg(name) { return APPC_PALETTE[appcHash(name) % APPC_PALETTE.le
 /**
  * 默认文字图标的取字 / 取色基准：优先用保存时固化的 icon_seed
  * （改名不跟随——维护人改的是名字，图标不该跟着变），老数据（未固化）才退回当前应用名。
- * 与桌面页 js/appDesktop.js 的 tileSeed 是同一口径。
+ * 与桌面页 script/js/appDesktop.js 的 tileSeed 是同一口径。
  */
 function appcTileSeed(app) {
     var seed = String(app && app.icon_seed ? app.icon_seed : "").trim();
@@ -781,12 +753,13 @@ function appcIconUpload(file) {
         appcToast("图片不能超过 " + (APPC_ICON.maxBytes / 1024) + "KB（建议 200KB 以内），请压缩后再上传", 2);
         return;
     }
-    var form = new FormData();
-    form.append("icon", file, file.name);
     APPC_ICON.uploader = true;
     appcIconResult("上传中…");
-    fetch(APPC_ICON.url, { method: "POST", body: form, credentials: "same-origin" })
-        .then(function (r) { return r.json(); })
+    OaonesUpload.post({
+        url: APPC_ICON.url,
+        file: file,
+        fieldName: "icon"
+    })
         .then(function (res) {
             APPC_ICON.uploader = false;
             if (!res || res.code !== 0) {
@@ -834,7 +807,7 @@ function appcIconClear() {
 /* ------------------------------------------------------------------
  * 多选选择框：维护人 + 可见范围（角色 / 分部 / 部门 / 人员）
  * 候选来源 4 种（人员 / 部门 / 分部 / 角色），五个选择框共用一套实现；
- * 弹框骨架、拖动、列表式 / 树状、全选、双击即确定由 js/picker.js 提供（见 skill.md 第一节第 5 条）。
+ * 弹框拖动由 js/modal.js 提供，树模型由 js/tree.js 提供，列表式 / 树状、全选、双击即确定由 js/picker.js 提供（见 skill.md 第一节第 5 条）。
  * ------------------------------------------------------------------ */
 
 /**
@@ -868,8 +841,6 @@ var APPC_PICK_KIND_LIST = ["maintainer", "visRole", "visSub", "visDept", "visUse
 
 /** 已选：kind → [{id,name}]（保存时分别拼成 maintainer_ids / vis_role_ids / vis_sub_ids / vis_dept_ids / vis_user_ids） */
 var appcPickSelected = { maintainer: [], visRole: [], visSub: [], visDept: [], visUser: [] };
-var appcPickTemp = {};                        // 弹框内的临时选中，点“确定”才回填到标签里
-var appcPickKind = "";                        // 当前打开的选择框
 var appcPickData = { person: null, dept: null, sub: null, role: null };   // 候选缓存（按来源懒加载）
 var APPC_PICK_MAX = 200;                      // 一次最多列出 / 全选的候选数（与模块其它页同一口径）
 
@@ -1036,113 +1007,6 @@ function appcPickRowSubText(kind, row) {
 /** 当前候选（未过滤）：人员 / 部门 / 分部各自的缓存 */
 function appcPickCandidates(kind) {
     return appcPickData[appcPickSource(kind)] || [];
-}
-
-/** 按搜索关键字过滤后的候选（列表式用） */
-function appcPickFiltered(kind) {
-    var rows = appcPickCandidates(kind);
-    var k = (appcById("appcPickSearch").value || "").trim().toLowerCase();
-    if (!k) { return rows; }
-    return rows.filter(function (r) { return appcPickRowText(kind, r).toLowerCase().indexOf(k) >= 0; });
-}
-
-function appcPickSelectedCount() {
-    var count = 0;
-    Object.keys(appcPickTemp).forEach(function (id) { if (appcPickTemp[id]) { count++; } });
-    return count;
-}
-
-/** 弹框说明行：写明“只对所选对象本身生效、不含下级”与匹配数提示 */
-function updateAppcPickNote(kind, matchCount, shownCount) {
-    var src = appcPickSource(kind);
-    var unit = src === "person" ? "人" : (src === "dept" ? "个部门" : (src === "role" ? "个角色" : "个分部"));
-    var text = "已选 " + appcPickSelectedCount() + " " + unit + "，确定后写入标签";
-    if (src === "role") {
-        text += "；角色成员按登录人当前所属角色判定（直接人员 / 部门 / 分部 / 岗位）";
-    }
-    if (kind === "visDept" || kind === "visSub") {
-        text += "；只对所选" + (kind === "visDept" ? "部门本身" : "分部本身") + "生效，不含下级";
-    }
-    text += "；双击某行可直接确定并退出";
-    if (matchCount !== undefined && matchCount > shownCount) {
-        text += "；当前匹配 " + matchCount + " " + unit + "，仅显示前 " + shownCount + " " + unit
-            + "，请输入更精确的关键词";
-    }
-    appcById("appcPickNote").textContent = text;
-}
-
-function renderAppcPickList() {
-    var kind = appcPickKind;
-    if (!kind) { return; }
-    syncAppcPickAllState(kind);
-    if (appcPickData[appcPickSource(kind)] === null) { return; }
-    var mode = OaonesPicker.mode(appcPickKey(kind));
-    var keyword = appcById("appcPickSearch").value;
-    var html;
-    var matchCount;
-    var shownCount;
-    if (mode === "tree") {
-        // 树状：与列表模式同口径（同一批候选 + 同一份搜索关键字）
-        var limited = appcPickCandidates(kind).slice(0, APPC_PICK_MAX);
-        matchCount = limited.length;
-        shownCount = limited.length;
-        html = OaonesPicker.renderTree(appcPickKey(kind), appcPickTreeRows(kind, limited), {
-            parentOf: function (r) { return r.parent; },
-            textOf: function (r) { return r.searchText; },
-            isGroup: function (r) { return r.group === true; },
-            groupHtml: function (r, open, hit) {
-                return OaonesPicker.groupHtml(appcPickKey(kind), r, open, hit);
-            },
-            keyword: keyword,
-            emptyText: "没有匹配的候选",
-            optionHtml: function (r) { return appcPickRowHtml(kind, r.row); }
-        });
-    } else {
-        var rows = appcPickFiltered(kind);
-        var shown = rows.slice(0, APPC_PICK_MAX);
-        matchCount = rows.length;
-        shownCount = shown.length;
-        if (!shown.length) {
-            html = "<div class='wx-pick-empty'>没有匹配的候选</div>";
-        } else {
-            var headSub = appcPickSource(kind) === "role"
-                ? "标记 / 角色编号 / 分部" : "登录名 / 工号 / 部门";
-            html = "<div class='wx-pick-head mt-pick-head'>"
-                + "<span>选择</span><span>名称</span><span>" + headSub + "</span></div>";
-            shown.forEach(function (r) { html += appcPickRowHtml(kind, r); });
-        }
-    }
-    var listEl = appcById("appcPickList");
-    listEl.className = "wx-pick-list" + (mode === "tree" ? " is-tree" : "");
-    listEl.innerHTML = html;
-    updateAppcPickNote(kind, matchCount, shownCount);
-}
-
-/** 当前列表可全选的候选（先取前 200，再按搜索关键字过滤，与两种显示模式一致）。 */
-function appcPickAllRows(kind) {
-    var limited = appcPickCandidates(kind).slice(0, APPC_PICK_MAX);
-    var k = (appcById("appcPickSearch").value || "").trim().toLowerCase();
-    return k ? limited.filter(function (r) { return appcPickRowText(kind, r).toLowerCase().indexOf(k) >= 0; }) : limited;
-}
-
-/** 同步“全选 / 全不选”按钮：返回当前列表候选是否已全部选中。 */
-function syncAppcPickAllState(kind) {
-    var rows = appcPickAllRows(kind);
-    var allOn = rows.length > 0 && rows.every(function (r) { return appcPickTemp[String(r.id)] === true; });
-    OaonesPicker.syncSelectAll(appcPickKey(kind), allOn);
-    return allOn;
-}
-
-/** 候选行（列表式 / 树状共用），选中态取自 appcPickTemp。 */
-function appcPickRowHtml(kind, row) {
-    var id = String(row.id);
-    var on = appcPickTemp[id] ? true : false;
-    return "<label class='mt-pick-row" + (on ? " checked" : "") + "'>"
-        + "<input type='checkbox' class='mt-pick-box' data-id='" + appcEsc(id) + "'"
-        + (on ? " checked" : "") + ">"
-        + "<span class='mt-pick-name'>" + appcEsc(appcPickName(kind, row)) + "</span>"
-        + "<span class='mt-pick-sub'>" + appcEsc(appcPickRowSubText(kind, row)) + "</span>"
-        + "</label>";
 }
 
 /** 分组节点的“下级候选数”（树状分组上显示） */
@@ -1315,7 +1179,6 @@ function appcPickReady(kind) {
 /** 懒加载候选：人员走 user.oaUsers，部门 / 分部走 user.orgOptions，角色走 appc.roles。 */
 function appcPickLoadData(kind, done) {
     if (appcPickReady(kind)) { done(); return; }
-    appcById("appcPickList").innerHTML = "<div class='wx-pick-empty'>正在加载 OA 组织数据…</div>";
     var src = appcPickSource(kind);
     if (src === "person") {
         Oaones.api("user.oaUsers", {}, function (res) {
@@ -1340,88 +1203,59 @@ function appcPickLoadData(kind, done) {
 }
 
 function openAppcPick(kind) {
-    appcPickKind = kind;
-    var key = appcPickKey(kind);
     var def = appcPickDef(kind);
-    appcPickTemp = {};
-    (appcPickSelected[kind] || []).forEach(function (m) { appcPickTemp[m.id] = true; });
-    appcById("appcPickTitle").textContent = def.title;
-    // 每个选择框各自记忆列表式 / 树状：把弹框的 key 切到当前选择框，再同步切换按钮与全选按钮
-    appcById("appcPickViewSwitch").setAttribute("data-view-key", key);
-    appcById("appcPickAllBtn").setAttribute("data-pick-all", key);
-    // 角色候选没有上下级关系：按 skill.md 第一节第 5 条只提供列表式，切到其它选择框时恢复树状按钮
-    var treeBtn = appcById("appcPickViewSwitch").querySelector(".view-btn[data-view='tree']");
-    if (treeBtn) { treeBtn.hidden = def.tree === false; }
-    OaonesPicker.syncSwitches(key);
-    appcById("appcPickSearch").value = "";
-    // 树状默认收起分支：每次打开弹框重置展开状态
-    OaonesPicker.resetTree(key);
-    appcById("appcPickMask").style.display = "block";
-    appcById("appcPickModal").style.display = "block";
-    if (appcPickReady(kind)) { renderAppcPickList(); } else { appcPickLoadData(kind, renderAppcPickList); }
-    appcById("appcPickSearch").focus();
-}
-
-function closeAppcPick() {
-    appcById("appcPickMask").style.display = "none";
-    appcById("appcPickModal").style.display = "none";
-    appcPickTemp = {};
-}
-
-function clearAppcPick() {
-    appcPickTemp = {};
-    renderAppcPickList();
-}
-
-function onAppcPickListChange(e) {
-    var t = e.target;
-    if (!t || !t.classList || !t.classList.contains("mt-pick-box")) { return; }
-    var id = String(t.getAttribute("data-id"));
-    if (t.checked) { appcPickTemp[id] = true; } else { delete appcPickTemp[id]; }
-    var row = t.parentNode;
-    while (row && row.classList && !row.classList.contains("mt-pick-row")) { row = row.parentNode; }
-    if (row && row.classList) { row.classList.toggle("checked", t.checked); }
-    updateAppcPickNote(appcPickKind);
-}
-
-/** 确定：按候选顺序回填，保留已失效（不在当前缓存里）的历史值 */
-function confirmAppcPick() {
-    var kind = appcPickKind;
-    if (!kind) { return; }
-    var picked = [];
-    var seen = {};
-    appcPickCandidates(kind).forEach(function (r) {
-        var id = String(r.id);
-        if (appcPickTemp[id] && !seen[id]) {
-            picked.push({ id: id, name: appcPickName(kind, r) });
-            seen[id] = true;
+    var source = appcPickSource(kind);
+    var prefix = source === "person" ? "u:" : (source === "dept" ? "d:" : (source === "sub" ? "s:" : ""));
+    OaonesPicker.open({
+        key: appcPickKey(kind),
+        title: def.title,
+        multiple: true,
+        maxSelected: APPC_PICK_MAX,
+        tree: def.tree !== false,
+        initialSelected: (appcPickSelected[kind] || []).map(function (one) {
+            return { id: prefix + one.id, name: one.name, raw: one };
+        }),
+        loadRows: function (context, done) {
+            function finish() {
+                var candidates = appcPickCandidates(kind).slice(0, APPC_PICK_MAX);
+                var rows = appcPickTreeRows(kind, candidates).map(function (r) {
+                    if (r.group === true) {
+                        return {
+                            id: r.id,
+                            parentId: r.parent || "",
+                            name: r.name,
+                            selectable: false,
+                            count: r.count
+                        };
+                    }
+                    return {
+                        id: r.id,
+                        parentId: r.parent || "",
+                        name: appcPickName(kind, r.row),
+                        detail: [appcPickRowSubText(kind, r.row),
+                            appcPickSource(kind) === "person" ? r.row.mobile : ""]
+                            .filter(Boolean).join(" / "),
+                        row: r.row
+                    };
+                });
+                done(null, rows);
+            }
+            if (appcPickReady(kind)) { finish(); }
+            else { appcPickLoadData(kind, finish); }
+        },
+        onConfirm: function (selection) {
+            appcPickSelected[kind] = selection.items.map(function (item) {
+                var source = item.raw && item.raw.row;
+                return {
+                    id: source ? String(source.id)
+                        : String(item.id).replace(new RegExp("^" + prefix), ""),
+                    name: source ? appcPickName(kind, source) : String(item.name || "")
+                };
+            });
+            renderAppcPickChips(kind);
         }
     });
-    (appcPickSelected[kind] || []).forEach(function (m) {
-        if (appcPickTemp[m.id] && !seen[m.id]) {
-            picked.push(m);
-            seen[m.id] = true;
-        }
-    });
-    appcPickSelected[kind] = picked;
-    renderAppcPickChips(kind);
-    closeAppcPick();
 }
-
-/* 五个选择框各自注册重绘与“全选 / 全不选”（key 与弹框上的 data-view-key / data-pick-all 一致） */
-APPC_PICK_KIND_LIST.forEach(function (kind) {
-    OaonesPicker.register(appcPickKey(kind), function () { renderAppcPickList(); });
-    OaonesPicker.setSelectAll(appcPickKey(kind), function () {
-        var rows = appcPickAllRows(kind);
-        var allOn = syncAppcPickAllState(kind);
-        rows.forEach(function (r) {
-            var id = String(r.id);
-            if (allOn) { delete appcPickTemp[id]; } else { appcPickTemp[id] = true; }
-        });
-        renderAppcPickList();
-        return syncAppcPickAllState(kind);
-    });
-});
 
 function openAppcEdit(app) {
     appcById("appcEditTitle").textContent = app ? "编辑应用" : "新建应用";
@@ -1658,24 +1492,6 @@ APPC_PICK_KIND_LIST.forEach(function (kind) {
 });
 /* 可见范围·全员可见开关：勾选 / 取消时切换下面四类选择框的可用状态（不控制权限 ↔ 按四类判定） */
 appcById("appcVisAll").addEventListener("change", syncAppcVisAll);
-/* 弹框内：搜索 / 勾选 / 全选（按钮由 picker.js 分派）/ 双击即确定 */
-appcById("appcPickSearch").addEventListener("input", renderAppcPickList);
-appcById("appcPickList").addEventListener("change", onAppcPickListChange);
-appcById("appcPickMask").addEventListener("click", closeAppcPick);
-appcById("appcPickCloseBtn").addEventListener("click", closeAppcPick);
-appcById("appcPickCancelBtn").addEventListener("click", closeAppcPick);
-appcById("appcPickClearBtn").addEventListener("click", clearAppcPick);
-appcById("appcPickOkBtn").addEventListener("click", confirmAppcPick);
-// 双击某行：选中该行后立即确定并退出弹框
-appcById("appcPickList").addEventListener("dblclick", function (e) {
-    var row = e.target && e.target.closest ? e.target.closest(".mt-pick-row") : null;
-    if (!row) { return; }
-    var box = row.querySelector(".mt-pick-box");
-    if (!box) { return; }
-    appcPickTemp[String(box.getAttribute("data-id"))] = true;
-    confirmAppcPick();
-});
-OaonesPicker.syncSwitches();
 APPC_PICK_KIND_LIST.forEach(renderAppcPickChips);
 [0, 400, 1200].forEach(function (delay) {
     window.setTimeout(appcClearAutofilledKeyword, delay);

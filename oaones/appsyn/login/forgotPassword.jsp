@@ -66,9 +66,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>找回密码</title>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <link rel="stylesheet" href="/oaones/appsyn/css/login.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/login.i18n.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <link rel="stylesheet" href="/oaones/appsyn/script/css/login.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/appsyn/script/js/login.i18n.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body class="fp-page" data-page-title-key="fpPageTitle">
 

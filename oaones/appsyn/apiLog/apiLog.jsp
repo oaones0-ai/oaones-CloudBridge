@@ -36,13 +36,17 @@
     <%-- 本菜单是跨平台只读汇总页：走自己的接口入口，action 前缀 apilog. --%>
     <script>window.OAONES_API_URL = "/oaones/appsyn/apiLog/api.jsp";</script>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <%-- 弹框统一支持按表头拖动（picker.js 接管；本页的日志详情也是弹框） --%>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/datetime.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <%-- 弹框统一支持按表头拖动（modal.js 接管；本页的日志详情也是弹框） --%>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/clipboard.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/jsonViewer.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/datetime.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <div class="navbar">
@@ -67,7 +71,8 @@
     <p class="notice" id="apiLogTip" style="display:none;color:var(--oa-warning);"></p>
     <jsp:include page="/oaones/appsyn/apiLog/apiLogPanel.jsp"/>
 </div>
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
-<script src="/oaones/appsyn/js/apiLog.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/apiLog.js?v=<%=oaonesAssetV%>"></script>
 </body>
 </html>

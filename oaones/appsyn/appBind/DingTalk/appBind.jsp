@@ -36,14 +36,17 @@
     window.OAONES_CFG_ALL_LABEL = "全部钉钉租户";</script>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };
     window.OAONES_CFG_ID = "<%=oaonesCfgId%>";</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/clipboard.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
     <%-- 密码 / 密钥框的掩码口径：编辑时只显示 **** --%>
-    <script src="/oaones/appsyn/js/secret.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/secret.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <%-- 两级标题由 navbar.jsp 统一渲染：一级标题 = 模块标题 + （带租户时）当前租户名与“设置”，
@@ -64,7 +67,8 @@
     </div>
 </div>
 
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 /* 页壳只做初始化：片段脚本只声明函数、不在解析期访问 DOM（见 skill.md 第一节第 7 条）。 */

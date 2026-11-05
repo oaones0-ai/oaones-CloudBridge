@@ -82,13 +82,18 @@
     window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };
     window.OAONES_MSG_TAB = "<%=oaonesMsgTab%>";
     window.OAONES_MSG_PLATFORM = "<%=oaonesPlatform%>";</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/datetime.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tabs.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/clipboard.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/jsonViewer.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/datetime.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <%-- 一级标题只属于本菜单（“消息设置”）：不链到租户设置、也不链到登录设置 --%>
@@ -137,9 +142,10 @@
         </div>
     </div>
 </div>
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
 <script>
-/* 页签切换（与企微消息中心同一套口径：面板片段各自暴露 load()，切到哪个载哪个） */
+/* 页签切换：公共 tabs.js 统一维护按钮/面板激活态，各面板只负责自己的 load() */
 (function () {
     "use strict";
     var MODULES = {
@@ -150,6 +156,7 @@
         board: function () { return window.MsgBoardPanel; }
     };
     var loaded = {};
+    var tabs;
     function showToast(msg, mode, duration) {
         if (window.OaonesToast) { window.OaonesToast.show(msg, { mode: mode, duration: duration }); }
     }
@@ -157,34 +164,21 @@
     function loadTab(tab) {
         var getter = MODULES[tab];
         var panel = getter ? getter() : null;
-        if (!panel || typeof panel.load !== "function") { return; }
-        if (loaded[tab]) { return; }
+        if (!panel || typeof panel.load !== "function" || loaded[tab]) { return; }
         loaded[tab] = true;
         panel.load();
     }
-    function switchTab(tab) {
-        if (!MODULES[tab]) { return; }
-        var tabs = document.querySelectorAll("#msgTabs button");
-        for (var i = 0; i < tabs.length; i++) {
-            tabs[i].classList.toggle("active", tabs[i].getAttribute("data-tab") === tab);
-        }
-        var panels = document.querySelectorAll("[data-tab-panel]");
-        for (var j = 0; j < panels.length; j++) {
-            panels[j].classList.toggle("active", panels[j].getAttribute("data-tab-panel") === tab);
-        }
-        loadTab(tab);
-    }
-    window.MsgCenterTabs = { switchTo: function (tab) { switchTab(tab); } };
-
     function init() {
-        var tabs = document.querySelectorAll("#msgTabs button");
-        for (var i = 0; i < tabs.length; i++) {
-            tabs[i].addEventListener("click", function () {
-                switchTab(this.getAttribute("data-tab"));
-            });
-        }
         var start = String(window.OAONES_MSG_TAB || "");
-        switchTab(MODULES[start] ? start : "config");
+        if (!MODULES[start]) { start = "config"; }
+        tabs = OaonesTabs.bind({
+            buttons: "#msgTabs button",
+            panels: "[data-tab-panel]",
+            initial: start,
+            onChange: loadTab
+        });
+        window.MsgCenterTabs = { switchTo: function (tab) { return tabs.switchTo(tab); } };
+        loadTab(tabs.active());
     }
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);

@@ -106,7 +106,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%=Util.toHtml(oaonesTitle)%> - OAones</title>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
 </head>
 <body class="wx-callback-page">
 <div class="wx-callback-icon"><%=oaonesConfirm ? "&#63;" : (oaonesDone ? "&#10004;" : "&#33;")%></div>

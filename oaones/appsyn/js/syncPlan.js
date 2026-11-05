@@ -520,6 +520,7 @@
      * ================================================================== */
 
     function fillForm() {
+        normalizeDirectionFeature();
         var direction = byId("planDirection").value;
         // 正在编辑的那条规则（state.editId 为空 = 新增一条）
         var row = editingRow();
@@ -2045,8 +2046,25 @@
             });
         }
         bindEvents();
+        if (window.OaonesFeatureGate && window.OaonesFeatureGate.onReady) {
+            window.OaonesFeatureGate.onReady(normalizeDirectionFeature);
+        }
         loadSchedulerStatus();
         loadCfgs();
+    }
+
+    /** 同步方向被功能设置关闭时不显示该选项；当前项被隐藏时切到仍可用的方向。 */
+    function normalizeDirectionFeature() {
+        var select = byId("planDirection");
+        if (!select || !select.options || !select.options.length) { return; }
+        var current = select.options[select.selectedIndex];
+        if (current && current.style.display !== "none") { return; }
+        for (var i = 0; i < select.options.length; i++) {
+            if (select.options[i].style.display !== "none") {
+                select.value = select.options[i].value;
+                return;
+            }
+        }
     }
 
     if (document.readyState === "loading") {

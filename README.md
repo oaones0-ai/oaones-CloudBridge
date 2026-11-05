@@ -69,7 +69,37 @@
 INSERT INTO [Int_WhiteList] ([exclude_],[type_],[desc_],[orderNum],[creater],[modifier],[modifydate],[modifytime],[is_sys]) VALUES ('/oaones/appsyn/login/login.jsp','url','统一登录页','100','null','null,null,null,null');
 ```
 
-### 4.4 配置 web.xml 和 nginx（统一身份认证）
+### 4.4 配置WEB-INF/resin-web-post.xml
+没有则新增文件，仅限resin中间件，其他配置请咨询AI
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app>
+    <filter>
+        <filter-name>OaonesRouteFilter</filter-name>
+        <filter-class>com.customization.oaones.appsyn.common.OaonesRouteFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>OaonesRouteFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter>
+        <filter-name>OaonesOpLogFilter</filter-name>
+        <filter-class>com.customization.oaones.appsyn.common.OaonesOpLogFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>OaonesOpLogFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <listener>
+        <listener-class>com.customization.oaones.appsyn.job.OaonesLogRetentionSchedulerListener</listener-class>
+    </listener>
+</web-app>
+```
+
+
+### 4.5 配置 web.xml 和 nginx（统一身份认证）
 
 Web.xml 中注册监听器（WEB-INF/web.xml）
 
@@ -155,7 +185,7 @@ server {
 }
 ```
 
-### 4.5 配置消息订阅
+### 4.6 配置消息订阅
 
 ```text
 后端应用中心-->消息中心-->消息订阅设置
@@ -167,13 +197,13 @@ server {
 通道类型：Direct
 ```
 
-### 4.6 退出页以及超时登录弹窗
+### 4.7 退出页以及超时登录弹窗
 
 ```text
 这里需要ecode对标准组件进行拦截和重写，可自行编写ecode或者登录oaones网站进行下载已有代码，部署ecode
 或访问：
 ```
-### 4.7 菜单URL设置
+### 4.8 菜单URL设置
 
 ```text
 1.个人账号中心：/oaones/appsyn/accountCenter/MyAccount.jsp

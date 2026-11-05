@@ -1,7 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%--
   「统一认证报表」页主体：筛选栏 + 数字看板 + 今日堆柱状图 + 两个折线图。
-  只是标记与容器，交互脚本统一在 /oaones/appsyn/js/authReport.js。
+  只是标记与容器，交互脚本统一在 /oaones/appsyn/script/js/authReport.js。
 --%>
 <div class="card" id="arFilterCard">
     <div class="filter-bar" style="margin-bottom:0;">

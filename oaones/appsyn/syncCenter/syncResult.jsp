@@ -99,13 +99,15 @@
             sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%>
         };
     </script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/datetime.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/datetime.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <% if (oaonesCfgId.length() == 0) { %>
@@ -141,7 +143,8 @@
     </div>
     <jsp:include page="/oaones/appsyn/syncCenter/syncResultPanel.jsp"/>
 </div>
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
-<script src="/oaones/appsyn/js/syncResult.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/syncResult.js?v=<%=oaonesAssetV%>"></script>
 </body>
 </html>

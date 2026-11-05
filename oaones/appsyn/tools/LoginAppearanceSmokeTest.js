@@ -26,13 +26,14 @@
     var vm = require("vm");
 
     var root = path.resolve(__dirname, "..");                 // oaones/
+    var scripts = path.resolve(root, "..", "scripts");        // oaones/scripts/
     var eco = path.resolve(root, "../..");                       // ecology/
     var login = read(path.join(root, "login", "login.jsp"));
     var config = read(path.join(root, "loginConfig", "config.jsp"));
     var upload = read(path.join(root, "loginConfig", "imageUpload.jsp"));
-    var richtext = read(path.join(root, "js", "richtext.js"));
-    var loginCss = read(path.join(root, "css", "login.css"));
-    var styleCss = read(path.join(root, "css", "style.css"));
+    var richtext = read(path.join(scripts, "js", "richtext.js"));
+    var loginCss = read(path.join(root, "..", "appsyn", "script", "css", "login.css"));
+    var styleCss = read(path.join(root, "..", "scripts", "css", "style.css"));
     var assets = read(path.join(root, "assets.jsp"));
 
     /** 三个连接器的后端源码目录名（企微=公共实现，钉钉 / 飞书为同口径副本） */
@@ -89,9 +90,10 @@
     });
     check("上传入口是专用页（multipart，api.jsp 收不了文件）",
         config.indexOf('url: "/oaones/appsyn/loginConfig/imageUpload.jsp"') >= 0);
-    check("上传用 FormData 提交文件（字段名 file）", config.indexOf('form.append("file", file, file.name)') >= 0);
-    check("上传把用途放在查询串上（?kind=logo|bg）",
-        config.indexOf('LOGIN_IMG.url + "?kind=" + encodeURIComponent(spec.kind)') >= 0);
+    check("上传走公共 OaonesUpload.post（字段名 file）",
+        /OaonesUpload\.post\(\{[\s\S]*?fieldName:\s*"file"/.test(config));
+    check("上传把用途放在 query.kind 上（logo|bg）",
+        /query:\s*\{\s*kind:\s*spec\.kind\s*\}/.test(config));
     check("回显带上三项（setImg logo / setImg bg / renderBrand）",
         config.indexOf('setImg("logo", data.logo || "")') >= 0
         && config.indexOf('setImg("bg", data.bg_image || "")') >= 0
@@ -113,9 +115,11 @@
 
     console.log("【2】设置页脚本：引用与语法");
     check("引了富文本编辑器（js/richtext.js，带版本号）",
-        config.indexOf('/oaones/appsyn/js/richtext.js?v=<%=oaonesAssetV%>') >= 0);
+        config.indexOf('/oaones/scripts/js/richtext.js?v=<%=oaonesAssetV%>') >= 0);
+    check("引了公共上传组件（js/upload.js，带版本号）",
+        config.indexOf('/oaones/scripts/js/upload.js?v=<%=oaonesAssetV%>') >= 0);
     check("assets.jsp 已把 richtext.js 计入版本号链",
-        assets.indexOf('"/oaones/appsyn/js/richtext.js"') >= 0);
+        assets.indexOf('"/oaones/scripts/js/richtext.js"') >= 0);
     var jsStart = config.lastIndexOf("<script>");
     var jsEnd = config.lastIndexOf("</script>");
     var inline = jsStart >= 0 && jsEnd > jsStart

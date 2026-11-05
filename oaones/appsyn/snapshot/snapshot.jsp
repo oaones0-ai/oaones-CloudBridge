@@ -26,6 +26,8 @@
 <%@ page import="weaver.hrm.HrmUserVarify" %>
 <%@ page import="weaver.hrm.User" %>
 <%@ page import="com.customization.oaones.appsyn.common.OaonesAdmin" %>
+<%@ page import="com.customization.oaones.appsyn.common.FeatureSettingCatalog" %>
+<%@ page import="com.customization.oaones.appsyn.common.OaonesFeatureSettings" %>
 <%
     request.setCharacterEncoding("UTF-8");
     User user = HrmUserVarify.getUser(request, response);
@@ -43,6 +45,8 @@
     if (!oaonesCfgId.matches("\\d+")) {
         oaonesCfgId = "";
     }
+    boolean oaonesSnapshotCanExport = OaonesFeatureSettings.enabled(
+            request, FeatureSettingCatalog.USER_BIND_EXPORT);
 %>
 <%@ include file="/oaones/appsyn/assets.jsp" %>
 <!DOCTYPE html>
@@ -59,12 +63,14 @@
     var P_PLATFORM = "<%= oaonesPBPlatform %>";</script>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };
     window.OAONES_CFG_ID = "<%=oaonesCfgId%>";</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/excel.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/excel.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <%-- 同一套两级标题：一级=模块标题 + 当前租户名/设置，二级=该租户的功能菜单（页签）。
@@ -84,8 +90,10 @@
             <span class="help-tip" id="cfgHelpTip" data-help="cfgHelpText" role="button" tabindex="0"
                   title="查看页面说明" aria-label="查看页面说明">?</span>
             <span style="flex:1;"></span>
-            <button class="btn secondary" id="exportExcelBtn"
+<% if (oaonesSnapshotCanExport) { %>
+            <button class="btn secondary" id="exportExcelBtn" data-oaones-feature="user.bind.export"
                     title="把当前快照导出为 Excel 文件（.xlsx）：树状导出“部门 → 成员”明细，列表导出成员明细；导出范围与页面当前筛选条件一致">导出Excel</button>
+<% } %>
             <button class="btn" id="snapshotBtn"
                     title="按当前<%= oaonesPBFull %>租户重新从<%= oaonesPBFull %>拉取全部部门与全部成员，写回快照表 uf_oaones_appsyn_dep_tmp / uf_oaones_appsyn_user_tmp（数据较多时耗时较长，期间请不要关闭页面）">更新快照</button>
             <button class="btn secondary" id="refreshBtn">刷新</button>
@@ -128,7 +136,8 @@
     </div>
 </div>
 
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 var state = { cfgs: [], cfgId: String(window.OAONES_CFG_ID || ""), keyword: "", view: "tree" };
@@ -162,7 +171,7 @@ function snapIsNoBind(v) { return snapKey(v) === "0"; }
 /**
  * 页面统一提示：mode 0 普通提示 / 1 警告 / 2 操作错误 / 3 系统错误，
  * duration 为显示毫秒数（不传用各模式默认值，<=0 表示常驻）。
- * 禁止使用原生 alert / confirm，统一由 /oaones/appsyn/js/toast.js 弹出。
+ * 禁止使用原生 alert / confirm，统一由 /oaones/scripts/js/toast.js 弹出。
  */
 function showToast(msg, mode, duration) {
     if (msg === null || msg === undefined || String(msg) === "") { return; }
@@ -779,7 +788,9 @@ byId("snapCollapseBtn").addEventListener("click", function () {
 });
 byId("refreshBtn").addEventListener("click", loadData);
 byId("snapshotBtn").addEventListener("click", updateSnapshot);
-byId("exportExcelBtn").addEventListener("click", exportSnapExcel);
+if (byId("exportExcelBtn")) {
+    byId("exportExcelBtn").addEventListener("click", exportSnapExcel);
+}
 
 /* 列表视图分页器（树状视图不套分页，切到树状时隐藏） */
 if (window.OaonesTable) {

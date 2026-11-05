@@ -24,7 +24,7 @@ var expected = [];
 var re = /public static final String [A-Z_]+ = "([a-z_]+)"/g;
 var match;
 while ((match = re.exec(catalog))) { expected.push(match[1]); }
-check(expected.length === 8, "日志清单应为 8 项，实际 " + expected.length);
+check(expected.length === 9, "日志清单应为 9 项，实际 " + expected.length);
 
 var dbs = ["Mysql", "SQLServer", "Oracle"];
 dbs.forEach(function (db) {
@@ -32,6 +32,7 @@ dbs.forEach(function (db) {
         var relative = base + "/" + db + "/oaones/appsyn/oaones0019_log_retention.sql";
         var sql = read(relative);
         expected.forEach(function (code) {
+            if (code === "mylog_file") { return; }
             check(sql.indexOf("'" + code + "'") >= 0, relative + " 缺少日志项 " + code);
         });
         check(/keep_days[^,\n]*DEFAULT 0/i.test(sql)
@@ -53,19 +54,25 @@ var listener = read("WEB-INF/resin-web-post.xml");
 check(listener.indexOf("OaonesLogRetentionSchedulerListener") >= 0, "E9 启动监听器未注册");
 
 var controller = read("src/com/customization/oaones/appsyn/controller/LogRetentionController.java");
-["logretention.list", "logretention.save", "logretention.saveAll", "logretention.clean"].forEach(function (action) {
+["logretention.list", "logretention.save", "logretention.saveAll", "logretention.clean", "logretention.cleanOne"].forEach(function (action) {
     check(controller.indexOf(action) >= 0, "控制器缺少 action " + action);
 });
 
 var page = read("oaones/appsyn/systemSettings/systemSettings.jsp");
-check(page.indexOf("/oaones/appsyn/js/systemSettings.js") >= 0, "系统设置页未引入页面脚本");
+check(page.indexOf("/oaones/appsyn/script/js/systemSettings.js") >= 0, "系统设置页未引入页面脚本");
 check(page.indexOf("应用到全部") >= 0 && page.indexOf("保存全部") >= 0, "缺少统一 / 批量设置入口");
 check(page.indexOf("当前行数") >= 0 && page.indexOf('colspan="7"') >= 0,
     "系统设置页缺少当前行数列或表头列数未同步");
 
-var pageScript = read("oaones/appsyn/js/systemSettings.js");
+var pageScript = read("oaones/appsyn/script/js/systemSettings.js");
 check(pageScript.indexOf("item.rowCount") >= 0 && pageScript.indexOf('colspan="7"') >= 0,
     "页面脚本未渲染当前行数");
+check(pageScript.indexOf("data-retention-clean") >= 0
+        && pageScript.indexOf("logretention.cleanOne") >= 0,
+    "日志设置操作列缺少单表立即清理");
+check(pageScript.indexOf("saveFeatureInput") >= 0
+        && pageScript.indexOf("featureSettingsSaveBtn") < 0,
+    "功能开关未改为逐项即时保存");
 
 var mapper = read("src/com/customization/oaones/appsyn/dao/LogRetentionMapper.java");
 var mapperXml = read("WEB-INF/config/mapper/oaones/appsyn/LogRetentionMapper.xml");
@@ -76,6 +83,15 @@ check(mapper.indexOf("Long countRows") >= 0
     "日志表行数未通过 Mapper 直接查询数据库");
 check(retentionService.indexOf("countRows(item)") >= 0,
     "日志保留列表未返回当前行数");
+check(pageScript.indexOf("bytesText(item.totalSize)") >= 0,
+    "mylog 文件项未显示目录总大小");
+check(retentionService.indexOf("mylog_(\\\\d{8})\\\\.zip") >= 0
+        && retentionService.indexOf("LocalDate.now().minusDays(days)") >= 0,
+    "mylog 清理未按文件名日期和保留天数处理 zip 归档");
+check(retentionService.indexOf("Files.isSymbolicLink(candidate.toPath())") >= 0
+        && retentionService.indexOf("LinkOption.NOFOLLOW_LINKS") >= 0
+        && retentionService.indexOf("canonicalDir.equals(canonicalParent)") >= 0,
+    "mylog 清理缺少普通文件、符号链接和目录边界保护");
 
 if (failures.length > 0) {
     failures.forEach(function (message) { console.error("FAIL: " + message); });

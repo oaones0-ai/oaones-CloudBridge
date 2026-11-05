@@ -12,6 +12,7 @@
     var path = require("path");
     var vm = require("vm");
     var root = path.resolve(__dirname, "..");
+    var scripts = path.resolve(root, "..", "scripts");
     var failed = 0;
 
     function read(file) {
@@ -33,9 +34,9 @@
 
     var login = read(path.join(root, "login", "login.jsp"));
     var forgot = read(path.join(root, "login", "forgotPassword.jsp"));
-    var i18nSource = read(path.join(root, "js", "login.i18n.js"));
+    var i18nSource = read(path.join(root, "script", "js", "login.i18n.js"));
     var assets = read(path.join(root, "assets.jsp"));
-    var css = read(path.join(root, "css", "login.css"));
+    var css = read(path.join(root, "..", "appsyn", "script", "css", "login.css"));
 
     console.log("【1】语种来源与优先级");
     check("候选语种读取泛微 syslanguage（Util.getActiveLanguageInfo）",
@@ -171,7 +172,7 @@
         });
     })());
     check("资源已被静态缓存版本号链覆盖",
-        assets.indexOf("/oaones/appsyn/js/login.i18n.js") >= 0);
+        assets.indexOf("/oaones/appsyn/script/js/login.i18n.js") >= 0);
     check("登录页与找回页都引入同一份资源",
         login.indexOf("login.i18n.js") >= 0 && forgot.indexOf("login.i18n.js") >= 0);
     check("语种切换样式包含弹框与窄屏适配",

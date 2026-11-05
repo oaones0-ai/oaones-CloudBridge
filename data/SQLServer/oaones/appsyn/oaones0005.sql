@@ -46,7 +46,7 @@ IF OBJECT_ID('dbo.uf_oaones_att_cfg','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_cfg already exists';
-GO
+
 
 IF OBJECT_ID('dbo.uf_oaones_att_plan_item','U') IS NULL
     BEGIN
@@ -70,7 +70,7 @@ IF OBJECT_ID('dbo.uf_oaones_att_plan_item','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_plan_item already exists';
-GO
+
 
 IF OBJECT_ID('dbo.uf_oaones_att_log','U') IS NULL
     BEGIN
@@ -114,7 +114,7 @@ IF OBJECT_ID('dbo.uf_oaones_att_log','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_log already exists';
-GO
+
 
 IF OBJECT_ID('dbo.uf_oaones_att_log_item','U') IS NULL
     BEGIN
@@ -158,7 +158,7 @@ IF OBJECT_ID('dbo.uf_oaones_att_log_item','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_log_item already exists';
-GO
+
 
 IF OBJECT_ID('dbo.uf_oaones_att_link','U') IS NULL
     BEGIN
@@ -193,4 +193,4 @@ IF OBJECT_ID('dbo.uf_oaones_att_link','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_link already exists';
-GO
+

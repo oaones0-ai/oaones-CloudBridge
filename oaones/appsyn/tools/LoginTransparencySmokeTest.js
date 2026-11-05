@@ -47,7 +47,7 @@
 
     var config = read(path.join(root, "loginConfig", "config.jsp"));
     var login = read(path.join(root, "login", "login.jsp"));
-    var loginCss = read(path.join(root, "css", "login.css"));
+    var loginCss = read(path.join(root, "..", "appsyn", "script", "css", "login.css"));
     var impl = read(path.join(eco, "src", "com", "customization", "oaones", "appsyn",
         "service", "impl", "wecom", "LoginConfigServiceImpl.java"));
     var entity = read(path.join(eco, "src", "com", "customization", "oaones", "appsyn",

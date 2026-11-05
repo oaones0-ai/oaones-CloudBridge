@@ -52,11 +52,11 @@
     <title>规则列表 - OAones</title>
     <%-- 当前登录人：页面提示语按角色分别显示（sysAdmin = 系统管理员或超管角色成员，见后端 OaonesAdmin.isTotalAdmin） --%>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <jsp:include page="<%= oaonesPBNavbarPath %>">
@@ -112,7 +112,8 @@
     </div>
 </div>
 
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 /** 自动匹配的固定优先级（后端 UserBindServiceImpl.autoMatch 按此顺序执行） */
@@ -136,7 +137,7 @@ function esc(v) { return Oaones.esc(v); }
 /**
  * 页面统一提示：mode 0 普通提示 / 1 警告 / 2 操作错误 / 3 系统错误，
  * duration 为显示毫秒数（不传用各模式默认值，<=0 表示常驻）。
- * 禁止使用原生 alert / confirm，统一由 /oaones/appsyn/js/toast.js 弹出。
+ * 禁止使用原生 alert / confirm，统一由 /oaones/scripts/js/toast.js 弹出。
  */
 function showToast(msg, mode, duration) {
     if (msg === null || msg === undefined || String(msg) === "") { return; }

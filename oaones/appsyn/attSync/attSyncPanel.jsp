@@ -2,7 +2,7 @@
 <%--
   考勤同步页面主体（标记片段）：三个平台共用一份（页面 attSync.jsp 用 <jsp:include> 引它）。
   内容 = 三个页签的面板 + 编辑弹框 + 选择弹框 + 明细 / 预测弹框；
-  所有行为在 js/attSync.js（window.OaonesAttSync）里实现，本文件只放结构。
+  所有行为在 script/js/attSync.js（window.OaonesAttSync）里实现，本文件只放结构。
 --%>
 
 <%-- ============ 页签 1：同步设置 ============ --%>
@@ -59,7 +59,7 @@
         </thead>
         <tbody id="attLogBody"></tbody>
     </table>
-    <div id="attLogPager"></div>
+    <div class="pager" id="attLogPager"></div>
 </div>
 
 <%-- ============ 页签 3：打卡明细 ============ --%>
@@ -104,7 +104,7 @@
         </thead>
         <tbody id="attItemBody"></tbody>
     </table>
-    <div id="attItemPager"></div>
+    <div class="pager" id="attItemPager"></div>
 </div>
 
 <%-- ============ 弹框 1：编辑同步设置 ============ --%>
@@ -143,9 +143,9 @@
                 <label>同步方向<span class="req-mark">*</span></label>
                 <div>
                     <select id="attCfgDir" class="oa-select">
-                        <option value="0">双向同步（第三方 → OA、OA → 第三方）</option>
-                        <option value="1">仅 第三方 → OA（把平台打卡写进 OA）</option>
-                        <option value="2">仅 OA → 第三方（把 OA 打卡写到平台）</option>
+                        <option value="0" data-oaones-feature="att.sync.oa2third,att.sync.third2oa">双向同步（第三方 → OA、OA → 第三方）</option>
+                        <option value="1" data-oaones-feature="att.sync.third2oa">仅 第三方 → OA（把平台打卡写进 OA）</option>
+                        <option value="2" data-oaones-feature="att.sync.oa2third">仅 OA → 第三方（把 OA 打卡写到平台）</option>
                     </select>
                 </div>
             </div>

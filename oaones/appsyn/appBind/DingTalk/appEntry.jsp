@@ -3,6 +3,8 @@
 <%@ page import="com.customization.oaones.appsyn.common.OaonesApiLog" %>
 <%@ page import="com.customization.oaones.appsyn.common.OaonesConst" %>
 <%@ page import="com.customization.oaones.appsyn.common.OaonesUtil" %>
+<%@ page import="com.customization.oaones.appsyn.common.FeatureSettingCatalog" %>
+<%@ page import="com.customization.oaones.appsyn.common.OaonesFeatureSettings" %>
 <%@ page import="com.customization.oaones.appsyn.controller.dingtalk.AppBindController" %>
 <%
     // 钉钉工作台应用主页的免登录入口：
@@ -66,13 +68,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>钉钉工作台免登录 - OAones</title>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
 </head>
 <body class="wx-callback-page">
 <div class="wx-callback-icon">&#33;</div>
 <div class="wx-callback-title fail">无法免登录进入 OA</div>
 <div class="wx-callback-text"><%=weaver.general.Util.toHtml(oaonesMsg)%></div>
+<% if (OaonesFeatureSettings.enabled(request, FeatureSettingCatalog.USER_BIND_SELF)) { %>
 <a class="wx-callback-link" href="/oaones/appsyn/accountCenter/MyAccount.jsp?tab=dingtalk">打开“个人账号中心”扫码绑定本人钉钉</a>
+<% } %>
 <br>
 <a class="wx-callback-link" href="/wui/index.html">前往 OA 登录页</a>
 </body>

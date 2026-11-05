@@ -2,11 +2,11 @@
  * OAones 冒烟脚本：四条全模块 UI 约束的落地自检。
  *
  *  1) 密码 / 密钥类框编辑时只显示 ****（js/secret.js + 各页接入）；
- *  2) 所有弹出框可按表头拖动（js/picker.js，含登录页 .oa-modal）；
+ *  2) 所有弹出框可按表头拖动（js/modal.js，含登录页 .oa-modal）；
  *  3) 选择框弹出页（树状选择页）与其中列表降低高度、更紧凑（css/style.css）；
  *  4) 说明问号（?）里的正文按 1 / 2 / 3 / 4 分点展示（js/help.js）。
  *
- * 为什么需要它：help.js 的分点解析、picker.js 的拖动接管、secret.js 的掩码取值
+ * 为什么需要它：help.js 的分点解析、modal.js 的拖动接管、secret.js 的掩码取值
  * 都是“全模块共用”的一段代码——一旦抛错，表现是“说明/弹框/密钥框在几十个页面上一起坏”，
  * 静态审阅看不出来。这里用最小 DOM 沙箱把这三份脚本真跑一遍，并对样式、跨页引用做静态核对。
  *
@@ -36,7 +36,7 @@ function listJsp(dir) {
 }
 
 /* ==========================================================================
- * 最小 DOM 沙箱：够跑 js/help.js、js/picker.js、js/secret.js 即可
+ * 最小 DOM 沙箱：够跑 js/help.js、js/modal.js、js/secret.js 即可
  * ========================================================================== */
 const VOID_TAGS = new Set(['br', 'hr', 'img', 'input', 'meta', 'link']);
 const ENTITIES = { '&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"', '&#39;': "'", '&nbsp;': '\u00a0' };
@@ -177,7 +177,7 @@ console.log('【1】帮助（?）正文按 1 / 2 / 3 / 4 分点展示：js/help.
 
     let win = makeEnv(doc);
     try {
-        runScript(win, 'js/help.js');
+        runScript(win, '../scripts/js/help.js');
         check('js/help.js 执行不抛错', true);
     } catch (e) {
         check('js/help.js 执行不抛错（实际抛错：' + e.message + '）', false);
@@ -213,7 +213,7 @@ console.log('【2】密码 / 密钥框编辑时显示 ****：js/secret.js');
     const win = makeEnv(doc);
     const el = doc.make('input', { id: 'corp_secret', type: 'password' });
     try {
-        runScript(win, 'js/secret.js');
+        runScript(win, '../scripts/js/secret.js');
         check('js/secret.js 执行不抛错', true);
     } catch (e) {
         check('js/secret.js 执行不抛错（实际抛错：' + e.message + '）', false);
@@ -240,9 +240,9 @@ console.log('【2】密码 / 密钥框编辑时显示 ****：js/secret.js');
 console.log('');
 
 /* ==========================================================================
- * 3) 弹出框按表头拖动（js/picker.js，含登录页 .oa-modal）
+ * 3) 弹出框按表头拖动（js/modal.js，含登录页 .oa-modal）
  * ========================================================================== */
-console.log('【3】所有弹出框可按表头拖动：js/picker.js');
+console.log('【3】所有弹出框可按表头拖动：js/modal.js');
 {
     const doc = makeDocument();
     const win = makeEnv(doc);
@@ -260,10 +260,10 @@ console.log('【3】所有弹出框可按表头拖动：js/picker.js');
         : (sel === '.modal, .oa-modal' ? oaModal : null));
 
     try {
-        runScript(win, 'js/picker.js');
-        check('js/picker.js 执行不抛错', true);
+        runScript(win, '../scripts/js/modal.js');
+        check('js/modal.js 执行不抛错', true);
     } catch (e) {
-        check('js/picker.js 执行不抛错（实际抛错：' + e.message + '）', false);
+        check('js/modal.js 执行不抛错（实际抛错：' + e.message + '）', false);
     }
     const handlers = doc._handlers.mousedown || [];
     check('已接管 document 上的 mousedown（弹框拖动）', handlers.length > 0);
@@ -281,6 +281,12 @@ console.log('【3】所有弹出框可按表头拖动：js/picker.js');
             : (sel === '.modal, .oa-modal' ? modal : null))
     }));
     check('表头上的按钮（关闭）不触发拖动', modal.style.left === '100px');
+    check('modal.js 暴露全屏 / 打开 / 关闭能力', !!(win.OaonesModal && win.OaonesModal.open
+        && win.OaonesModal.close && win.OaonesModal.toggleFullscreen));
+    win.OaonesModal.toggleFullscreen(modal);
+    check('弹框可进入全屏', modal.classList.contains('modal-fullscreen') && modal.style.display === 'flex');
+    win.OaonesModal.toggleFullscreen(modal);
+    check('弹框可退出全屏', !modal.classList.contains('modal-fullscreen') && modal.style.display === 'block');
 }
 console.log('');
 
@@ -289,7 +295,7 @@ console.log('');
  * ========================================================================== */
 console.log('【4】选择框弹出页 / 列表降高：css/style.css');
 {
-    const css = read('css/style.css');
+    const css = read('../scripts/css/style.css');
     const heights = [...css.matchAll(/\.wx-pick-list\s*\{[^}]*max-height:\s*(\d+)px/g)].map(m => Number(m[1]));
     const finalHeight = heights.length ? heights[heights.length - 1] : null;
     console.log('     .wx-pick-list max-height：' + heights.join(' → '));
@@ -304,11 +310,11 @@ console.log('【4】选择框弹出页 / 列表降高：css/style.css');
 
     // 叶子占位箭头：类名 `.leaf`，绝不能再用 `.empty`——`.empty` 是空状态块（padding:56px 0），
     // 同名会把“树状映射”的人员行、选择框树里的叶子行上下各撑 56px（比上级行高一大截）。
-    const caretEmits = ['js/picker.js', 'userBind/userTreePanel.jsp', 'deptBind/deptTreePanel.jsp',
+    const caretEmits = ['../scripts/js/tree.js', 'userBind/userTreePanel.jsp', 'deptBind/deptTreePanel.jsp',
         'snapshot/snapshot.jsp'];
     check('叶子占位箭头不再撞名空状态类 .empty（页面 / 脚本统一 .tree-caret.leaf）',
         caretEmits.every(f => !/tree-caret empty/.test(read(f)))
-        && /class='tree-caret leaf'/.test(read('js/picker.js')));
+        && /class='tree-caret leaf'/.test(read('../scripts/js/tree.js')));
     check('叶子占位箭头不被 .empty 的空状态留白撑高（含历史写法兜底）',
         /\.tree-caret\.leaf,\s*\.tree-caret\.empty\s*\{[^}]*padding:\s*0[^}]*font-size:\s*11px/.test(css));
     check('选择框候选行统一行盒高度（选项行 / 人员行 / 分组行同高）',
@@ -346,16 +352,16 @@ console.log('【5】跨页接入核对');
         check(f + '：引了 js/secret.js', /js\/secret\.js/.test(read(f)));
     });
 
-    // 弹框拖动：含 .modal-mask 的页面，本目录或上一级目录得有引了 picker.js 的页壳
+    // 弹框拖动：含 .modal-mask 的页面，本目录或上一级目录得有引了 modal.js 的页壳
     const hosts = all.filter(f => /class="modal-mask"/.test(read(f)));
-    const withPicker = new Set(all.filter(f => /js\/picker\.js/.test(read(f))));
+    const withModal = new Set(all.filter(f => /js\/modal\.js/.test(read(f))));
     const missing = hosts.filter(f => {
         const dirs = [path.dirname(f), path.dirname(path.dirname(f))];
-        return dirs.every(d => ![...withPicker].some(p => path.dirname(p) === (d === '.' ? '.' : d)));
+        return dirs.every(d => ![...withModal].some(p => path.dirname(p) === (d === '.' ? '.' : d)));
     });
     console.log('     含弹框的页面：' + hosts.length + ' 个；未接入拖动：' + (missing.length ? missing.join(' / ') : '无'));
-    check('含弹框的页面都能拖表头（本目录或上级目录的页壳引了 picker.js）', missing.length === 0);
-    check('assets.jsp 已把 secret.js 计入版本号链', /oaonesSecretJsUrl/.test(read('assets.jsp')));
+    check('含弹框的页面都能拖表头（本目录或上级目录的页壳引了 modal.js）', missing.length === 0);
+    check('assets.jsp 已把 secret.js 计入版本号链', /\/oaones\/scripts\/js\/secret\.js/.test(read('assets.jsp')));
 }
 console.log('');
 

@@ -20,6 +20,9 @@ public interface LogRetentionService {
     /** 按当前配置立即清理一个日志项；{@code <= 0} 时不删除。 */
     JSONObject cleanNow(String logCode);
 
+    /** 管理员按当前配置立即清理一个日志项。 */
+    JSONObject cleanOne(String operatorId, String logCode);
+
     /** 管理员立即按配置清理全部日志项。 */
     JSONObject cleanAll(String operatorId);
 

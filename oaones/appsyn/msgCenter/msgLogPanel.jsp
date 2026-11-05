@@ -296,26 +296,10 @@
      * 一键复制报文：优先用剪贴板 API，非安全上下文（http）退化为临时文本框 + execCommand
      * ------------------------------------------------------------------ */
     function copyText(text, okMsg) {
-        var payload = String(text == null ? "" : text);
-        if (!payload) { toast("没有可复制的内容", 1); return; }
-        function fallback() {
-            var ta = document.createElement("textarea");
-            ta.value = payload;
-            ta.setAttribute("readonly", "readonly");
-            ta.style.position = "fixed";
-            ta.style.left = "-9999px";
-            document.body.appendChild(ta);
-            ta.select();
-            var ok = false;
-            try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
-            document.body.removeChild(ta);
-            toast(ok ? okMsg : "复制失败，请手动选中报文后复制", ok ? 0 : 1);
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(payload).then(function () { toast(okMsg); }, fallback);
-            return;
-        }
-        fallback();
+        OaonesClipboard.copy(text, {
+            successMessage: okMsg || "已复制",
+            errorMessage: "复制失败，请手动选中报文后复制"
+        });
     }
 
     /** 取某个报文块的纯文本（跳转地址块取日志里实际下发的地址，不取页面上的提示文字）。 */

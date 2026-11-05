@@ -19,7 +19,7 @@
         <label>我的个人微信</label>
         <span style="flex:1;"></span>
         <button type="button" class="btn secondary" id="acpw-refreshBtn">刷新</button>
-        <button type="button" class="btn" id="acpw-bindBtn">扫码绑定</button>
+        <button type="button" class="btn" id="acpw-bindBtn" data-oaones-feature="user.bind.self">扫码绑定</button>
     </div>
     <p class="notice" id="acpw-notice" style="display:none;"></p>
     <div class="bind-stats" id="acpw-stats"></div>
@@ -162,7 +162,7 @@ function rowHtml(bound) {
         : bound
         ? '<button type="button" class="btn small secondary" data-rebind="1" title="换绑：用新的微信号扫码，覆盖当前的绑定">换绑</button> '
             + '<button type="button" class="btn small ghost-danger" data-unbind="1" title="解除本人这一条个人微信绑定">解绑</button>'
-        : '<button type="button" class="btn small" data-rebind="1" title="用本人微信扫码，把微信号绑定到你的 OA 账号">扫码绑定</button>';
+        : '<button type="button" class="btn small" data-oaones-feature="user.bind.self" data-rebind="1" title="用本人微信扫码，把微信号绑定到你的 OA 账号">扫码绑定</button>';
     return '<tr>'
         + '<td>' + status + '</td>'
         + '<td>' + avatar + nick + '</td>'

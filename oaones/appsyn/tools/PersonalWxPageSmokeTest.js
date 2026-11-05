@@ -24,7 +24,7 @@ const jspPath = process.argv[2] ||
     path.resolve(__dirname, '..', 'personalWx', 'config.jsp');
 const jsp = fs.readFileSync(jspPath, 'utf8');
 // 页面依赖的公共脚本：与浏览器里的加载顺序一致，先在沙箱里执行一遍
-const secretJs = fs.readFileSync(path.resolve(__dirname, '..', 'js', 'secret.js'), 'utf8');
+const secretJs = fs.readFileSync(path.resolve(__dirname, '..', '..', 'scripts', 'js', 'secret.js'), 'utf8');
 
 /** 收集页面上的 id；hidden 模式去掉“微信授权密钥”卡片（if (oaonesPwShowSetting) { … }）内的 id。 */
 function idsOf(hidden) {
@@ -40,6 +40,7 @@ function run(hidden) {
     const ids = idsOf(hidden);
     const handlers = {};
     const cache = {};
+    const openedPickers = [];
     const makeEl = id => {
         const el = {
             id, style: {}, value: '', checked: true, textContent: '', innerHTML: '', disabled: false, className: '',
@@ -82,9 +83,10 @@ function run(hidden) {
             resizable() {}, syncCheckAll() {}, crossPageBar() {}, listActionsHtml: () => '',
         },
         OaonesPicker: {
-            mode: () => 'list', applyPrecondition: (k, r) => r || [], partialSelected: () => ({}),
-            renderTree: () => '', resetTree() {}, preconditionTip() {},
-            setPrecondition() {}, register() {}, setSelectAll() {}, syncSelectAll() {},
+            open(options) {
+                openedPickers.push(options);
+                return { open() {}, close() {}, destroy() {} };
+            }
         },
     };
     sandbox.window = {
@@ -118,16 +120,15 @@ function run(hidden) {
         console.log('  点“' + label + '”搜索框 -> 弹框打开: ' + (cond ? '✓' : '✗'));
         if (!cond) { ok = false; }
     };
-    const shown = id => !!(cache[id] && cache[id].style && cache[id].style.display === 'block');
+    const opened = key => openedPickers.some(one => one.key === key
+        && one.multiple === true && typeof one.onConfirm === 'function');
 
     click('pwSubPicker');
-    check('分部', shown('pwOrgModal'));
-    if (cache['pwOrgModal']) { cache['pwOrgModal'].style.display = 'none'; }
+    check('分部', opened('pwOrg:fb'));
     click('pwDeptPicker');
-    check('部门', shown('pwOrgModal'));
-    if (cache['pwOrgModal']) { cache['pwOrgModal'].style.display = 'none'; }
+    check('部门', opened('pwOrg:dept'));
     click('pwPersonPicker');
-    check('人员', shown('pwPersonModal'));
+    check('人员', opened('pwPerson'));
 
     const hasSaveBtn = !!handlers['pwSaveBtn'];
     console.log('  “保存密钥”按钮已绑定:', hidden

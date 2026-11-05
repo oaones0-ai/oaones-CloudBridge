@@ -68,15 +68,19 @@
     <title><%= oaonesPBShort %>租户设置 - OAones</title>
     <%-- 当前登录人：页面提示语按角色分别显示（sysAdmin = 系统管理员或超管角色成员，见后端 OaonesAdmin.isTotalAdmin） --%>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
     <%-- 密码 / 密钥框的掩码口径：编辑时只显示 **** --%>
-    <script src="/oaones/appsyn/js/secret.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/secret.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
     <%-- 列表样式（表格 + 分页 + 列宽拖拽）用公共列表组件，不自行实现分页 --%>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/appsyn/script/js/featureConfig.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/featureGate.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <%-- 本页是**独立的一级菜单「平台租户设置」**：只展示平台租户列表（默认块状，可切列表样式），
@@ -244,37 +248,8 @@
     </div>
 </div>
 
-<%-- 维护人选择：从 OA 员工中多选（选中即加入标签，确定后回填） --%>
-<div class="modal-mask" id="mtPickMask"></div>
-<div class="modal wx-pick-modal" id="mtPickModal" style="width:700px;">
-    <div class="modal-head">
-        <span>选择维护人（可多选 OA 员工）</span>
-        <button type="button" class="modal-x" onclick="closeMtPick()" title="关闭" aria-label="关闭">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
-        </button>
-    </div>
-    <div class="modal-body">
-        <div class="pick-view-bar">
-            <input type="text" id="mtPickSearch" placeholder="输入姓名/登录名/工号/手机号/ID/部门搜索" autocomplete="off">
-            <div class="view-switch mini" id="mtPickViewSwitch" data-view-key="mtPick">
-                <button type="button" class="view-btn" data-view="list">列表式</button>
-                <button type="button" class="view-btn active" data-view="tree">树状</button>
-            </div>
-            <button type="button" class="btn small secondary pick-all-btn" id="mtPickAllBtn" data-pick-all="mtPick"
-                    title="全选/全不选当前列表（搜索后为命中的前 200 人）">全选</button>
-        </div>
-        <div class="wx-pick-list" id="mtPickList"></div>
-        <div class="muted wx-pick-note" id="mtPickNote">支持多选，选中后点击“确定”回填维护人标签；树状模式按 OA 部门分组展示，双击某行可直接确定并退出。</div>
-    </div>
-    <div class="modal-foot">
-        <button class="btn secondary" onclick="clearMtPick()">清空已选</button>
-        <button class="btn secondary" onclick="closeMtPick()">取消</button>
-        <button class="btn" onclick="confirmMtPick()">确定</button>
-    </div>
-</div>
-
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 function byId(id) { return document.getElementById(id); }
@@ -283,7 +258,7 @@ function esc(v) { return Oaones.esc(v); }
 /**
  * 页面统一提示：mode 0 普通提示 / 1 警告 / 2 操作错误 / 3 系统错误，
  * duration 为显示毫秒数（不传用各模式默认值，<=0 表示常驻）。
- * 禁止使用原生 alert / confirm，统一由 /oaones/appsyn/js/toast.js 弹出。
+ * 禁止使用原生 alert / confirm，统一由 /oaones/scripts/js/toast.js 弹出。
  */
 function showToast(msg, mode, duration) {
     if (msg === null || msg === undefined || String(msg) === "") { return; }
@@ -304,7 +279,6 @@ var idxPager = null;
 /* 维护人（分权）：mtSelected 为已选维护人 [{id,name}]；mtAllUsers 为懒加载的 OA 人员缓存 */
 var mtSelected = [];
 var mtAllUsers = null;
-var mtPickTemp = {};
 var MT_PICK_MAX = 200;
 
 /* ---------------- 维护人：展示与选择 ---------------- */
@@ -369,207 +343,65 @@ function onMtChipClick(e) {
     renderMtChips();
 }
 
-function mtUserText(u) {
-    return [u.lastname, u.loginid, u.workcode, u.mobile, u.id, u.departmentname].map(function (v) {
-        return String(v == null ? "" : v);
-    }).join(" ");
-}
-
-function mtPickRows() {
-    var rows = mtAllUsers || [];
-    var k = (byId("mtPickSearch").value || "").trim().toLowerCase();
-    if (!k) { return rows; }
-    return rows.filter(function (u) { return mtUserText(u).toLowerCase().indexOf(k) >= 0; });
-}
-
-function mtPickSelectedCount() {
-    var count = 0;
-    Object.keys(mtPickTemp).forEach(function (id) { if (mtPickTemp[id]) { count++; } });
-    return count;
-}
-
-function updateMtPickNote(matchCount, shownCount) {
-    var note = byId("mtPickNote");
-    var text = "已选 " + mtPickSelectedCount() + " 人，确定后写入维护人标签；树状模式按 OA 部门分组，双击某行可直接确定并退出";
-    if (matchCount !== undefined && matchCount > shownCount) {
-        text += "；当前匹配 " + matchCount + " 人，仅显示前 " + shownCount + " 人，请输入更精确的关键词";
-    }
-    note.textContent = text;
-}
-
-function renderMtPickList() {
-    syncMtPickAllState();
-    if (mtAllUsers === null) { return; }
-    var listEl = byId("mtPickList");
-    var mode = OaonesPicker.mode("mtPick");
-    var keyword = byId("mtPickSearch").value;
-    var html;
-    var matchCount;
-    var shownCount;
-    if (mode === "tree") {
-        var limited = (mtAllUsers || []).slice(0, MT_PICK_MAX);
-        matchCount = limited.length;
-        shownCount = limited.length;
-        html = OaonesPicker.renderTree("mtPick", mtPickTreeRows(limited), {
-            parentOf: function (r) { return r.parent; },
-            textOf: function (r) { return r.searchText; },
-            isGroup: function (r) { return r.group === true; },
-            groupHtml: function (r, open, hit) { return OaonesPicker.groupHtml("mtPick", r, open, hit); },
-            keyword: keyword,
-            emptyText: "没有匹配的 OA 员工",
-            optionHtml: function (r) { return mtPickRowHtml(r.user); }
-        });
-    } else {
-        var rows = mtPickRows();
-        var shown = rows.slice(0, MT_PICK_MAX);
-        matchCount = rows.length;
-        shownCount = shown.length;
-        if (!shown.length) {
-            html = "<div class='wx-pick-empty'>没有匹配的 OA 员工</div>";
-        } else {
-            html = "<div class='wx-pick-head mt-pick-head'>"
-                + "<span>选择</span><span>姓名</span><span>登录名 / 工号 / 部门</span></div>";
-            shown.forEach(function (u) { html += mtPickRowHtml(u); });
-        }
-    }
-    listEl.className = "wx-pick-list" + (mode === "tree" ? " is-tree" : "");
-    listEl.innerHTML = html;
-    updateMtPickNote(matchCount, shownCount);
-}
-
-/** 当前列表可全选的候选：与两种显示模式一致（先取前 MT_PICK_MAX 人，再按搜索关键字过滤）。 */
-function mtPickAllRows() {
-    var limited = (mtAllUsers || []).slice(0, MT_PICK_MAX);
-    var k = (byId("mtPickSearch").value || "").trim().toLowerCase();
-    return k ? limited.filter(function (u) { return mtUserText(u).toLowerCase().indexOf(k) >= 0; }) : limited;
-}
-
-/** “全选”按钮状态：当前列表候选是否已全部选中，返回是否全选。 */
-function syncMtPickAllState() {
-    var rows = mtPickAllRows();
-    var allOn = rows.length > 0 && rows.every(function (u) { return mtPickTemp[String(u.id)] === true; });
-    OaonesPicker.syncSelectAll("mtPick", allOn);
-    return allOn;
-}
-
-/**
- * 全选/全不选：把当前列表（含搜索过滤）里的 OA 人员一次性选中或取消，确定后写入维护人标签。
- * 已全部选中时按钮变“全不选”，再点即取消当前列表里的选择。
- */
-OaonesPicker.setSelectAll("mtPick", function () {
-    var rows = mtPickAllRows();
-    var on = syncMtPickAllState();
-    rows.forEach(function (u) {
-        var id = String(u.id);
-        if (on) { delete mtPickTemp[id]; } else { mtPickTemp[id] = true; }
-    });
-    renderMtPickList();
-    return syncMtPickAllState();
-});
-
-/** 维护人候选行（列表式/树状共用），选中态取自 mtPickTemp。 */
-function mtPickRowHtml(u) {
-    var id = String(u.id);
-    var on = mtPickTemp[id] ? true : false;
-    var sub = [u.loginid, u.workcode, u.departmentname].filter(function (v) {
-        return v !== null && v !== undefined && String(v).length > 0;
-    }).join(" / ");
-    return "<label class='mt-pick-row" + (on ? " checked" : "") + "'>"
-        + "<input type='checkbox' class='mt-pick-box' data-id='" + esc(id) + "'"
-        + (on ? " checked" : "") + ">"
-        + "<span class='mt-pick-name'>" + esc(u.lastname || "") + "</span>"
-        + "<span class='mt-pick-sub'>" + esc(sub) + "</span>"
-        + "</label>";
-}
-
-/** 维护人树：按 OA 部门分组，部门为分组节点、员工为可选叶子。 */
-function mtPickTreeRows(rows) {
-    var out = [];
-    var groups = {};
-    (rows || []).forEach(function (u) {
-        var deptName = String(u.departmentname == null ? "" : u.departmentname).trim() || "未分配部门";
-        var gid = "g:" + deptName;
-        if (!groups[gid]) {
-            groups[gid] = { group: true, id: gid, parent: "", name: deptName, count: 0 };
-            out.push(groups[gid]);
-        }
-        groups[gid].count++;
-        out.push({
-            group: false, id: "u:" + String(u.id), parent: gid, user: u,
-            searchText: mtUserText(u)
-        });
-    });
-    return out;
-}
-
-function loadMtUsers() {
-    byId("mtPickList").innerHTML = "<div class='wx-pick-empty'>正在加载 OA 人员…</div>";
-    Oaones.api("user.oaUsers", {}, function (res) {
-        if (res.code !== 0) {
-            mtAllUsers = [];
-            byId("mtPickList").innerHTML = "<div class='wx-pick-empty'>OA 人员加载失败："
-                + esc(res.msg) + "</div>";
-            return;
-        }
-        mtAllUsers = res.data || [];
-        renderMtPickList();
-    });
-}
-
 function openMtPick() {
-    mtPickTemp = {};
-    mtSelected.forEach(function (m) { mtPickTemp[m.id] = true; });
-    byId("mtPickSearch").value = "";
-    // 树状默认收起分支：每次打开弹框重置展开状态
-    OaonesPicker.resetTree("mtPick");
-    byId("mtPickMask").style.display = "block";
-    byId("mtPickModal").style.display = "block";
-    if (mtAllUsers === null) { loadMtUsers(); } else { renderMtPickList(); }
-    byId("mtPickSearch").focus();
-}
-
-function closeMtPick() {
-    byId("mtPickMask").style.display = "none";
-    byId("mtPickModal").style.display = "none";
-    mtPickTemp = {};
-}
-
-function clearMtPick() {
-    mtPickTemp = {};
-    renderMtPickList();
-}
-
-function onMtPickListChange(e) {
-    var t = e.target;
-    if (!t || !t.classList || !t.classList.contains("mt-pick-box")) { return; }
-    var id = String(t.getAttribute("data-id"));
-    if (t.checked) { mtPickTemp[id] = true; } else { delete mtPickTemp[id]; }
-    var row = t.parentNode;
-    while (row && row.classList && !row.classList.contains("mt-pick-row")) { row = row.parentNode; }
-    if (row && row.classList) { row.classList.toggle("checked", t.checked); }
-    updateMtPickNote();
-}
-
-/** 确认：按 OA 人员列表顺序回填，保留已失效（不在列表中）的历史维护人 */
-function confirmMtPick() {
-    var picked = [];
-    var seen = {};
-    (mtAllUsers || []).forEach(function (u) {
-        var id = String(u.id);
-        if (mtPickTemp[id] && !seen[id]) {
-            picked.push({ id: id, name: u.lastname || "" });
-            seen[id] = true;
+    OaonesPicker.open({
+        key: "mtPick",
+        title: "选择维护人（可多选 OA 员工）",
+        multiple: true,
+        maxSelected: MT_PICK_MAX,
+        initialSelected: mtSelected,
+        loadRows: function (context, done) {
+            function finish(error, users) {
+                if (error) { done(error); return; }
+                var out = [];
+                var groups = {};
+                (users || []).forEach(function (u) {
+                    var dept = String(u.departmentname == null ? "" : u.departmentname).trim() || "未分配部门";
+                    var groupId = "g:" + dept;
+                    if (!groups[groupId]) {
+                        groups[groupId] = {
+                            id: groupId, parentId: "", name: dept,
+                            selectable: false, count: 0
+                        };
+                        out.push(groups[groupId]);
+                    }
+                    groups[groupId].count++;
+                    out.push({
+                        id: String(u.id),
+                        parentId: groupId,
+                        name: String(u.lastname || "") || ("ID " + u.id),
+                        detail: [u.loginid, u.workcode, u.mobile, u.departmentname].filter(function (v) {
+                            return v !== null && v !== undefined && String(v).length > 0;
+                        }).join(" / "),
+                        user: u
+                    });
+                });
+                done(null, out);
+            }
+            if (mtAllUsers !== null) {
+                finish(null, mtAllUsers);
+                return;
+            }
+            Oaones.api("user.oaUsers", {}, function (res) {
+                if (!res || res.code !== 0) {
+                    finish((res && res.msg) || "OA 人员加载失败");
+                    return;
+                }
+                mtAllUsers = res.data || [];
+                finish(null, mtAllUsers);
+            });
+        },
+        onConfirm: function (selection) {
+            mtSelected = selection.items.map(function (item) {
+                var user = item.raw && item.raw.user;
+                return {
+                    id: String(item.id),
+                    name: user ? String(user.lastname || "") : String(item.name || "")
+                };
+            });
+            renderMtChips();
         }
     });
-    mtSelected.forEach(function (m) {
-        if (mtPickTemp[m.id] && !seen[m.id]) {
-            picked.push(m);
-            seen[m.id] = true;
-        }
-    });
-    mtSelected = picked;
-    renderMtChips();
-    closeMtPick();
 }
 
 /* ---------------- 首页：租户块 ---------------- */
@@ -828,20 +660,6 @@ byId("idxResetBtn").addEventListener("click", function () {
 byId("refreshBtn").addEventListener("click", loadData);
 byId("mtBox").addEventListener("click", openMtPick);
 byId("mtChips").addEventListener("click", onMtChipClick);
-byId("mtPickSearch").addEventListener("input", renderMtPickList);
-byId("mtPickList").addEventListener("change", onMtPickListChange);
-byId("mtPickMask").addEventListener("click", closeMtPick);
-// 双击某行：选中该行后立即确定并退出弹框
-byId("mtPickList").addEventListener("dblclick", function (e) {
-    var row = e.target && e.target.closest ? e.target.closest(".mt-pick-row") : null;
-    if (!row) { return; }
-    var box = row.querySelector(".mt-pick-box");
-    if (!box) { return; }
-    mtPickTemp[String(box.getAttribute("data-id"))] = true;
-    confirmMtPick();
-});
-OaonesPicker.register("mtPick", renderMtPickList);
-OaonesPicker.syncSwitches();
 renderMtChips();
 // 密钥框：点进掩码时让出掩码、切回密码态；没输入就离开则恢复 ****
 OaonesSecret.bind(byId("corp_secret"));

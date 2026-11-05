@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  OAones 功能开关配置。
+
+  表名由 OaonesProps#featureSettingTable() 提供；没有配置行时，业务层按启用处理。
+-->
+<mapper namespace="com.customization.oaones.appsyn.dao.FeatureSettingMapper">
+
+    <select id="list" resultType="com.customization.oaones.appsyn.entity.FeatureSetting">
+        select id, feature_code as featureCode, enabled
+        from ${table}
+        order by id asc
+    </select>
+
+    <select id="getByCode" resultType="com.customization.oaones.appsyn.entity.FeatureSetting">
+        select id, feature_code as featureCode, enabled
+        from ${table}
+        where feature_code = #{featureCode}
+        order by id asc
+    </select>
+
+    <!-- 应用绑定表 yx：0 有效 / 1 无效。关闭开关只受启用中的应用约束。 -->
+    <select id="countEnabledAppBinds" resultType="java.lang.Long">
+        select count(*) from ${table} where yx = 0
+    </select>
+
+    <!-- 同步任务只有 enabled = 1 才占用功能；暂停中的任务不阻止关闭。 -->
+    <select id="countEnabledSyncPlans" resultType="java.lang.Long">
+        select count(*) from ${table} where enabled = 1
+    </select>
+
+    <insert id="insert">
+        insert into ${table}
+            (feature_code, enabled, modedatacreater, modedatacreatedate, modedatacreatetime,
+             modedatamodifier, modedatamodifydatetime)
+        values
+            (#{e.featureCode}, #{e.enabled}, #{operatorId}, #{createDate}, #{createTime},
+             #{operatorId}, #{now})
+    </insert>
+
+    <update id="updateByCode">
+        update ${table}
+        set enabled = #{e.enabled},
+            modedatamodifier = #{operatorId},
+            modedatamodifydatetime = #{now}
+        where feature_code = #{e.featureCode}
+    </update>
+</mapper>

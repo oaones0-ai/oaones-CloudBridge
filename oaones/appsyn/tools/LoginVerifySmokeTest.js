@@ -24,7 +24,7 @@
     var eco = path.resolve(root, "../..");                       // ecology/
     var login = read(path.join(root, "login", "login.jsp"));
     var config = read(path.join(root, "loginConfig", "config.jsp"));
-    var css = read(path.join(root, "css", "login.css"));
+    var css = read(path.join(root, "..", "appsyn", "script", "css", "login.css"));
     var controller = read(path.join(eco, "src", "com", "customization", "oaones", "appsyn",
         "controller", "LoginController.java"));
 

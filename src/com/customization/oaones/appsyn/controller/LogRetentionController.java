@@ -9,7 +9,7 @@ import com.customization.oaones.appsyn.service.impl.LogRetentionServiceImpl;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * 系统设置 → 日志保留（action 前缀 logretention.）。
+ * 系统设置 → 日志设置（action 前缀 logretention.）。
  */
 public class LogRetentionController extends BaseController {
 
@@ -34,6 +34,9 @@ public class LogRetentionController extends BaseController {
         }
         if ("logretention.clean".equals(action)) {
             return OaonesUtil.ok(service().cleanAll(operatorId));
+        }
+        if ("logretention.cleanOne".equals(action)) {
+            return OaonesUtil.ok(service().cleanOne(operatorId, req(request, "code")));
         }
         return null;
     }

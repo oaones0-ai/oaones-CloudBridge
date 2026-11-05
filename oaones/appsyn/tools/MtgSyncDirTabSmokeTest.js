@@ -1,8 +1,8 @@
 /**
  * OAones 冒烟脚本：「会议同步 / 日程同步」页（meetingSync/meetingSync.jsp + meetingSync/mtgSyncPanel.jsp
- * + js/mtgSync.js）里第四个页签「个人同步方向」的接线自检。
+ * + script/js/mtgSync.js）里第四个页签「个人同步方向」的接线自检。
  *
- * 为什么需要它：这页由三个文件拼成（页壳 JSP 内联脚本 + 面板 JSP 的标记 + 外链 js/mtgSync.js），
+ * 为什么需要它：这页由三个文件拼成（页壳 JSP 内联脚本 + 面板 JSP 的标记 + 外链 script/js/mtgSync.js），
  * 脚本在 bindEvents() 里对每个节点做 byId(...).addEventListener(...)。一旦某个 id 只写在面板里、
  * 而脚本按老 id 找（或反过来），页面初始化就会抛
  * `Cannot read properties of null (reading 'addEventListener')`，整段脚本中断，
@@ -20,9 +20,10 @@ const path = require('path');
 const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
+const scripts = path.resolve(root, 'script', 'js');
 const shell = fs.readFileSync(path.join(root, 'meetingSync', 'meetingSync.jsp'), 'utf8');
 const panel = fs.readFileSync(path.join(root, 'meetingSync', 'mtgSyncPanel.jsp'), 'utf8');
-const script = fs.readFileSync(path.join(root, 'js', 'mtgSync.js'), 'utf8');
+const script = fs.readFileSync(path.join(scripts, 'mtgSync.js'), 'utf8');
 
 const failures = [];
 function check(label, cond) {
@@ -126,6 +127,22 @@ function run() {
             pager: () => ({ apply: r => r || [], render() {}, hide() {}, show() {}, resetIfChanged() {} }),
             resizable() {}, syncCheckAll() {}, crossPageBar() {}, listActionsHtml: () => '',
         },
+        OaonesTabs: {
+            bind(opts) {
+                let active = opts.initial || '';
+                function switchTo(tab) {
+                    active = tab;
+                    if (opts.onChange) { opts.onChange(tab); }
+                    return true;
+                }
+                document.querySelectorAll(opts.buttons).forEach(button => {
+                    button.addEventListener('click', function () {
+                        switchTo(this.getAttribute('data-tab'));
+                    });
+                });
+                return { active: () => active, switchTo };
+            }
+        },
         OaonesPicker: {
             mode: () => 'list', applyPrecondition: (k, r) => r || [], partialSelected: () => ({}),
             renderTree: () => '', resetTree() {}, preconditionTip() {}, setPrecondition() {},
@@ -133,7 +150,7 @@ function run() {
         },
     };
     sandbox.window = {
-        document, location: { href: '', replace() {} }, addEventListener() {}, Oaones: sandbox.Oaones,
+        document, location: { href: '', replace() {} }, addEventListener() {}, Oaones: sandbox.Oaones, OaonesTabs: sandbox.OaonesTabs,
         OAONES_MTG_BIZ: 0, OAONES_MTG_TYPE: 0, OAONES_MTG_LABEL: '会议', OAONES_MTG_TITLE: '会议同步',
         OAONES_MTG_TAB: 'setting', OAONES_API_URL: '/oaones/appsyn/WeCom/api.jsp',
         OAONES_CFG_ALL_LABEL: '全部企微租户', OAONES_USER: sandbox.OAONES_USER,

@@ -126,6 +126,10 @@
             });
             failBody.innerHTML = fhtml;
         }
+        if (window.OaonesTable) {
+            window.OaonesTable.resizable(byId("msgBoardTypeTable"), { key: "msgCenter.boardTypeTable" });
+            window.OaonesTable.resizable(byId("msgBoardFailTable"), { key: "msgCenter.boardFailTable" });
+        }
     }
 
     function load() {

@@ -41,9 +41,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>登录设置 - OAones</title>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/upload.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/form.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
     <style>
         /* 登录页效果预览：固定在浏览器右侧偏上，随页面滚动保持可见；可收起，避免挡住设置项 */
         .login-effect-preview { position:fixed; z-index:40; right:16px; top:76px;
@@ -348,6 +350,7 @@
                         <input type="number" id="cfgQrTtl" name="oaonesQrTtl" min="30" max="180" step="1"
                                autocomplete="off" data-lpignore="true" style="width:120px;"
                                placeholder="留空用默认 120">
+                        <span class="oa-form-error" data-oa-form-error="oaonesQrTtl" style="display:none;"></span>
                     </td>
                     <td>超时后登录页提示“<span class="rule">已超时，请手动刷新二维码</span>”；
                         允许 <b>30 ~ 180 秒</b>（最长 3 分钟），留空表示使用系统默认值
@@ -647,8 +650,9 @@
         </form>
     </div>
 </div>
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
-<script src="/oaones/appsyn/js/richtext.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/richtext.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 (function () {
@@ -747,14 +751,15 @@
             showToast(label + "不能超过 " + Math.round(spec.maxBytes / 1024) + "KB，请压缩后再上传", 2);
             return;
         }
-        var form = new FormData();
-        form.append("file", file, file.name);
         spec.uploading = true;
         imgResult(kind, "上传中…");
         // kind 放查询串：multipart 请求体里的字段容器不会并进 getParameter（见 imageUpload.jsp）
-        fetch(LOGIN_IMG.url + "?kind=" + encodeURIComponent(spec.kind),
-            { method: "POST", body: form, credentials: "same-origin" })
-            .then(function (r) { return r.json(); })
+        OaonesUpload.post({
+            url: LOGIN_IMG.url,
+            file: file,
+            fieldName: "file",
+            query: { kind: spec.kind }
+        })
             .then(function (res) {
                 spec.uploading = false;
                 if (!res || res.code !== 0) {
@@ -1129,7 +1134,7 @@
         }
     }
 
-    /** 默认布局（css/login.css 的 .login-page-default）：宽 400、在视口水平 / 垂直居中。 */
+    /** 默认布局（script/css/login.css 的 .login-page-default）：宽 400、在视口水平 / 垂直居中。 */
     function defaultLayoutBox() {
         var winW = layoutView.winWidth;
         var winH = layoutView.winHeight;
@@ -1143,7 +1148,7 @@
     }
 
     /**
-     * 左侧文字的默认版式（css/login.css）：不勾选自定义时它跟随登录框的默认 / 自定义布局。
+     * 左侧文字的默认版式（script/css/login.css）：不勾选自定义时它跟随登录框的默认 / 自定义布局。
      * 这里只给首屏兜底，预览加载完成后会用 iframe 里 .login-brand 的真实矩形覆盖。
      */
     function defaultBrandBox() {
@@ -1942,15 +1947,20 @@
                 + "（企业应用扫码或个人微信扫码至少允许一种）", 1, 0);
             return;
         }
+        if (!OaonesForm.validate(byId("loginCfgForm"), {
+            oaonesQrTtl: [
+                { type: "pattern", value: /^\d*$/, message: "扫码二维码有效期请填数字秒数（留空表示使用系统默认值）" },
+                { type: "custom", validator: function (value) {
+                    if (!value) { return true; }
+                    var seconds = Number(value);
+                    return seconds >= 30 && seconds <= 180;
+                }, message: "扫码二维码有效期必须在 30 ~ 180 秒之间（最长 3 分钟；留空表示使用系统默认值）" }
+            ]
+        })) {
+            showToast("请修正扫码二维码有效期", 1);
+            return;
+        }
         var ttl = String(byId("cfgQrTtl").value || "").replace(/^\s+|\s+$/g, "");
-        if (ttl.length > 0 && !/^\d+$/.test(ttl)) {
-            showToast("扫码二维码有效期请填数字秒数（留空表示使用系统默认值）", 1);
-            return;
-        }
-        if (ttl.length > 0 && (Number(ttl) < 30 || Number(ttl) > 180)) {
-            showToast("扫码二维码有效期必须在 30 ~ 180 秒之间（最长 3 分钟；留空表示使用系统默认值）", 1);
-            return;
-        }
         // 登录框位置与尺寸：勾选自定义时必须四项齐全且在允许范围内（与后端校验同一口径）
         var boxParams = {
             login_box_left: "", login_box_top: "", login_box_width: "", login_box_height: ""

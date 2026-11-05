@@ -26,7 +26,7 @@
      *      独立一级菜单里列出本人可维护租户的设置，同一“租户 + 方向”可以有多条规则，
      *      计划任务按每条规则自己的方式分别执行。
      * 页面里**不铺说明文字**：页面说明挂在一级标题“同步中心”后的 ! 图标上（#cfgHelpText）。
-     * 交互脚本是共用的 js/syncPlan.js；因此页面本身与平台无关，不需要为平台各写一个页壳。
+     * 交互脚本是共用的 script/js/syncPlan.js；因此页面本身与平台无关，不需要为平台各写一个页壳。
      */
     request.setCharacterEncoding("UTF-8");
     User user = HrmUserVarify.getUser(request, response);
@@ -87,13 +87,15 @@
     <%-- 当前登录人：页面提示语按角色分别显示（sysAdmin = 系统管理员或超管角色成员，见后端 OaonesAdmin.isTotalAdmin） --%>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };
     window.OAONES_CFG_ID = "<%=oaonesCfgId%>";</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/datetime.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/datetime.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <%-- 同步中心既是**独立的一级菜单**，也是租户工作区二级菜单里的“同步中心”（带 cfg_id）：
@@ -162,7 +164,10 @@
 <jsp:include page="/oaones/appsyn/syncCenter/syncPlanPanel.jsp"/>
 </div>
 
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
-<script src="/oaones/appsyn/js/syncPlan.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/featureConfig.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/featureGate.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/syncPlan.js?v=<%=oaonesAssetV%>"></script>
 </body>
 </html>

@@ -16,7 +16,7 @@
 
   两个一级菜单共用本片段：会议同步页（/oaones/appsyn/meetingSync/meetingSync.jsp）biz=0、
   日程同步页（/oaones/appsyn/scheduleSync/scheduleSync.jsp，服务端 forward 到前者并带 biz=1）biz=1，
-  脚本统一在 /oaones/appsyn/js/mtgSync.js（读 window.OAONES_MTG_BIZ 等）。
+  脚本统一在 /oaones/appsyn/script/js/mtgSync.js（读 window.OAONES_MTG_BIZ 等）。
 
   四个页签（在页壳的二级页签条上，顺序：同步设置 → 会议 / 日程同步清单 → 同步记录 → 个人同步方向）：
     * 同步设置：顶部一行「计划任务」（白天 / 夜间两套 cron，全局一份，存 uf_oaones_appsyn_mtg_cron），
@@ -415,8 +415,8 @@
 </div>
 
 <%-- ============ 「个人同步方向」页签的分部 / 部门筛选弹框（多选） ============
-     弹框骨架（拖动 / 列表式·树状切换 / 树节点展开收起 / 全选 / 前置条件）由 js/picker.js 提供，
-     候选由 js/mtgSync.js 用 mtgsync.orgOptions 取——**按登录人的 OA 分权过滤**
+     弹框拖动由 js/modal.js 提供；树模型、列表式·树状切换 / 树节点展开收起 / 全选 / 前置条件由 js/tree.js + js/picker.js 提供，
+     候选由 script/js/mtgSync.js 用 mtgsync.orgOptions 取——**按登录人的 OA 分权过滤**
      （OA 没开分权时 = 全量，口径见 common.OaonesHrmScope）；
      部门候选受“已选分部（含下级分部）”前置条件过滤（未选分部时显示全部部门）。 --%>
 <div class="modal-mask" id="mtgDirSubMask"></div>

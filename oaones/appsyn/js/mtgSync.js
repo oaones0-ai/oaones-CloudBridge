@@ -26,6 +26,7 @@
     var TYPE = parseInt(window.OAONES_MTG_TYPE || "0", 10) || 0;
     var LABEL = window.OAONES_MTG_LABEL || "会议";
     var API = window.OAONES_API_URL || "/oaones/appsyn/WeCom/api.jsp";
+    var FEATURE_BASE = BIZ === 1 ? "schedule.sync" : "mtg.sync";
 
     var state = { rows: [], keyword: "", logs: [], logLoaded: false, logPager: null,
         items: [], itemsLoaded: false, itemPager: null,
@@ -96,11 +97,13 @@
             // 同步方向：两个复选框（可双选，默认双选），勾选即保存（取消最后一个不让保存，回退）
             var oa2 = String(r.dir_oa2third) !== "0";
             var t2oa = String(r.dir_third2oa) !== "0";
-            var dirCell = "<label class='mtg-dir-opt'><input type='checkbox' data-mtg-dir='oa2' data-cfg=\""
+            var dirCell = "<label class='mtg-dir-opt' data-oaones-feature='" + FEATURE_BASE + ".oa2third'"
+                + "><input type='checkbox' data-mtg-dir='oa2' data-cfg=\""
                 + esc(r.cfg_id) + "\"" + (oa2 ? " checked" : "") + "> OA→第三方</label>"
-                + "<label class='mtg-dir-opt'><input type='checkbox' data-mtg-dir='t2oa' data-cfg=\""
+                + "<label class='mtg-dir-opt' data-oaones-feature='" + FEATURE_BASE + ".third2oa'"
+                + "><input type='checkbox' data-mtg-dir='t2oa' data-cfg=\""
                 + esc(r.cfg_id) + "\"" + (t2oa ? " checked" : "") + "> 第三方→OA</label>"
-                + "<button type='button' class='link' data-mtg-pull=\"" + esc(r.cfg_id)
+                + "<button type='button' class='link' data-oaones-feature='" + FEATURE_BASE + ".third2oa' data-mtg-pull=\"" + esc(r.cfg_id)
                 + "\" title='立即从第三方平台拉取一轮（第三方→OA）：平台新建的在 OA 新建、平台改动更新 OA'>拉取</button>";
             html += "<tr>"
                 + "<td>" + esc(r.cfg_id) + "</td>"

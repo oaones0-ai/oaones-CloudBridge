@@ -60,7 +60,7 @@
     var config = read(path.join(root, "loginConfig", "config.jsp"));
     var preview = read(path.join(root, "loginConfig", "preview.jsp"));
     var login = read(path.join(root, "login", "login.jsp"));
-    var loginCss = read(path.join(root, "css", "login.css"));
+    var loginCss = read(path.join(root, "..", "appsyn", "script", "css", "login.css"));
     var appList = read(path.join(root, "appCenter", "AppList.jsp"));
     var appPanel = read(path.join(root, "appCenter", "appListPanel.jsp"));
     var controller = read(path.join(eco, "src", "com", "customization", "oaones", "appsyn",
@@ -127,8 +127,8 @@
         && /\.login-page-default \.login-card\s*\{[^}]*top:50%/.test(loginCss)
         && /\.login-page-default \.login-card\s*\{[^}]*transform:translate\(-50%,-50%\)/.test(loginCss));
     check("预览页复用登录页样式而不另造一套配色",
-        preview.indexOf("/oaones/appsyn/css/login.css") >= 0
-        && preview.indexOf("/oaones/appsyn/css/style.css") >= 0);
+        preview.indexOf("/oaones/appsyn/script/css/login.css") >= 0
+        && preview.indexOf("/oaones/scripts/css/style.css") >= 0);
 
     console.log("【5】启动台自动跳转：已移到应用列表页");
     check("登录设置页没有任何 gopage 控件",

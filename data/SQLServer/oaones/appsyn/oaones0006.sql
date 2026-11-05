@@ -5,7 +5,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','email_enable') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.email_enable already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_sms','email') IS NULL
     BEGIN
@@ -14,7 +14,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_sms','email') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_sms.email already exists';
-GO
+
 
 IF EXISTS (SELECT 1 FROM sys.columns c
            WHERE c.object_id = OBJECT_ID('dbo.uf_oaones_login_sms')
@@ -25,7 +25,7 @@ IF EXISTS (SELECT 1 FROM sys.columns c
     END
 ELSE
     PRINT 'uf_oaones_login_sms.mobile already nullable';
-GO
+
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes i
                WHERE i.object_id = OBJECT_ID('dbo.uf_oaones_login_sms')
@@ -36,4 +36,4 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes i
     END
 ELSE
     PRINT 'IDX_OAONES_LOGIN_SMS_EMAIL already exists';
-GO
+

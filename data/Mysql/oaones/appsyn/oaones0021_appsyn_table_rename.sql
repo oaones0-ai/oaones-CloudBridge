@@ -74,5 +74,3 @@ ALTER TABLE `uf_oaones_msg_type_app` RENAME TO `uf_oaones_appsyn_msg_type_app`;
 ALTER TABLE `uf_oaones_msg_log` RENAME TO `uf_oaones_appsyn_msg_log`;
 
 ALTER TABLE `uf_oaones_msg_task` RENAME TO `uf_oaones_appsyn_msg_task`;
-
-ALTER TABLE `uf_oaones_sub_bind` RENAME TO `uf_oaones_appsyn_sub_bind`;

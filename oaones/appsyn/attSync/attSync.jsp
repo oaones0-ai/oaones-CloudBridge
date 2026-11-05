@@ -21,7 +21,7 @@
      *             最近执行 / 告警）；没有「整批执行」按钮（2026-10-15 现场反馈）；
      *   同步日志：该租户的批次列表（一次执行一行），点“明细”看这一批的打卡明细，失败 / 跳过可重推；
      *   打卡明细：该租户全部明细的平铺列表（可按方向 / 结果 / 打卡时间 / 关键字筛），失败 / 跳过可重推。
-     * 页壳与面板、脚本固定为 attSync.jsp + attSyncPanel.jsp + js/attSync.js（三个平台共用）。
+     * 页壳与面板、脚本固定为 attSync.jsp + attSyncPanel.jsp + script/js/attSync.js（三个平台共用）。
      */
     request.setCharacterEncoding("UTF-8");
     User user = HrmUserVarify.getUser(request, response);
@@ -62,13 +62,16 @@
     window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=oaonesSysAdmin%> };
     window.OAONES_ATT_TYPE = <%=oaonesType%>;
     window.OAONES_ATT_TAB = "<%=oaonesTab%>";</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/datetime.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tabs.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/datetime.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <%-- 一级标题只属于本菜单（“考勤同步”）：不链到租户设置，也不链到会议同步 / 同步中心 --%>
@@ -91,7 +94,7 @@
              隐藏的 .help-source 说明正文一并删掉），与「统一消息中心」页壳同一口径。
              卡片里两行页签，**租户在上、功能在下**（2026-10-15 现场反馈第二轮）：
              先选租户，再在它下面看「同步设置 / 同步日志 / 打卡明细」。
-             本页口径见 oaones/appsyn/skill.md 第一节第 32 条与 oaones/考勤同步需求规格.md --%>
+             本页口径见 oaones/spec/appsyn/skill.md 第一节第 32 条与 oaones/spec/appsyn/考勤同步需求规格.md --%>
         <%-- 租户页签（第一行，页面级）：三个功能页签都只看这一个租户的数据 --%>
         <div class="sub-tabs" id="attTenantTabs" style="flex-wrap:wrap;"></div>
         <%-- 功能页签（第二行）：第二层页签所以不强出底线，与上面那排租户页签区分开 --%>
@@ -104,34 +107,33 @@
         <jsp:include page="attSyncPanel.jsp"/>
     </div>
 </div>
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
-<script src="/oaones/appsyn/js/attSync.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/featureConfig.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/featureGate.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/attSync.js?v=<%=oaonesAssetV%>"></script>
 <script>
-/* 页签切换：与会议同步 / 消息中心同一套口径（切到哪个载哪个，重复载幂等） */
+/* 页签切换：公共 tabs.js 统一维护按钮/面板激活态，业务脚本只接收 onChange */
 (function () {
     "use strict";
+    var tabs;
     function switchTab(tab) {
-        if (tab !== "setting" && tab !== "log" && tab !== "item") { return; }
-        var tabs = document.querySelectorAll("#attTabs button");
-        for (var i = 0; i < tabs.length; i++) {
-            tabs[i].classList.toggle("active", tabs[i].getAttribute("data-tab") === tab);
-        }
-        var panels = document.querySelectorAll("[data-att-panel]");
-        for (var j = 0; j < panels.length; j++) {
-            panels[j].classList.toggle("active", panels[j].getAttribute("data-att-panel") === tab);
-        }
-        if (window.OaonesAttSync) { window.OaonesAttSync.switchTo(tab); }
+        if (tab !== "setting" && tab !== "log" && tab !== "item") { return false; }
+        return tabs.switchTo(tab);
     }
     function init() {
-        var tabs = document.querySelectorAll("#attTabs button");
-        for (var i = 0; i < tabs.length; i++) {
-            tabs[i].addEventListener("click", function () {
-                switchTab(this.getAttribute("data-tab"));
-            });
-        }
-        if (window.OaonesAttSync) { window.OaonesAttSync.init(); }
         var initial = window.OAONES_ATT_TAB;
         if (initial !== "log" && initial !== "item") { initial = "setting"; }
+        tabs = OaonesTabs.bind({
+            buttons: "#attTabs button",
+            panels: "[data-att-panel]",
+            panelAttribute: "data-att-panel",
+            initial: initial,
+            onChange: function (tab) {
+                if (window.OaonesAttSync) { window.OaonesAttSync.switchTo(tab); }
+            }
+        });
+        if (window.OaonesAttSync) { window.OaonesAttSync.init(); }
         switchTab(initial);
     }
     if (document.readyState === "loading") {

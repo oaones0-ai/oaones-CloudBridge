@@ -5,7 +5,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','login_box_left') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.login_box_left already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','login_box_top') IS NULL
     BEGIN
@@ -14,7 +14,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','login_box_top') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.login_box_top already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','login_box_width') IS NULL
     BEGIN
@@ -23,7 +23,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','login_box_width') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.login_box_width already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','login_box_height') IS NULL
     BEGIN
@@ -32,7 +32,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','login_box_height') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.login_box_height already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','gopage_seconds') IS NULL
     BEGIN
@@ -41,4 +41,4 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','gopage_seconds') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.gopage_seconds already exists';
-GO
+

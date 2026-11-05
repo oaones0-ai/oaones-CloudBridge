@@ -3,7 +3,7 @@
  *
  * 只做**静态一致性核对**（不需要浏览器 / DOM 沙箱），核对三件事：
  *   1. 页壳与面板的接线：页壳引了公共脚本、面板里有三个页签对应的面板块与全部弹框；
- *   2. `js/attSync.js` 里 `byId("xxx")` 用到的每个 id，都能在页壳 / 面板里找到（防“改了 id 忘了改 JS”）；
+ *   2. `script/js/attSync.js` 里 `byId("xxx")` 用到的每个 id，都能在页壳 / 面板里找到（防“改了 id 忘了改 JS”）；
  *   3. JS 调用的 action 都在 `AttSyncController` 里存在（防“前端调了个不存在的 action”）。
  *
  * 与 tools/MtgSyncDirTabSmokeTest.js（会议同步的页签自检）、
@@ -16,9 +16,10 @@
     var path = require("path");
 
     var root = path.resolve(__dirname, "..");            // oaones/
+    var scripts = path.resolve(root, "script", "js");   // oaones/appsyn/script/js/
     var jsp = read(path.join(root, "attSync", "attSync.jsp"));
     var panel = read(path.join(root, "attSync", "attSyncPanel.jsp"));
-    var js = read(path.join(root, "js", "attSync.js"));
+    var js = read(path.join(scripts, "attSync.js"));
     var controller = read(path.resolve(root, "../..", "src", "com", "customization", "oaones", "appsyn",
         "controller", "AttSyncController.java"));
     var service = read(path.resolve(root, "../..", "src", "com", "customization", "oaones", "appsyn",
@@ -50,15 +51,23 @@
     console.log("【1】页壳接线");
     check("登录校验（HrmUserVarify）", jsp.indexOf("HrmUserVarify.getUser") >= 0);
     check("引了 assets.jsp", jsp.indexOf("/oaones/appsyn/assets.jsp") >= 0);
-    check("引了 js/attSync.js（带 ?v=）", /js\/attSync\.js\?v=/.test(jsp));
-    ["toast.js", "picker.js", "help.js", "hrmlink.js", "table.js", "datetime.js", "api.js"].forEach(function (one) {
-        check("引了 " + one, jsp.indexOf("/oaones/appsyn/js/" + one) >= 0);
-    });
+    check("引了 appsyn/script/js/attSync.js（带 ?v=）", /appsyn\/script\/js\/attSync\.js\?v=/.test(jsp));
+    ["modal.js", "tree.js", "picker.js", "tabs.js", "toast.js", "help.js", "hrmlink.js", "table.js", "datetime.js", "api.js"]
+        .forEach(function (one) {
+            check("引了 " + one, jsp.indexOf("/oaones/scripts/js/" + one) >= 0);
+        });
+    check("引了 appsyn 上下文与功能开关配置",
+        jsp.indexOf("/oaones/appsyn/script/js/appContext.js") >= 0
+        && jsp.indexOf("/oaones/appsyn/script/js/featureConfig.js") >= 0
+        && jsp.indexOf("/oaones/scripts/js/featureGate.js") >= 0);
     check("平台切换（企微 / 钉钉 / 飞书）", jsp.indexOf("platform=wecom") >= 0
         && jsp.indexOf("platform=dingtalk") >= 0 && jsp.indexOf("platform=feishu") >= 0);
     check("三个页签（同步设置 / 同步日志 / 打卡明细）",
         jsp.indexOf('data-tab="setting"') >= 0 && jsp.indexOf('data-tab="log"') >= 0
         && jsp.indexOf('data-tab="item"') >= 0);
+    check("页签面板属性与 data-att-panel 一致",
+        jsp.indexOf('panels: "[data-att-panel]"') >= 0
+        && jsp.indexOf('panelAttribute: "data-att-panel"') >= 0);
     check("页壳引了面板 attSyncPanel.jsp", jsp.indexOf("attSyncPanel.jsp") >= 0);
     check("页壳注入了平台 / 用户的全局变量",
         jsp.indexOf("OAONES_ATT_TYPE") >= 0 && jsp.indexOf("OAONES_API_URL") >= 0
@@ -208,7 +217,7 @@
         && js.indexOf("switchTo:") >= 0 && js.indexOf("reload:") >= 0);
 
     /* ------------------------------------------------------------------
-     * 【5】最小 DOM 沙箱：页壳 + 面板 + js/attSync.js 拼起来跑一遍
+     * 【5】最小 DOM 沙箱：页壳 + 面板 + script/js/attSync.js 拼起来跑一遍
      *
      * 静态检查看不出“租户页签点不动 / 换应用没保存”这类问题：那些都是运行期行为。
      * 所以这里按「会议同步页签自检」同一套沙箱做法把页面跑一遍，核对 2026-10-15 现场反馈的四条：
@@ -343,6 +352,24 @@
             resizable: function () {}, syncCheckAll: function () {}, crossPageBar: function () {},
             listActionsHtml: function () { return ""; }
         };
+        sandbox.OaonesTabs = {
+            bind: function (opts) {
+                var active = opts.initial || "";
+                // 与公共 tabs.js 一致：options.panels 只负责查询，取 key 仍用 panelAttribute。
+                // 本页面板使用 data-att-panel，绑定时必须显式传同一个属性名。
+                var panelAttribute = opts.panelAttribute || "data-tab-panel";
+                var panelAttributeMatched = panelAttribute === "data-att-panel";
+                return {
+                    active: function () { return active; },
+                    switchTo: function (tab) {
+                        if (!panelAttributeMatched) { return false; }
+                        active = tab;
+                        if (opts.onChange) { opts.onChange(tab); }
+                        return true;
+                    }
+                };
+            }
+        };
         sandbox.OaonesPicker = {
             mode: function () { return "list"; }, renderTree: function () { return ""; },
             resetTree: function () {}, partialSelected: function () { return {}; },
@@ -357,7 +384,7 @@
                 return timerSeq;
             },
             clearTimeout: function (id) { delete timers[id]; },
-            Oaones: sandbox.Oaones, OaonesToast: sandbox.OaonesToast, OaonesDate: sandbox.OaonesDate,
+            Oaones: sandbox.Oaones, OaonesToast: sandbox.OaonesToast, OaonesDate: sandbox.OaonesDate, OaonesTabs: sandbox.OaonesTabs,
             OaonesHrm: sandbox.OaonesHrm, OaonesTable: sandbox.OaonesTable, OaonesPicker: sandbox.OaonesPicker,
             OAONES_ATT_TYPE: 0, OAONES_ATT_TAB: "setting", OAONES_API_URL: "/oaones/appsyn/WeCom/api.jsp",
             OAONES_CFG_ALL_LABEL: "全部企微租户", OAONES_USER: { id: "1", sysAdmin: true }
@@ -372,13 +399,13 @@
             .replace(/<%.*?%>/g, "");
 
         try {
-            vm.runInNewContext(js, sandbox, { filename: "js/attSync.js" });
+            vm.runInNewContext(js, sandbox, { filename: "script/js/attSync.js" });
             vm.runInNewContext(shellJs, sandbox, { filename: "attSync.jsp.js" });
         } catch (e) {
             check("脚本执行不抛错（实际抛错：" + e.message + "）", false);
             return;
         }
-        check("脚本执行不抛错（页壳 + 面板 + js/attSync.js 拼起来能跑）", true);
+        check("脚本执行不抛错（页壳 + 面板 + script/js/attSync.js 拼起来能跑）", true);
         check("进入页面会调 attsync.list 拉同步设置",
             calls.filter(function (c) { return c.action === "attsync.list"; }).length > 0);
 

@@ -49,7 +49,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>企业微信扫码绑定 - OAones</title>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
 </head>
 <body class="wx-callback-page">
 <div class="wx-callback-icon"><%=oaonesOk ? "&#10004;" : "&#33;"%></div>

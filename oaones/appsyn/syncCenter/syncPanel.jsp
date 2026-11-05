@@ -7,12 +7,12 @@
     2) 编辑同步设置（同步方向 + **同步范围** + 计划任务）。
   “按范围同步”（先预览再执行）与“同步日志”列表已从页面上去掉：范围改在“编辑同步设置”里维护，
   保存后由计划任务每次按这条映射关系同步；“结果详情”仍可打开该次同步的统计 + 逐条明细
-  （明细弹窗与本文件里的四个范围选择弹窗，已并入 syncPlanPanel.jsp + js/syncPlan.js）。
+  （明细弹窗与本文件里的四个范围选择弹窗，已并入 syncPlanPanel.jsp + script/js/syncPlan.js）。
 
   ---- 以下为停用前的说明（历史实现） ----
   按范围同步主体（同步中心通用页面 /oaones/appsyn/syncCenter/syncCenter.jsp 引入）：
   企微 / 钉钉 / 飞书**三个平台共用这一份标记**（三个平台的 DOM id 完全一致），
-  交互脚本在 /oaones/appsyn/js/syncCenter.js；同步设置（计划任务）在 syncPlanPanel.jsp。
+  交互脚本在 /oaones/appsyn/script/js/syncCenter.js；同步设置（计划任务）在 syncPlanPanel.jsp。
 
   平台由引入方传：request 属性 oaonesSyncPlatform（页壳用 setAttribute 传，推荐）
   或 platform 参数；本片段据此算出 oaonesSyncFull（企业微信 / 钉钉 / 飞书）

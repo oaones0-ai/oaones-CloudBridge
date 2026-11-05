@@ -61,4 +61,4 @@ FROM src t
 WHERE t.code_int > 0
   AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type m WHERE m.std_type = t.code_int);
 PRINT '补齐 uf_oaones_msg_type：本次新增 ' + cast(@@ROWCOUNT as varchar(20)) + ' 行';
-GO
+

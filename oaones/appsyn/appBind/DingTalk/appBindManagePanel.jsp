@@ -344,32 +344,13 @@ function delAppBind(id, name) {
 }
 
 /* ------------------------------------------------------------------
- * 复制应用主页地址：优先用剪贴板 API，非安全上下文（http）退化为临时文本框 + execCommand
+ * 复制应用主页地址：统一走公共剪贴板组件，兼容 HTTP 非安全上下文
  * ------------------------------------------------------------------ */
 function copyText(text) {
-    text = String(text == null ? "" : text);
-    if (!text) { return; }
-    function fallback() {
-        var ta = document.createElement("textarea");
-        ta.value = text;
-        ta.setAttribute("readonly", "readonly");
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        var ok = false;
-        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
-        document.body.removeChild(ta);
-        showToast(ok ? "应用主页地址已复制，请粘贴到钉钉后台该自建应用的“应用主页”"
-            : "复制失败，请手动选中地址后复制", ok ? 0 : 1);
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function () {
-            showToast("应用主页地址已复制，请粘贴到钉钉后台该自建应用的“应用主页”");
-        }, fallback);
-        return;
-    }
-    fallback();
+    OaonesClipboard.copy(text, {
+        successMessage: "应用主页地址已复制，请粘贴到企微后台该自建应用的“应用主页”",
+        errorMessage: "复制失败，请手动选中地址后复制"
+    });
 }
 
 /* 事件接线：片段内的按钮统一走事件委托，避免整表重绘后失效 */

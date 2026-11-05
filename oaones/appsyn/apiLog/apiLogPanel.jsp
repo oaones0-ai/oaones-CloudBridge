@@ -1,7 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%--
   「接口日志中心」页主体：过滤栏 + 汇总条 + 列表 + 详情弹框。
-  只是标记与容器，交互脚本统一在 /oaones/appsyn/js/apiLog.js。
+  只是标记与容器，交互脚本统一在 /oaones/appsyn/script/js/apiLog.js。
 --%>
 <div class="card">
 <div class="filter-bar">

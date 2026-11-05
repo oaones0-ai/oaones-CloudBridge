@@ -1,4 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="com.customization.oaones.appsyn.common.FeatureSettingCatalog" %>
+<%@ page import="com.customization.oaones.appsyn.common.OaonesFeatureSettings" %>
+<%@ include file="/oaones/appsyn/assets.jsp" %>
 <%
     String oaonesActive = request.getParameter("active");
     if (oaonesActive == null) {
@@ -17,18 +20,26 @@
     }
     String oaonesCfgQuery = oaonesCfgId.length() == 0 ? "" : ("?cfg_id=" + oaonesCfgId);
     boolean oaonesTenantCtx = oaonesCfgId.length() > 0;
+    boolean oaonesOrgMapPage = "orgMap".equals(oaonesActive);
     // 二级标题（租户菜单）当前项：“默认绑定规则 / 规则列表”同属“人员绑定”
     boolean oaonesTenantCtxUser = "userBind".equals(oaonesActive) || "userRule".equals(oaonesActive);
+    boolean oaonesShowPersonSync = OaonesFeatureSettings.enabled(
+            request, FeatureSettingCatalog.PERSON_SYNC_SCHEDULE);
+    boolean oaonesShowAppBind = OaonesFeatureSettings.enabled(
+            request, FeatureSettingCatalog.APP_BIND);
 %>
 <div class="navbar">
     <h1><a href="/oaones/appsyn/index/TenantIndex.jsp?platform=wecom" title="返回企微租户列表">OA ⇄ 企业微信</a></h1>
-<% if (!oaonesTenantCtx) { %>
+<% if (!oaonesTenantCtx || oaonesOrgMapPage) { %>
     <div class="nav">
-        <%-- 一级标题右侧只保留本菜单自己的入口（“企微租户设置”）：
+        <%-- 分部映射是独立的一级菜单，本页右侧只显示自己的入口；
+             其它页面仍保留“企微租户设置”入口。
              “消息设置 / 登录设置”是**另外两条独立的一级菜单**（各有 URL），
              这里不再互链，避免从一个菜单串到另一个菜单 —— 见 README「四个独立一级菜单」一节 --%>
+        <% if (!oaonesOrgMapPage) { %>
         <a class="<%= "orgMap".equals(oaonesActive) ? "" : "active" %>"
            href="/oaones/appsyn/index/TenantIndex.jsp?platform=wecom">企微租户设置</a>
+        <% } %>
         <a class="<%= "orgMap".equals(oaonesActive) ? "active" : "" %>"
            href="/oaones/appsyn/orgMap/orgMap.jsp?platform=wecom">分部映射</a>
     </div>
@@ -41,8 +52,10 @@
            href="/oaones/appsyn/index/TenantDetail.jsp?platform=wecom<%=oaonesCfgQuery.length() > 0 ? "&cfg_id=" + oaonesCfgId : ""%>" title="查看 / 修改该租户配置">设置</a>
     </span>
 <% } %>
+<script src="/oaones/appsyn/script/js/featureConfig.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/featureGate.js?v=<%=oaonesAssetV%>"></script>
 </div>
-<% if (oaonesTenantCtx) { %>
+<% if (oaonesTenantCtx && !oaonesOrgMapPage) { %>
 <%-- 二级标题：当前租户的功能菜单（页签），点页签进入对应功能页并保持同一租户；
      顺序固定为 同步中心 / 部门绑定 / 人员绑定 / 快照列表 / 应用绑定（见 skill.md 第一节第 15 条） --%>
 <div class="tenant-menus">
@@ -50,10 +63,11 @@
          直接整页跳转（不是弹层，也不是页内 iframe 块），内容就落在二级菜单（页签）下方；
          落地页是三个平台通用的 /oaones/appsyn/syncCenter/syncCenter.jsp?platform=...&cfg_id=<当前租户>，
          该页带 cfg_id 时会引本导航片段（一级标题 + 二级菜单），外观与其它页签一致。 --%>
-    <a class="tenant-menu<% if ("syncCenter".equals(oaonesActive)) { %> active<% } %>"
+    <% if (oaonesShowPersonSync) { %><a class="tenant-menu<% if ("syncCenter".equals(oaonesActive)) { %> active<% } %>"
        href="/oaones/appsyn/syncCenter/syncCenter.jsp?platform=wecom<%=oaonesCfgQuery.length() > 0 ? "&cfg_id=" + oaonesCfgId : ""%>">同步中心</a>
     <a class="tenant-menu<% if ("syncResult".equals(oaonesActive)) { %> active<% } %>"
        href="/oaones/appsyn/syncCenter/syncResult.jsp?platform=wecom<%=oaonesCfgQuery.length() > 0 ? "&cfg_id=" + oaonesCfgId : ""%>">同步结果</a>
+    <% } %>
     <a class="tenant-menu<% if ("deptBind".equals(oaonesActive)) { %> active<% } %>" href="/oaones/appsyn/deptBind/deptBind.jsp?platform=wecom<%=oaonesCfgQuery.length() > 0 ? "&cfg_id=" + oaonesCfgId : ""%>">部门绑定</a>
     <a class="tenant-menu<% if ("orgMap".equals(oaonesActive)) { %> active<% } %>"
        href="/oaones/appsyn/orgMap/orgMap.jsp?platform=wecom<%=oaonesCfgQuery.length() > 0 ? "&cfg_id=" + oaonesCfgId : ""%>">分部映射</a>
@@ -62,7 +76,7 @@
     <a class="tenant-menu<% if ("snapshot".equals(oaonesActive)) { %> active<% } %>" href="/oaones/appsyn/snapshot/snapshot.jsp?platform=wecom<%=oaonesCfgQuery.length() > 0 ? "&cfg_id=" + oaonesCfgId : ""%>">快照列表</a>
     <%-- 应用绑定（企微工作台应用 → OA 页面、免登录）是租户级功能，与绑定/同步并列；
          统一消息中心（“消息设置”）不在这里，从一级标题右侧的模块菜单进入 --%>
-    <a class="tenant-menu<% if ("appBind".equals(oaonesActive)) { %> active<% } %>" href="/oaones/appsyn/appBind/WeCom/appBind.jsp<%=oaonesCfgQuery%>">应用绑定</a>
+    <% if (oaonesShowAppBind) { %><a class="tenant-menu<% if ("appBind".equals(oaonesActive)) { %> active<% } %>" href="/oaones/appsyn/appBind/WeCom/appBind.jsp<%=oaonesCfgQuery%>">应用绑定</a><% } %>
 </div>
 <script>
 /**

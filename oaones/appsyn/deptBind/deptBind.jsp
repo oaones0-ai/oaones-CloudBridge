@@ -62,12 +62,14 @@
     <%-- 当前登录人：页面提示语按角色分别显示（sysAdmin = 系统管理员或超管角色成员，见后端 OaonesAdmin.isTotalAdmin） --%>
     <script>window.OAONES_USER = { id: "<%=user.getUID()%>", sysAdmin: <%=OaonesAdmin.isTotalAdmin(String.valueOf(user.getUID()))%> };
     window.OAONES_CFG_ID = "<%=oaonesCfgId%>";</script>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/help.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
-    <script src="/oaones/appsyn/js/table.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/help.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/hrmlink.js?v=<%=oaonesAssetV%>"></script>
+    <script src="/oaones/scripts/js/table.js?v=<%=oaonesAssetV%>"></script>
 </head>
 <body>
 <jsp:include page="<%= oaonesPBNavbarPath %>">
@@ -128,7 +130,8 @@
     </div>
 </div>
 
-<script src="/oaones/appsyn/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/api.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/appsyn/script/js/appContext.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 var state = { cfgs: [], cfgId: String(window.OAONES_CFG_ID || ""), view: "manage", oaListVisible: false, oaFbIds: [], oaDeptIds: [], oaMatchOnlyIds: [], wxDeptIds: [], wxStates: ["bound", "unbound", "nobind"], wxOnlyChecked: false, saving: false };
@@ -141,12 +144,6 @@ var boundByOa = {};
 var boundByWx = {};
 /** 多对一：同一企微部门 → 全部绑定的 OA 部门（用于页面展示“已绑定的 OA 部门”列表） */
 var boundListByWx = {};
-var wxPickOaId = "";
-var wxPickId = "";
-var wxPickValue = "";
-var wxPickLabel = "";
-var oaPickType = "";
-var oaPickSelected = [];
 var smartMatchData = [];
 var smartSuggestions = {};
 var loadSeq = 0;
@@ -156,7 +153,7 @@ function esc(v) { return Oaones.esc(v); }
 /**
  * 页面统一提示：mode 0 普通提示 / 1 警告 / 2 操作错误 / 3 系统错误，
  * duration 为显示毫秒数（不传用各模式默认值，<=0 表示常驻）。
- * 禁止使用原生 alert / confirm，统一由 /oaones/appsyn/js/toast.js 弹出。
+ * 禁止使用原生 alert / confirm，统一由 /oaones/scripts/js/toast.js 弹出。
  */
 function showToast(msg, mode, duration) {
     if (msg === null || msg === undefined || String(msg) === "") { return; }
@@ -343,22 +340,6 @@ function filterByKeyword(rows, keys, keyword) {
         return text.toLowerCase().indexOf(k) >= 0;
     });
 }
-
-/* ------------------------------------------------------------------
- * 部门选择框：列表式 / 树状 两种显示模式。
- * 拖动、列表/树状切换、树状渲染（默认收起分支）统一由 /oaones/appsyn/js/picker.js 提供，
- * 这里仅保留与“部门选择框”相关的薄封装，供各面板继续调用。
- * ------------------------------------------------------------------ */
-function deptViewMode(key) { return OaonesPicker.mode(key); }
-function renderDeptTreeHtml(key, rows, opt) { return OaonesPicker.renderTree(key, rows, opt); }
-function partialSelectedMap(ids, childGetter) { return OaonesPicker.partialSelected(ids, childGetter); }
-
-// 各选择框的显示模式切换/树节点展开收起后，回调对应渲染函数重绘
-OaonesPicker.register("oaPick", function () { renderOaPickList(); });
-OaonesPicker.register("wxPick", function () { renderWxPickList(); });
-OaonesPicker.register("oaBind", function () { renderOaBindList(); });
-// “企微数据基准”页筛选栏的“选择企微部门”弹框（列表式/树状切换后重绘）
-OaonesPicker.register("wxDeptPick", function () { renderWxDeptPickList(); });
 
 function resetPendingOaPicks() {
     // 行内“已选但未保存”的预览值：数据重新加载（含绑定成功后）一律清空，避免残留
@@ -562,80 +543,11 @@ byId("wxBody").addEventListener("click", function (e) {
 });
 document.addEventListener("click", function (e) {
     if (!e.target || !e.target.closest) { return; }
-    // 列表式 / 树状 切换与树节点展开收起由 /oaones/appsyn/js/picker.js 统一处理
-    var option = e.target.closest(".wx-pick-option");
-    if (option) {
-        if (option.hasAttribute("data-group")) { return; }
-        // “树状映射”页的分部/部门筛选弹框：只改选中态，双击或“确定”才写回筛选条件
-        if (option.closest("#deptTreePickList")) { deptTreeTogglePick(option); return; }
-        // “企微数据基准”页的“企微部门”筛选弹框：只改选中态（连带下级），双击或“确定”才写回筛选条件
-        if (option.closest("#wxDeptPickList")) { toggleWxDeptPick(option); return; }
-        if (oaBindPickWxId) { pickOaBindOption(option); }
-        else if (oaPickType) { toggleOaPick(option); }
-        else { pickWxOption(option); }
-        return;
-    }
     var picker = e.target.closest(".wx-picker");
     if (picker && !picker.classList.contains("disabled")) {
         if (picker.getAttribute("data-kind") === "oabind") { showOaBindPick(picker.getAttribute("data-wx")); }
         else { showWxPickModal(picker.getAttribute("data-oa")); }
     }
-});
-// 关闭按钮 / 点遮罩 / 取消：都放弃弹框内本次选择，行内显示回退到打开前状态（不落库）
-byId("wxPickCloseBtn").addEventListener("click", function () { cancelWxPick(); });
-byId("wxPickMask").addEventListener("click", function (e) {
-    if (e.target === this) { cancelWxPick(); }
-});
-byId("wxPickSearch").addEventListener("input", function () {
-    if (wxPickOaId) { renderWxPickList(); }
-});
-// 企微部门弹框：单击选中，双击该行即落库；底部“清空选择/取消/确定”同理（确定=保存绑定）
-byId("wxPickOkBtn").addEventListener("click", confirmWxPick);
-byId("wxPickClearBtn").addEventListener("click", clearWxPickSelection);
-byId("wxPickCancelBtn").addEventListener("click", cancelWxPick);
-byId("wxPickList").addEventListener("dblclick", function (e) {
-    var option = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
-    if (!option || option.hasAttribute("data-group")) { return; }
-    if (option.classList.contains("disabled")) { return; }
-    // 双击前已收到两次单击，这里确保该行处于选中态后再落库
-    pickWxOption(option);
-    confirmWxPick();
-});
-byId("oaPickCloseBtn").addEventListener("click", hideOaPick);
-byId("oaPickMask").addEventListener("click", function (e) {
-    if (e.target === this) { hideOaPick(); }
-});
-byId("oaPickSearch").addEventListener("input", function () {
-    if (oaPickType) { renderOaPickList(); }
-});
-// 双击选项：多选（分部/部门）也立即确定选择并退出弹框
-byId("oaPickList").addEventListener("dblclick", function (e) {
-    var option = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
-    if (!option || option.hasAttribute("data-group") || !oaPickType) { return; }
-    // 双击前已收到两次单击（选中→取消），这里确保该行处于选中态后再确定
-    if (oaPickSelected.indexOf(option.getAttribute("data-id")) < 0) { toggleOaPick(option); }
-    applyOaPick();
-});
-byId("oaPickClearBtn").addEventListener("click", clearOaPickSelection);
-byId("oaPickCancelBtn").addEventListener("click", hideOaPick);
-byId("oaPickOkBtn").addEventListener("click", applyOaPick);
-// 企微侧 OA 部门弹框：单击选中，双击该行即落库（确定=保存绑定）
-byId("oaBindCloseBtn").addEventListener("click", cancelOaBindPick);
-byId("oaBindMask").addEventListener("click", function (e) {
-    if (e.target === this) { cancelOaBindPick(); }
-});
-byId("oaBindCancelBtn").addEventListener("click", cancelOaBindPick);
-byId("oaBindClearBtn").addEventListener("click", clearOaBindPick);
-byId("oaBindOkBtn").addEventListener("click", confirmOaBindPick);
-byId("oaBindList").addEventListener("dblclick", function (e) {
-    var option = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
-    if (!option || option.hasAttribute("data-group")) { return; }
-    if (option.classList.contains("disabled")) { return; }
-    pickOaBindOption(option);
-    confirmOaBindPick();
-});
-byId("oaBindSearch").addEventListener("input", function () {
-    if (oaBindPickWxId) { renderOaBindList(); }
 });
 byId("oaFbPicker").addEventListener("click", function () { openOaPick("fb"); });
 byId("oaDeptPicker").addEventListener("click", function () { openOaPick("dept"); });
@@ -712,22 +624,6 @@ byId("wxDeptFilterClear").addEventListener("click", function (e) {
     e.stopPropagation();
     clearWxDeptFilter();
 });
-byId("wxDeptPickCloseBtn").addEventListener("click", hideWxDeptPick);
-byId("wxDeptPickMask").addEventListener("click", function (e) {
-    if (e.target === this) { hideWxDeptPick(); }
-});
-byId("wxDeptPickSearch").addEventListener("input", renderWxDeptPickList);
-byId("wxDeptPickClearBtn").addEventListener("click", clearWxDeptPickSelection);
-byId("wxDeptPickCancelBtn").addEventListener("click", hideWxDeptPick);
-byId("wxDeptPickOkBtn").addEventListener("click", applyWxDeptPick);
-// 双击选项：多选也立即确定选择并退出弹框
-byId("wxDeptPickList").addEventListener("dblclick", function (e) {
-    var option = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
-    if (!option || option.hasAttribute("data-group")) { return; }
-    // 双击前已收到两次单击（选中→取消），这里确保该行处于选中态后再确定
-    if (wxDeptPickSelected.indexOf(option.getAttribute("data-id")) < 0) { toggleWxDeptPick(option); }
-    applyWxDeptPick();
-});
 byId("wxStateUnbound").addEventListener("change", function () {
     applyWxStateFilter("unbound", this.checked);
     syncWxStateFilterInputs();
@@ -744,7 +640,6 @@ byId("batchNoBindWxBtn").addEventListener("click", batchNoBindFromWx);
 byId("refreshBtn").addEventListener("click", loadData);
 byId("refreshTmpBtn").addEventListener("click", updateTmp);
 
-OaonesPicker.syncSwitches();
 loadCfgs();
 </script>
 </body>

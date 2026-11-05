@@ -94,7 +94,7 @@ public class LoginConfig {
      */
     private Integer brandOpacity;
     /**
-     * 桌面启动台（/oaones/appsyn/desktop）带 gopage 时自动跳转的秒数：
+     * 桌面启动台（对外地址由 properties 的 route.* 配置）带 gopage 时自动跳转的秒数：
      * 0 = 不自动跳转；空 = 用 oaones.appsyn.properties#login.landing.gopage.seconds（默认 5 秒）。
      */
     private Integer gopageSeconds;

@@ -305,12 +305,16 @@
 
     function cfgRowHtml(row) {
         var enabled = Number(row.enabled) === 1;
+        var direction = Number(row.dir) || 0;
+        var featureCodes = direction === 1 ? "att.sync.third2oa"
+            : (direction === 2 ? "att.sync.oa2third" : "att.sync.oa2third,att.sync.third2oa");
         var alert = row.alert_text ? '<div class="alert-text">' + esc(row.alert_text) + '</div>' : "";
         var lastTag = Number(row.last_result) === 3 ? '<span class="tag danger">失败</span>'
             : (Number(row.last_result) === 0 || Number(row.last_result) === 1
                 ? '<span class="tag success">成功</span>' : '<span class="tag">未执行</span>');
         return ''
-            + '<div class="cfg-item" data-att-cfg="' + esc(row.id) + '">'
+            + '<div class="cfg-item" data-oaones-feature="' + featureCodes
+            + '" data-att-cfg="' + esc(row.id) + '">'
             + '<div class="cfg-item-head">'
             + '<div class="cfg-item-name">' + esc(row.cfg_name)
             + ' <span class="tag">' + esc(row.dir_text) + '</span>'
@@ -541,6 +545,7 @@
         byId("attCfgTenantText").textContent = tenantName(row.cfg_id) + "（租户ID " + row.cfg_id + "）";
         byId("attCfgName").value = row.cfg_name || "";
         byId("attCfgDir").value = String(Number(row.dir) || 0);
+        normalizeDirectionByFeature();
         byId("attCfgEnabled").checked = Number(row.enabled) === 1;
         byId("attCfgRemark").value = row.remark || "";
         fillCfgAppText(row.cfg_id);
@@ -612,6 +617,24 @@
         var mode = Number(byId("attPlanMode").value);
         byId("attPlanItemsBox").style.display = mode === 0 ? "" : "none";
         byId("attPlanCronBox").style.display = mode === 1 ? "" : "none";
+    }
+
+    /**
+     * 功能设置关闭某个考勤同步方向后，编辑弹框不再显示该方向；
+     * 如果当前选中项刚被隐藏，自动切到第一个仍可见的方向。
+     */
+    function normalizeDirectionByFeature() {
+        var select = byId("attCfgDir");
+        if (!select || !select.options || !select.options.length) { return; }
+        var options = select.options;
+        var current = options[select.selectedIndex];
+        if (current && current.style.display !== "none") { return; }
+        for (var i = 0; i < options.length; i++) {
+            if (options[i].style.display !== "none") {
+                select.value = options[i].value;
+                return;
+            }
+        }
     }
 
     function fillWorkdayGroups(groups, todayWorkday) {
@@ -1457,6 +1480,9 @@
             state.editing.items = [];
             bindEvents();
             if (window.OaonesDate && window.OaonesDate.init) { window.OaonesDate.init(); }
+            if (window.OaonesFeatureGate && window.OaonesFeatureGate.onReady) {
+                window.OaonesFeatureGate.onReady(normalizeDirectionByFeature);
+            }
         },
         /**
          * 切页签。**租户页签是页面级的**：不管切到哪个页签，都要先有租户列表

@@ -180,8 +180,8 @@
             OaonesUtil.s(request.getParameter("gopage")), "");
     String oaonesLanding = OaonesProps.loginLandingUrl();
     if (oaonesLanding.length() == 0) {
-        // 兜底与配置默认一致：登录成功直接进工作台对外地址，不再进系统首页
-        oaonesLanding = "/oaones/appsyn/desktop";
+        // 落地地址只认配置文件；配置缺失时才回退平台默认首页，避免代码里再维护一份对外地址
+        oaonesLanding = OaonesConst.DEFAULT_OA_HOME_URL;
     }
     // 落地页统一按 URL 路由输出**对外地址**（oaones.appsyn.properties 的 route.* 配了就用对外地址，
     // 没配原样返回）：登录成功后地址栏直接是对外地址，不会先落到真实 .jsp 再被挡一次
@@ -279,7 +279,7 @@
     }
     // 登录页外观（“登录设置”里维护，未设置时用系统默认外观）：
     // ① logo：按比例缩放显示在**右侧登录框的内部上方**；
-    // ② 背景图：整页背景，前端按窗口自动缩放（css/login.css 的 cover）；
+    // ② 背景图：整页背景，前端按窗口自动缩放（script/css/login.css 的 cover）；
     // ③ 左侧文字：富文本 HTML，**原样输出**（设置什么显示什么），非空时整段替换系统默认的左侧说明。
     // ④ 登录框透明度：只改白色底色的 alpha，让背景图透出来，表单内容保持不透明。
     // ⑤ 左侧文字背景透明度：只改文字区白色底板的 alpha，文字保持不透明；默认 100 = 无底板。
@@ -344,7 +344,7 @@
             oaonesScanSettings.getIntValue("brand_opacity"),
             OaonesConst.LOGIN_BRAND_OPACITY_MIN, OaonesConst.LOGIN_BRAND_OPACITY_MAX);
     boolean oaonesBrandSurface = oaonesBrandOpacity < OaonesConst.LOGIN_BRAND_OPACITY_MAX;
-    // body 的内联样式统一拼一次：背景图变量 + 登录框四个坐标 / 尺寸变量 + 透明度 alpha（CSS 见 css/login.css）
+    // body 的内联样式统一拼一次：背景图变量 + 登录框四个坐标 / 尺寸变量 + 透明度 alpha（CSS 见 script/css/login.css）
     StringBuilder oaonesBodyStyle = new StringBuilder();
     if (oaonesBgOn) {
         oaonesBodyStyle.append("--oa-login-bg:url('").append(Util.toHtml(oaonesBg)).append("');");
@@ -422,11 +422,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>登录 - <%=Util.toHtml(oaonesPageTitle)%></title>
-    <link rel="stylesheet" href="/oaones/appsyn/css/style.css?v=<%=oaonesAssetV%>">
-    <link rel="stylesheet" href="/oaones/appsyn/css/login.css?v=<%=oaonesAssetV%>">
-    <script src="/oaones/appsyn/js/login.i18n.js?v=<%=oaonesAssetV%>"></script>
+    <link rel="stylesheet" href="/oaones/scripts/css/style.css?v=<%=oaonesAssetV%>">
+    <link rel="stylesheet" href="/oaones/appsyn/script/css/login.css?v=<%=oaonesAssetV%>">
+    <script src="/oaones/appsyn/script/js/login.i18n.js?v=<%=oaonesAssetV%>"></script>
 </head>
-<%-- 整页背景图（“登录设置 → 登录页背景图”）：把地址交给 css/login.css 的 --oa-login-bg，
+<%-- 整页背景图（“登录设置 → 登录页背景图”）：把地址交给 script/css/login.css 的 --oa-login-bg，
      由样式按“铺满窗口等比缩放（cover）”渲染；接口未设置 / 弹框模式时不写这个变量，走默认底色 --%>
 <body class="login-page<%=oaonesPopup ? " login-page-popup" : (oaonesBoxCustom
     ? " login-page-custom" : " login-page-default")%><%=
@@ -462,7 +462,7 @@
     <div class="login-brand">
         <% if (oaonesBrandCustom) { %>
         <%-- 管理员在“登录设置 → 登录页左侧文字”里写的富文本：**原样输出**（设置什么显示什么），
-             基础版式见 css/login.css 的 .login-brand-html --%>
+             基础版式见 script/css/login.css 的 .login-brand-html --%>
         <div class="login-brand-html"><%=oaonesBrandHtml%></div>
         <% } else { %>
         <h1><%=Util.toHtml(oaonesPageTitle)%></h1>
@@ -491,7 +491,7 @@
     <div class="login-card" id="loginCard">
         <% if (!oaonesPopup && oaonesLogoOn) { %>
         <%-- 登录页 logo：来自“登录设置 → 登录页 Logo”，按比例缩放显示在登录框内部上方
-             （宽度不超过登录框、高度自适应，见 css/login.css 的 .login-logo）；
+             （宽度不超过登录框、高度自适应，见 script/css/login.css 的 .login-logo）；
              弹框模式（超时后的“重新登录”）里不出现 --%>
         <div class="login-logo">
             <img src="<%=Util.toHtml(oaonesLogo)%>" alt="<%=Util.toHtml(oaonesPageTitle)%>">
@@ -685,9 +685,11 @@
     // （同样以平台接口回的 loginSetting.needforgotpassword 为准）
     forgot: {on: <%=oaonesForgotOn%>}
 };</script>
-<script src="/oaones/appsyn/js/toast.js?v=<%=oaonesAssetV%>"></script>
-<%-- 弹框统一支持按表头拖动（picker.js 接管；本页“忘记密码”弹层同样可拖） --%>
-<script src="/oaones/appsyn/js/picker.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/toast.js?v=<%=oaonesAssetV%>"></script>
+<%-- 弹框统一支持按表头拖动（modal.js 接管；本页“忘记密码”弹层同样可拖） --%>
+<script src="/oaones/scripts/js/modal.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/tree.js?v=<%=oaonesAssetV%>"></script>
+<script src="/oaones/scripts/js/picker.js?v=<%=oaonesAssetV%>"></script>
 <script>
 "use strict";
 (function () {

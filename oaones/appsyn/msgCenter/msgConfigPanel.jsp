@@ -207,6 +207,9 @@
     function renderApps() {
         var body = byId("msgAppBody");
         if (!body) { return; }
+        if (window.OaonesTable) {
+            window.OaonesTable.resizable(byId("msgAppTable"), { key: "msgCenter.appTable" });
+        }
         byId("msgAppEmptyTip").style.display = apps.length ? "none" : "";
         if (!apps.length) {
             body.innerHTML = "<tr><td colspan=\"9\"><div class=\"empty\">还没有企微应用，请先到「应用绑定」页新增</div></td></tr>";

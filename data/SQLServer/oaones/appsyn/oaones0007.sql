@@ -5,7 +5,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','logo') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.logo already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','bg_image') IS NULL
     BEGIN
@@ -14,7 +14,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','bg_image') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.bg_image already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','brand_html') IS NULL
     BEGIN
@@ -23,4 +23,4 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','brand_html') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.brand_html already exists';
-GO
+

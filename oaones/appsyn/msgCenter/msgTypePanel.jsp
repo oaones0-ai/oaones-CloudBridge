@@ -177,33 +177,6 @@
     </table>
 </div>
 
-<%-- 模块筛选：弹出选择框（模块本身没有上下级关系，只提供列表式，可多选，见 skill.md 第一节第 5 条） --%>
-<div class="modal-mask" id="msgTypeGroupMask"></div>
-<div class="modal wx-pick-modal" id="msgTypeGroupModal">
-    <div class="modal-head">
-        <span id="msgTypeGroupTitle">选择模块</span>
-        <button type="button" class="link" id="msgTypeGroupCloseBtn" title="关闭">×</button>
-    </div>
-    <div class="modal-body">
-        <div class="pick-view-bar">
-            <input type="text" id="msgTypeGroupSearch" placeholder="输入模块名称搜索" autocomplete="off"
-                   data-lpignore="true">
-            <button type="button" class="btn small secondary pick-all-btn" id="msgTypeGroupAllBtn"
-                    data-pick-all="msgTypeGroup">全选</button>
-        </div>
-        <div class="wx-pick-list" id="msgTypeGroupList"></div>
-        <div class="muted wx-pick-note">模块取自泛微标准页「模块设置」，只用于筛选本页列表；
-            <span class="rule">可多选</span>（单击选中 / 再点取消，搜索框只影响候选范围，“全选”只作用于当前候选），
-            <span class="rule">双击即确定并退出</span>；
-            不选（或点“清空选择”）= 全部模块。</div>
-    </div>
-    <div class="modal-foot">
-        <button type="button" class="btn secondary" id="msgTypeGroupClearBtn">清空选择</button>
-        <button type="button" class="btn secondary" id="msgTypeGroupCancelBtn">取消</button>
-        <button type="button" class="btn" id="msgTypeGroupOkBtn">确定</button>
-    </div>
-</div>
-
 <%-- 推送目标应用明细弹框：点列表里“N 个租户”打开；租户清单随列表接口一次预加载（打开弹框不再取数） --%>
 <div class="modal-mask" id="msgAppModalMask"></div>
 <div class="modal" id="msgAppModal" style="width:760px;display:none;">
@@ -1002,101 +975,20 @@
         }
     }
 
-    function groupRows(keyword) {
-        var k = String(keyword == null ? value("msgTypeGroupSearch") : keyword).trim().toLowerCase();
-        return groupOptions().filter(function (one) {
-            return !k || one.name.toLowerCase().indexOf(k) >= 0;
-        });
-    }
-
-    function groupOptionHtml(one) {
-        var active = pendingGroups.indexOf(one.value) >= 0;
-        return "<button type='button' class='wx-pick-option pick-cols-wide" + (active ? " active" : "")
-            + "' data-value='" + esc(one.value) + "'"
-            + " title='" + esc((active ? "已选中（再点即取消）" : "点击选中该模块")
-                + "｜双击即确定并退出") + "'>"
-            + "<span class='wx-pick-opt-name'>" + esc(one.name) + "</span>"
-            + "<span>" + one.count + " 个消息类型</span>"
-            + "</button>";
-    }
-
-    /** 当前候选（受搜索框过滤）里是否已全选；“全选”按钮文案与高亮由 OaonesPicker 同步。 */
-    function groupAllOn() {
-        var rows = groupRows(null);
-        if (!rows.length) { return false; }
-        return rows.every(function (one) { return pendingGroups.indexOf(one.value) >= 0; });
-    }
-
-    function renderGroupList() {
-        var listEl = byId("msgTypeGroupList");
-        if (!listEl) { return; }
-        syncGroupPickState();
-        var rows = groupRows(null);
-        if (!rows.length) {
-            listEl.innerHTML = "<div class='wx-pick-empty'>没有匹配的模块</div>";
-            return;
-        }
-        var html = "";
-        rows.forEach(function (one) { html += groupOptionHtml(one); });
-        listEl.innerHTML = html;
-    }
-
     function openGroupPick() {
-        pendingGroups = selectedGroupKeys();
-        setValue("msgTypeGroupSearch", "");
-        renderGroupList();
-        byId("msgTypeGroupMask").style.display = "block";
-        byId("msgTypeGroupModal").style.display = "block";
-        byId("msgTypeGroupSearch").focus();
-    }
-
-    function hideGroupPick() {
-        byId("msgTypeGroupMask").style.display = "none";
-        byId("msgTypeGroupModal").style.display = "none";
-    }
-
-    /** 弹框标题（已选 N 个模块）与“全选 / 全不选”按钮文案（勾选变化或列表重绘后调用）。 */
-    function syncGroupPickState() {
-        var title = byId("msgTypeGroupTitle");
-        if (title) {
-            title.textContent = pendingGroups.length
-                ? "选择模块（已选 " + pendingGroups.length + " 个）" : "选择模块";
-        }
-        OaonesPicker.syncSelectAll("msgTypeGroup", groupAllOn());
-    }
-
-    /** 勾选变化后就地刷新每行的选中态（<b>不重建列表</b>，否则会打断双击）。 */
-    function refreshGroupOptionDom() {
-        var listEl = byId("msgTypeGroupList");
-        if (!listEl) { return; }
-        var opts = listEl.querySelectorAll(".wx-pick-option");
-        for (var i = 0; i < opts.length; i++) {
-            var one = String(opts[i].getAttribute("data-value") || "");
-            opts[i].classList.toggle("active", pendingGroups.indexOf(one) >= 0);
-        }
-        syncGroupPickState();
-    }
-
-    /** 单击切换该模块的选中态（可多选）。 */
-    function toggleGroup(groupKey) {
-        var one = String(groupKey == null ? "" : groupKey);
-        if (one === "") { return; }
-        var idx = pendingGroups.indexOf(one);
-        if (idx >= 0) { pendingGroups.splice(idx, 1); } else { pendingGroups.push(one); }
-        refreshGroupOptionDom();
-    }
-
-    /** “全选”按钮：按当前搜索关键字过滤后的候选全选 / 全不选，返回操作后是否已全选。 */
-    function toggleGroupAll() {
-        var rows = groupRows(null);
-        var on = groupAllOn();
-        rows.forEach(function (one) {
-            var idx = pendingGroups.indexOf(one.value);
-            if (on && idx >= 0) { pendingGroups.splice(idx, 1); }
-            if (!on && idx < 0) { pendingGroups.push(one.value); }
+        OaonesPicker.open({
+            key: "msgTypeGroup",
+            title: "选择模块",
+            multiple: true,
+            tree: false,
+            initialSelected: selectedGroupKeys(),
+            rows: groupOptions(),
+            detailOf: function (one) { return one.count + " 个消息类型"; },
+            onConfirm: function (selection) {
+                pendingGroups = selection.ids.slice();
+                confirmGroup();
+            }
         });
-        refreshGroupOptionDom();
-        return groupAllOn();
     }
 
     /** 模块 / 状态 / 关键字筛选变化：修剪勾选（不在当前候选里的清掉）后重绘两个列表。 */
@@ -1109,15 +1001,8 @@
         var next = pendingGroups.join(",");
         var changed = next !== value("msgTypeGroupFilter");
         setValue("msgTypeGroupFilter", next);
-        hideGroupPick();
         syncGroupInput();
         if (changed) { applyFilter(); }
-    }
-
-    /** 弹框里的“清空选择”：表示不限模块（不选任何模块）。 */
-    function clearGroupPick() {
-        pendingGroups = [];
-        confirmGroup();
     }
 
     /** 生成框右侧的 ×：直接清掉已生效的模块筛选，不用打开弹框。 */
@@ -1579,27 +1464,6 @@
         // 模块：点生成框打开选择框（只读框，不用下拉框）
         byId("msgTypeGroupInput").addEventListener("click", openGroupPick);
         byId("msgTypeGroupClear").addEventListener("click", resetGroupFilter);
-        byId("msgTypeGroupCloseBtn").addEventListener("click", hideGroupPick);
-        byId("msgTypeGroupCancelBtn").addEventListener("click", hideGroupPick);
-        byId("msgTypeGroupMask").addEventListener("click", hideGroupPick);
-        byId("msgTypeGroupOkBtn").addEventListener("click", confirmGroup);
-        byId("msgTypeGroupClearBtn").addEventListener("click", clearGroupPick);
-        byId("msgTypeGroupSearch").addEventListener("input", renderGroupList);
-        // 多选弹框的“全选”：按当前搜索关键字过滤后的候选全选 / 全不选（组件负责文案与高亮）
-        OaonesPicker.setSelectAll("msgTypeGroup", toggleGroupAll);
-        byId("msgTypeGroupList").addEventListener("click", function (e) {
-            var btn = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
-            if (btn) { toggleGroup(btn.getAttribute("data-value") || ""); }
-        });
-        byId("msgTypeGroupList").addEventListener("dblclick", function (e) {
-            var btn = e.target && e.target.closest ? e.target.closest(".wx-pick-option") : null;
-            if (!btn) { return; }
-            // 双击前已收到两次单击（同一行重复点不会取消选择），这里确保选中态后再确定退出
-            if (pendingGroups.indexOf(String(btn.getAttribute("data-value") || "")) < 0) {
-                toggleGroup(btn.getAttribute("data-value") || "");
-            }
-            confirmGroup();
-        });
         byId("msgTypeCheckAll").addEventListener("change", function () {
             togglePageChecks(!!this.checked);
         });

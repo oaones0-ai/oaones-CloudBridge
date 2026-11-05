@@ -23,6 +23,7 @@ public final class LogRetentionCatalog {
     public static final String SYNC_LOG = "sync_log";
     public static final String SYNC_LOG_ITEM = "sync_log_item";
     public static final String MTG_SYNC_LOG = "mtg_sync_log";
+    public static final String MYLOG_FILE = "mylog_file";
 
     private static final List<Definition> DEFINITIONS;
 
@@ -36,6 +37,8 @@ public final class LogRetentionCatalog {
         list.add(new Definition(SYNC_LOG, "组织同步日志", "组织同步每次执行一条汇总记录"));
         list.add(new Definition(SYNC_LOG_ITEM, "组织同步明细", "组织同步每个部门或人员一行"));
         list.add(new Definition(MTG_SYNC_LOG, "会议/日程同步记录", "会议或日程每次同步动作一行"));
+        list.add(new Definition(MYLOG_FILE, "mylog 日志文件",
+                "log/mylog 下的 OAones 日志文件；保留天数只清理过期的 mylog_YYYYMMDD.zip"));
         DEFINITIONS = Collections.unmodifiableList(list);
     }
 
@@ -84,6 +87,9 @@ public final class LogRetentionCatalog {
 
         /** 当前配置下的物理表名。 */
         public String getTableName() {
+            if (MYLOG_FILE.equals(code)) {
+                return "log/mylog";
+            }
             if (API_LOG.equals(code)) {
                 return OaonesProps.apiLogTable();
             }
@@ -109,6 +115,11 @@ public final class LogRetentionCatalog {
                 return OaonesProps.mtgSyncLogTable();
             }
             return "";
+        }
+
+        /** 是否为文件日志项（不通过数据库表清理）。 */
+        public boolean isFileLog() {
+            return MYLOG_FILE.equals(code);
         }
     }
 }

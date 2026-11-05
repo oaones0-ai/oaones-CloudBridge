@@ -1,7 +1,7 @@
 <%@ page pageEncoding="UTF-8" %>
 <%--
   同步结果页主体：按平台 / 租户 / requestid 等筛选，以部门、分部、人员为数据行展示。
-  页面壳：syncCenter/syncResult.jsp；交互脚本：js/syncResult.js。
+  页面壳：syncCenter/syncResult.jsp；交互脚本：script/js/syncResult.js。
 --%>
 <div class="card">
     <div class="filter-bar" id="syncResultFilterBar"

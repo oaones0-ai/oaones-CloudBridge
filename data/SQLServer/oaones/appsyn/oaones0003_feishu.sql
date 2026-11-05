@@ -70,4 +70,4 @@ WHERE t.code_int > 0
   AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type m WHERE m.std_type = t.code_int and m.type = 2);
 
 PRINT '补齐 uf_oaones_msg_type（飞书 type=2）：本次新增 ' + cast(@@ROWCOUNT as varchar(20)) + ' 行';
-GO
+

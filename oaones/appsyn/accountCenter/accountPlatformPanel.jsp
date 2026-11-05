@@ -431,7 +431,7 @@ function rowHtml(row) {
 
     var ops = "";
     if (bound && !row.disabled) {
-        ops += '<button type="button" class="btn small secondary" data-bind="' + cfgId
+        ops += '<button type="button" class="btn small secondary" data-oaones-feature="user.bind.self" data-bind="' + cfgId
             + '" title="重新扫码：把该租户下的绑定换成新扫码的' + SHORT + '账号">重新扫码</button> ';
         ops += '<button type="button" class="btn small ghost-danger" data-unbind="' + cfgId
             + '" title="只解除你本人在该租户的绑定">解绑</button>';
@@ -443,7 +443,7 @@ function rowHtml(row) {
     } else if (row.disabled) {
         ops += '<span class="muted">租户已停用，无法扫码绑定</span>';
     } else {
-        ops += '<button type="button" class="btn small" data-bind="' + cfgId
+        ops += '<button type="button" class="btn small" data-oaones-feature="user.bind.self" data-bind="' + cfgId
             + '" title="用本人' + SHORT + '扫码，把' + SHORT + '账号绑定到你的 OA 账号">扫码绑定</button>';
     }
 

@@ -6,7 +6,7 @@ IF EXISTS (
       AND name = 'UK_OAONES_DEPT_BIND_OA'
 )
     DROP INDEX UK_OAONES_DEPT_BIND_OA ON dbo.uf_oaones_dept_bind;
-GO
+
 
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
@@ -15,4 +15,4 @@ IF NOT EXISTS (
 )
     CREATE INDEX IDX_OAONES_DEPT_BIND_OA
         ON dbo.uf_oaones_dept_bind(cfg_id, oa_dept_id, id);
-GO
+

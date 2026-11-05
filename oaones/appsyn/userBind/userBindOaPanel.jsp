@@ -42,6 +42,7 @@
                 <button type="button" class="btn small" id="defaultBindBtn"
                         title="按“默认绑定规则”为当前列表中的未绑定 OA 人员匹配<%= oaonesPBShort %>成员">默认批量绑定</button>
                     <button type="button" class="btn small secondary" id="syncCheckedBtn"
+                            data-oaones-feature="user.bind.sync,user.bind.sync.oa2third"
                             title="把勾选的 OA 人员按部门绑定关系同步到<%= oaonesPBShort %>并建立人员绑定；同步失败的人员会在结果弹框中列出失败原因">同步人员</button>
                     <button type="button" class="btn small secondary" id="batchOaNoBindBtn"
                             title="把勾选的 OA 人员一次标记为免绑定（行首复选框仅“未绑定”人员可用）：免绑定人员不参与默认批量绑定与同步人员，可取消免绑定后再次绑定">批量免绑定</button>
@@ -68,52 +69,6 @@
             </div>
             <div class="pager" id="oaPager"></div>
         </div>
-
-<div class="modal-mask" id="oaPickMask"></div>
-<div class="modal wx-pick-modal" id="oaPickModal">
-    <div class="modal-head">
-        <span id="oaPickTitle">选择分部</span>
-        <button type="button" class="link" id="oaPickCloseBtn" title="关闭">×</button>
-    </div>
-    <div class="modal-body">
-        <div class="pick-view-bar">
-            <input type="text" id="oaPickSearch" placeholder="输入名称/编码/ID搜索" autocomplete="off">
-            <div class="view-switch mini" id="oaPickViewSwitch" data-view-key="oaPick">
-                <button type="button" class="view-btn" data-view="list">列表式</button>
-                <button type="button" class="view-btn active" data-view="tree">树状</button>
-            </div>
-            <button type="button" class="btn small secondary pick-all-btn" id="oaPickAllBtn" data-pick-all="oaPick"
-                    title="全选/全不选当前列表（受搜索与前置条件过滤影响）">全选</button>
-        </div>
-        <div class="wx-pick-list" id="oaPickList"></div>
-        <div class="muted wx-pick-note" id="oaPickNote"></div>
-    </div>
-    <div class="modal-foot">
-        <button type="button" class="btn secondary" id="oaPickClearBtn">清空</button>
-        <button type="button" class="btn secondary" id="oaPickCancelBtn">取消</button>
-        <button type="button" class="btn" id="oaPickOkBtn">确定</button>
-    </div>
-</div>
-
-<div class="modal-mask" id="wxPickMask"></div>
-<div class="modal wx-pick-modal" id="wxPickModal">
-    <div class="modal-head">
-        <span id="wxPickTitle">选择<%= oaonesPBShort %>成员</span>
-        <button type="button" class="link" id="wxPickCloseBtn" title="关闭">×</button>
-    </div>
-    <div class="modal-body">
-        <div class="wx-pick-tip" id="wxPickTip"></div>
-        <div class="pick-view-bar">
-            <input type="text" id="wxPickSearch" placeholder="输入姓名/ID/部门搜索" autocomplete="off">
-            <div class="view-switch mini" id="wxPickViewSwitch" data-view-key="wxPick">
-                <button type="button" class="view-btn" data-view="list">列表式</button>
-                <button type="button" class="view-btn active" data-view="tree">树状</button>
-            </div>
-        </div>
-        <div class="wx-pick-list" id="wxPickList"></div>
-        <div class="muted wx-pick-note">只展示人员快照中状态正常的<%= oaonesPBShort %>成员，已标记“免绑定”的成员不可选；OA 到<%= oaonesPBShort %>为“多对一”（多个 OA 账户对应同一个<%= oaonesPBShort %>账户），同一<%= oaonesPBShort %>成员可被多个 OA 人员绑定，已被其他 OA 人员绑定的成员仍可选中，选项上会标注“已被 N 个 OA 人员绑定”。点击成员行后立即保存绑定（列表行内不再有“绑定”按钮）。树状模式按<%= oaonesPBShort %>部门分组展示。</div>
-    </div>
-</div>
 
 <div class="modal-mask" id="matchMask"></div>
 <div class="modal" id="matchModal">
@@ -238,144 +193,49 @@ function showWxPickModal(oaId) {
     if (bindSavingOa[oaId]) { showToast("该人员绑定保存中，请稍候…", 1); return; }
     var picker = document.querySelector("#manageBody .wx-picker[data-oa='" + oaId + "']");
     if (!picker) { return; }
-    wxPickOaId = oaId;
-    // 已绑定行带入当前绑定；“默认批量绑定 → 仅显示匹配”只回填未保存的匹配结果时也一并带入，
-    // 这样点选被高亮的成员即可保存绑定（行内已不再提供“绑定”按钮）
     var pickerValueEl = picker.querySelector(".wx-picker-value");
-    var pickerTextEl = picker.querySelector(".wx-picker-text");
     var staged = pickerValueEl ? String(pickerValueEl.value || "") : "";
-    wxPickId = wxCurrentValue(oaId) || staged;
-    wxPickValue = wxPickId;
+    var selectedId = wxCurrentValue(oaId) || staged;
     var oaName = oaNameOf(oaId);
-    byId("wxPickTip").textContent = oaName
-        ? "为 OA 人员“" + oaName + "”选择" + P_SHORT + "成员"
-        : "为 OA 人员（ID " + oaId + "）选择" + P_SHORT + "成员";
-    // 默认带入左侧 OA 人员姓名，便于直接定位同名企微成员；
-    // 带入未保存的匹配值时清空关键字，避免默认关键字把带回的成员过滤掉、看不到高亮项
-    byId("wxPickSearch").value = staged ? "" : oaName;
-    // 树状默认收起分支：每次打开弹框重置展开状态
-    OaonesPicker.resetTree("wxPick");
-    renderWxPickList();
-    byId("wxPickMask").style.display = "block";
-    byId("wxPickModal").style.display = "block";
-    byId("wxPickSearch").focus();
-    byId("wxPickSearch").select();
-}
-
-function hideWxPickModal() {
-    byId("wxPickMask").style.display = "none";
-    var modal = byId("wxPickModal");
-    if (modal) { modal.style.display = "none"; }
-    wxPickOaId = "";
-    wxPickId = "";
-    wxPickValue = "";
-}
-
-function renderWxPickList() {
-    var listEl = byId("wxPickList");
-    var mode = OaonesPicker.mode("wxPick");
-    var keyword = byId("wxPickSearch").value;
-    var rows = wxPickRows(wxPickOaId, mode === "tree" ? "" : keyword);
-    var html;
-    if (mode === "tree") {
-        html = OaonesPicker.renderTree("wxPick", wxMemberTreeRows(rows), {
-            parentOf: function (r) { return r.parent; },
-            textOf: function (r) { return r.searchText; },
-            isGroup: function (r) { return r.group === true; },
-            groupHtml: function (r, open, hit) { return OaonesPicker.groupHtml("wxPick", r, open, hit); },
-            keyword: keyword,
-            emptyText: "没有匹配的" + P_SHORT + "成员",
-            optionHtml: function (r) { return wxMemberOptionHtml(r.user); }
-        });
-    } else if (!rows.length) {
-        html = "<div class='wx-pick-empty'>没有匹配的" + P_SHORT + "成员</div>";
-    } else {
-        html = "<div class='wx-pick-head'><span>成员ID</span><span>成员姓名/部门</span></div>";
-        rows.forEach(function (u) { html += wxMemberOptionHtml(u); });
-    }
-    listEl.className = "wx-pick-list" + (mode === "tree" ? " is-tree" : "");
-    listEl.innerHTML = html;
-}
-
-function wxMemberOptionHtml(u) {
-    var id = String(u.wx_user_id);
-    var active = wxPickId === id ? " active" : "";
-    var tip = (u.wx_name || "") + "（" + id + "）" + (u.wx_dept_name ? " / " + u.wx_dept_name : "");
-    var nameText = (u.wx_name || "") + (u.wx_dept_name ? " / " + u.wx_dept_name : "");
-    return "<button type='button' class='wx-pick-option" + active + "'"
-        + " data-id='" + esc(id) + "'"
-        + " title='" + esc(tip) + "'>"
-        + "<span class='wx-pick-opt-id'>" + esc(id) + "</span>"
-        + "<span class='wx-pick-opt-name'>" + esc(nameText) + wxBoundTag(wxPickOaId, id) + "</span>"
-        + "</button>";
-}
-
-/**
- * 多对一标记：该企微成员已被“其他 OA 人员”绑定时给出数量与人员明细
- * （当前正在编辑的这条 OA 人员绑定不算，避免与自身冲突提示）。
- */
-function wxBoundTag(oaId, wxId) {
-    var list = boundListByWx[String(wxId)] || [];
-    var others = [];
-    list.forEach(function (b) {
-        if (String(b.oa_user_id) !== String(oaId)) { others.push(b); }
-    });
-    if (!others.length) { return ""; }
-    var names = others.map(function (b) {
-        return (b.oa_name || oaNameOf(b.oa_user_id) || "OA人员") + "（ID " + b.oa_user_id + "）";
-    });
-    var tip = "已被其他 OA 人员绑定：" + names.join("、")
-        + "；同一" + P_SHORT + "成员可被多个 OA 人员绑定（一对多），确认后点击即可为当前 OA 人员也建立绑定";
-    return "<span class='tag bound' title='" + esc(tip) + "'>已被 " + others.length + " 个 OA 人员绑定</span>";
-}
-
-/** 企微成员树：按企微部门分组，部门为分组节点、成员为可选叶子。 */
-function wxMemberTreeRows(rows) {
-    var out = [];
+    var rows = [];
     var groups = {};
-    (rows || []).forEach(function (u) {
-        var deptId = String(u.wx_dept_id == null ? "" : u.wx_dept_id);
-        var deptName = String(u.wx_dept_name == null ? "" : u.wx_dept_name);
-        var gid = "g:" + (deptId || ("name:" + deptName) || "0");
-        if (!groups[gid]) {
-            groups[gid] = { group: true, id: gid, parent: "", name: deptName || "未分配部门", count: 0 };
-            out.push(groups[gid]);
+    wxPickRows(oaId, "").forEach(function (u) {
+        var dept = String(u.wx_dept_name == null ? "" : u.wx_dept_name) || "未分配部门";
+        var groupId = "g:" + dept;
+        if (!groups[groupId]) {
+            groups[groupId] = {
+                id: groupId, parentId: "", name: dept,
+                selectable: false, count: 0
+            };
+            rows.push(groups[groupId]);
         }
-        groups[gid].count++;
-        out.push({
-            group: false,
-            id: "u:" + String(u.wx_user_id),
-            parent: gid,
-            user: u,
-            searchText: [u.wx_name, u.wx_user_id, u.wx_dept_name].map(function (v) {
-                return String(v == null ? "" : v);
-            }).join(" ")
+        groups[groupId].count++;
+        var wxId = String(u.wx_user_id);
+        var others = (boundListByWx[wxId] || []).filter(function (b) {
+            return String(b.oa_user_id) !== oaId;
+        });
+        rows.push({
+            id: wxId,
+            parentId: groupId,
+            name: String(u.wx_name || "") || ("成员ID " + wxId),
+            detail: [wxId, u.wx_dept_name].filter(Boolean).join(" / "),
+            badge: others.length ? "已被 " + others.length + " 个 OA 人员绑定" : "",
+            wxUser: u
         });
     });
-    return out;
-}
-
-function pickWxOption(btn) {
-    wxPickId = btn.getAttribute("data-id");
-    wxPickValue = wxPickId;
-    var opts = byId("wxPickList").querySelectorAll(".wx-pick-option");
-    for (var i = 0; i < opts.length; i++) {
-        opts[i].classList.remove("active");
-    }
-    btn.classList.add("active");
-    // 点击成员行后立即回填并关闭弹框
-    confirmWxPick();
-}
-
-function confirmWxPick() {
-    if (!wxPickOaId || !wxPickId) { return; }
-    var oaId = String(wxPickOaId);
-    var wxId = wxPickValue;
-    hideWxPickModal();
-    // 在弹框里点选企微成员后立即保存绑定（行内不再有“绑定”按钮）。
-    // 选择框显示不在这里回填：保存成功后由 loadData() 按服务端数据重绘，
-    // 避免“自行绑定”二次确认被取消时，行内显示了一个并未落库的成员。
-    saveBindFromManage(oaId, { auto: true, wxId: wxId });
+    OaonesPicker.open({
+        key: "wxPick",
+        title: (oaName ? "为 OA 人员“" + oaName + "”" : "为 OA 人员（ID " + oaId + "）")
+            + "选择" + P_SHORT + "成员",
+        multiple: false,
+        allowEmpty: false,
+        initialSelected: selectedId ? [selectedId] : [],
+        rows: rows,
+        onConfirm: function (selection) {
+            if (!selection.ids.length) { return; }
+            saveBindFromManage(oaId, { auto: true, wxId: selection.ids[0] });
+        }
+    });
 }
 
 function filterOaUsers() {
@@ -389,40 +249,6 @@ function filterOaUsers() {
     return filterByKeyword(rows, ["lastname", "loginid", "workcode", "mobile", "email", "id"], state.oaKeyword);
 }
 
-/** 选择框候选行；keyword 为 null 时读取搜索框，树状模式传 "" 由树渲染统一处理关键字。 */
-/**
- * 前置条件过滤：先选分部，再选部门——部门候选只保留所选分部（含下级）下的部门。
- * 由 OaonesPicker 统一套用，列表式与树状两种模式都生效。
- */
-function oaPickPrecondition() {
-    if (oaPickType !== "dept") {
-        return { tip: "支持多选，选中分部时其下级分部自动一并选中" };
-    }
-    var fbIds = (state.oaFbIds || []).map(String);
-    if (!fbIds.length) {
-        return { tip: "未选分部时显示全部部门；先选择分部后，这里只显示该分部（含下级）下的部门" };
-    }
-    return {
-        tip: "仅显示所选 " + fbIds.length + " 个分部（含下级）下的部门；选中部门时其下级部门自动一并选中",
-        filter: function (d) {
-            return fbIds.indexOf(String(d.subcompanyid1 == null ? "" : d.subcompanyid1)) >= 0;
-        }
-    };
-}
-OaonesPicker.setPrecondition("oaPick", oaPickPrecondition);
-
-function oaPickRows(keyword) {
-    var rows = oaPickType === "fb" ? oaSubOptions.slice() : oaDeptOptions.slice();
-    var k = String(keyword == null ? (byId("oaPickSearch").value || "") : keyword).trim().toLowerCase();
-    if (!k) { return rows; }
-    return rows.filter(function (d) {
-        var text = [d.id, d.code, d.name, d.fullname].map(function (v) {
-            return String(v == null ? "" : v);
-        }).join(" ");
-        return text.toLowerCase().indexOf(k) >= 0;
-    });
-}
-
 function oaSubChildMap() {
     var map = {};
     oaSubOptions.forEach(function (s) {
@@ -431,21 +257,6 @@ function oaSubChildMap() {
         map[p].push(String(s.id));
     });
     return map;
-}
-
-function oaFbDescendantIds(id) {
-    var map = oaSubChildMap();
-    var out = [];
-    var stack = [String(id)];
-    var seen = {};
-    while (stack.length) {
-        var cur = stack.pop();
-        if (seen[cur]) { continue; }
-        seen[cur] = true;
-        out.push(cur);
-        (map[cur] || []).forEach(function (c) { stack.push(c); });
-    }
-    return out;
 }
 
 function expandFbIds(ids) {
@@ -505,189 +316,41 @@ function expandDeptIds(ids) {
     return out;
 }
 
-function renderOaPickList() {
-    var isSub = oaPickType === "fb";
-    var title = isSub ? "选择分部" : "选择部门";
-    byId("oaPickTitle").textContent = oaPickSelected.length
-        ? title + "（已选 " + oaPickSelected.length + " 个）"
-        : title;
-    var mode = OaonesPicker.mode("oaPick");
-    var empty = isSub ? "没有匹配的分部" : "没有匹配的部门";
-    // 前置条件过滤（先选分部再选部门）由 OaonesPicker 统一套用，两种显示模式一致
-    var rows = OaonesPicker.applyPrecondition("oaPick", oaPickRows(mode === "tree" ? "" : null));
-    syncOaPickAllState();
-    var childMapFn = isSub ? oaSubChildMap : oaDeptChildMap;
-    var partialMap = OaonesPicker.partialSelected(oaPickSelected, childMapFn);
-    var listEl = byId("oaPickList");
-    var html = "";
-    if (mode === "tree") {
-        html = OaonesPicker.renderTree("oaPick", rows, {
-            parentOf: function (d) { return d.parent; },
-            textOf: function (d) { return [d.id, d.code, d.name, d.fullname].join(" "); },
-            keyword: byId("oaPickSearch").value,
-            emptyText: empty,
-            optionHtml: function (d) { return oaPickOptionHtml(d, isSub, partialMap); }
-        });
-    } else if (!rows.length) {
-        html = "<div class='wx-pick-empty'>" + empty + "</div>";
-    } else {
-        html = "<div class='wx-pick-head pick-cols3'><span>ID</span><span>编码</span><span>简称</span></div>";
-        rows.forEach(function (d) { html += oaPickOptionHtml(d, isSub, partialMap); });
-    }
-    listEl.className = "wx-pick-list" + (mode === "tree" ? " is-tree" : "");
-    listEl.innerHTML = html;
-}
-
-/** 当前可全选的候选行 id（已套用搜索关键字与“先选分部再选部门”前置条件过滤）。 */
-function oaPickAllIds() {
-    var rows = OaonesPicker.applyPrecondition("oaPick", oaPickRows(null));
-    return rows.map(function (d) { return String(d.id); });
-}
-
-/** “全选”按钮状态：当前列表候选是否已全部选中，返回是否全选。 */
-function syncOaPickAllState() {
-    var ids = oaPickAllIds();
-    var allOn = ids.length > 0 && ids.every(function (id) { return oaPickSelected.indexOf(id) >= 0; });
-    OaonesPicker.syncSelectAll("oaPick", allOn);
-    return allOn;
-}
-
-/**
- * 全选/全不选：把当前列表里的分部/部门一次性选中或取消。
- * 分部与部门都按本页口径连带全部下级（与单行勾选一致）；已全部选中时按钮变“全不选”。
- */
-OaonesPicker.setSelectAll("oaPick", function () {
-    var isSub = oaPickType === "fb";
-    var ids = oaPickAllIds();
-    var on = syncOaPickAllState();
-    var next;
-    if (on) {
-        var drop = {};
-        ids.forEach(function (id) {
-            (isSub ? oaFbDescendantIds(id) : oaDeptDescendantIds(id)).forEach(function (v) { drop[v] = true; });
-        });
-        next = oaPickSelected.filter(function (v) { return !drop[v]; });
-    } else {
-        next = isSub ? expandFbIds(oaPickSelected.concat(ids)) : expandDeptIds(oaPickSelected.concat(ids));
-    }
-    var seen = {};
-    oaPickSelected = next.filter(function (v) {
-        v = String(v);
-        if (seen[v]) { return false; }
-        seen[v] = true;
-        return true;
-    });
-    renderOaPickList();
-    return syncOaPickAllState();
-});
-
-function oaPickOptionHtml(d, isSub, partialMap) {
-    var id = String(d.id);
-    var active = oaPickSelected.indexOf(id) >= 0;
-    var partial = !active && !!partialMap && !!partialMap[id];
-    var cls = "wx-pick-option pick-cols3" + (active ? " active" : (partial ? " partial" : ""));
-    var tip = (active ? "点击取消选择" : "点击选择")
-        + (isSub ? "；选中分部会自动选中其全部下级分部" : "；选中部门会自动选中其全部下级部门")
-        + "；双击直接确定"
-        + "｜" + (d.fullname || d.name || "")
-        + (d.code ? "（编码 " + d.code + "）" : "");
-    return "<button type='button' class='" + cls + "'"
-        + " data-id='" + esc(id) + "'"
-        + " title='" + esc(tip) + "'>"
-        + "<span>" + esc(id) + "</span>"
-        + "<span>" + esc(d.code || "-") + "</span>"
-        + "<span>" + esc(d.name || "-") + "</span>"
-        + "</button>";
-}
-
 function openOaPick(type) {
-    oaPickType = type;
-    oaPickSelected = (type === "fb" ? state.oaFbIds : state.oaDeptIds).slice();
-    byId("oaPickTitle").textContent = type === "fb" ? "选择分部" : "选择部门";
-    byId("oaPickSearch").value = "";
-    // 前置条件说明随当前选择实时生成
-    OaonesPicker.preconditionTip("oaPick", "oaPickNote");
-    // 树状默认收起分支：每次打开弹框重置展开状态
-    OaonesPicker.resetTree("oaPick");
-    renderOaPickList();
-    byId("oaPickMask").style.display = "block";
-    byId("oaPickModal").style.display = "block";
-    byId("oaPickSearch").focus();
-}
-
-function hideOaPick() {
-    byId("oaPickMask").style.display = "none";
-    byId("oaPickModal").style.display = "none";
-    oaPickType = "";
-    oaPickSelected = [];
-}
-
-function toggleOaPick(btn) {
-    var id = btn.getAttribute("data-id");
-    var isSub = oaPickType === "fb";
-    var idx = oaPickSelected.indexOf(id);
-    if (idx >= 0) {
-        if (isSub) {
-            var removes = oaFbDescendantIds(id);
-            oaPickSelected = oaPickSelected.filter(function (v) { return removes.indexOf(v) < 0; });
-        } else {
-            var removes = oaDeptDescendantIds(id);
-            oaPickSelected = oaPickSelected.filter(function (v) { return removes.indexOf(v) < 0; });
+    var isSub = type === "fb";
+    var fbIds = (state.oaFbIds || []).map(String);
+    OaonesPicker.open({
+        key: "oaPick:" + type,
+        title: isSub ? "选择分部" : "选择部门",
+        multiple: true,
+        selectChildren: true,
+        initialSelected: (isSub ? state.oaFbIds : state.oaDeptIds) || [],
+        rows: isSub ? oaSubOptions : oaDeptOptions,
+        idOf: function (d) { return d.id; },
+        parentOf: function (d) { return d.parent; },
+        textOf: function (d) { return d.name || d.fullname; },
+        detailOf: function (d) { return [d.code, d.fullname].filter(Boolean).join(" / "); },
+        filter: function (d) {
+            return isSub || !fbIds.length || fbIds.indexOf(String(d.subcompanyid1)) >= 0;
+        },
+        onConfirm: function (selection) {
+            if (isSub) {
+                state.oaFbIds = expandFbIds(selection.ids);
+                var keepSub = {};
+                state.oaFbIds.forEach(function (id) { keepSub[id] = true; });
+                state.oaDeptIds = (state.oaDeptIds || []).filter(function (id) {
+                    var dept = null;
+                    for (var i = 0; i < oaDeptOptions.length; i++) {
+                        if (String(oaDeptOptions[i].id) === String(id)) { dept = oaDeptOptions[i]; break; }
+                    }
+                    return dept && keepSub[String(dept.subcompanyid1 == null ? "" : dept.subcompanyid1)];
+                });
+            } else {
+                state.oaDeptIds = expandDeptIds(selection.ids);
+            }
+            doOaSearch();
         }
-    } else {
-        var next = oaPickSelected.concat([id]);
-        oaPickSelected = isSub ? expandFbIds(next) : expandDeptIds(next);
-    }
-    // 只就地刷新选中态，不重建列表：保证双击时命中的是同一个 DOM 节点
-    refreshOaPickDom();
-}
-
-/** 就地刷新选择框选中态/部分选中态与标题，不重建列表（避免打断双击）。 */
-function refreshOaPickDom() {
-    var isSub = oaPickType === "fb";
-    var partialMap = OaonesPicker.partialSelected(oaPickSelected, isSub ? oaSubChildMap : oaDeptChildMap);
-    var opts = byId("oaPickList").querySelectorAll(".wx-pick-option");
-    for (var i = 0; i < opts.length; i++) {
-        var id = String(opts[i].getAttribute("data-id"));
-        var active = oaPickSelected.indexOf(id) >= 0;
-        var partial = !active && !!partialMap[id];
-        opts[i].classList.toggle("active", active);
-        opts[i].classList.toggle("partial", partial);
-    }
-    var title = isSub ? "选择分部" : "选择部门";
-    byId("oaPickTitle").textContent = oaPickSelected.length
-        ? title + "（已选 " + oaPickSelected.length + " 个）"
-        : title;
-    // 单行勾选/取消后同步“全选”按钮状态
-    syncOaPickAllState();
-}
-
-function applyOaPick() {
-    if (oaPickType === "fb") {
-        state.oaFbIds = expandFbIds(oaPickSelected);
-        // 保留仍属于所选分部（含下级）范围的部门筛选，避免出现空交集
-        var expanded = state.oaFbIds.map(String);
-        var keepDept = [];
-        (state.oaDeptIds || []).forEach(function (id) {
-            var dept = null;
-            for (var i = 0; i < oaDeptOptions.length; i++) {
-                if (String(oaDeptOptions[i].id) === String(id)) { dept = oaDeptOptions[i]; break; }
-            }
-            if (dept && expanded.indexOf(String(dept.subcompanyid1 == null ? "" : dept.subcompanyid1)) >= 0) {
-                keepDept.push(String(id));
-            }
-        });
-        state.oaDeptIds = keepDept;
-    } else {
-        state.oaDeptIds = expandDeptIds(oaPickSelected);
-    }
-    hideOaPick();
-    doOaSearch();
-}
-
-function clearOaPickSelection() {
-    oaPickSelected = [];
-    renderOaPickList();
+    });
 }
 
 function clearOaFbFilter() {
@@ -1053,7 +716,7 @@ pageRows.forEach(function (u) {
             + "' title='取消免绑定后该 OA 人员回到“未绑定”，可再次选择" + P_SHORT + "成员'>取消免绑定</button>";
     } else if (deptBind) {
         ops = noBindBtnHtml(oaId)
-            + " <button class='btn small sync-btn' data-oa='" + esc(oaId)
+            + " <button class='btn small sync-btn' data-oaones-feature='user.bind.sync,user.bind.sync.oa2third' data-oa='" + esc(oaId)
             + "' title='按部门绑定关系把该 OA 人员同步到" + P_SHORT + "部门 "
             + esc(deptBind.wx_dept_id) + " 并建立绑定'>同步人员</button>";
     } else {
@@ -1137,7 +800,7 @@ function setOaPickerBusy(oaId, busy) {
 
 /**
  * 保存某行 OA 人员与企微成员的绑定关系：由“企微成员”列的选择弹框点选成员后立即触发
- * （`confirmWxPick` 传入 opts.auto 与 opts.wxId）；行内不再有“绑定”按钮，
+ * （OaonesPicker 的 onConfirm 回调传入 opts.auto 与 opts.wxId）；行内不再有“绑定”按钮，
  * 使用轻提示，失败后刷新列表保持页面可继续操作。
  * 若该 OA 人员当前是“自行绑定”（本人扫码建立），更换成员前先二次确认。
  */

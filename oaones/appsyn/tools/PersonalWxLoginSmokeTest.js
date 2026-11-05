@@ -12,6 +12,7 @@
     var path = require("path");
     var vm = require("vm");
     var root = path.resolve(__dirname, "..");
+    var scripts = path.resolve(root, "..", "scripts");
     var eco = path.resolve(root, "../..");
     var failed = 0;
 
@@ -60,9 +61,13 @@
     var preview = read(path.join(root, "loginConfig", "preview.jsp"));
     var scan = read(path.join(root, "login", "scan.jsp"));
     var login = read(path.join(root, "login", "login.jsp"));
-    var i18nSource = read(path.join(root, "js", "login.i18n.js"));
-    var css = read(path.join(root, "css", "login.css"));
+    var i18nSource = read(path.join(root, "script", "js", "login.i18n.js"));
+    var css = read(path.join(root, "..", "appsyn", "script", "css", "login.css"));
     var props = read(path.join(eco, "WEB-INF", "prop", "oaones.appsyn.properties"));
+    var landingMatch = props.match(/^\s*login\.landing\.url\s*=\s*(.*?)\s*$/m);
+    var landingOverride = landingMatch ? landingMatch[1].trim() : "";
+    var desktopRouteMatch = props.match(/^\s*route\.([^=\r\n]+)=[^|\r\n]*\/appCenter\/Desktop\.jsp(?:[|\r\n]|$)/m);
+    var landingPath = landingOverride || (desktopRouteMatch ? desktopRouteMatch[1].trim() : "");
     var scanMapper = read(path.join(eco, "WEB-INF", "config", "mapper", "oaones", "appsyn",
         "ScanLoginMapper.xml"));
 
@@ -201,7 +206,7 @@
             var calls = [];
             var statusSandbox = {
                 qrTicket: "test_ticket", qrConfirmed: false,
-                CFG: {landing: "/oaones/appsyn/desktop", gopage: ""},
+                CFG: {landing: landingPath, gopage: ""},
                 t: function (key) { return key; },
                 stopPolling: function () { calls.push("stopPolling"); },
                 stopCountdown: function () { calls.push("stopCountdown"); },
@@ -211,7 +216,7 @@
                 actionApi: function (action, data) {
                     calls.push({action: action, data: data});
                     return {then: function (callback) {
-                        callback(loginSucceeded ? {code: 0, data: {landing_url: "/oaones/appsyn/desktop"}}
+                        callback(loginSucceeded ? {code: 0, data: {landing_url: landingPath}}
                             : {code: 1, msg: "login failed"});
                         return {catch: function () {}};
                     }};
@@ -229,7 +234,7 @@
                 && request.data.token === "one_time_token" && statusSandbox.qrConfirmed);
             var redirect = calls.filter(function (call) { return call && call.goto; });
             check(loginSucceeded ? "换会话成功后才进入工作台" : "换会话失败不误跳工作台",
-                loginSucceeded ? redirect.length === 1 && redirect[0].goto === "/oaones/appsyn/desktop"
+                loginSucceeded ? redirect.length === 1 && redirect[0].goto === landingPath
                     && calls[3] === "closeQuickWindow" : redirect.length === 0);
         });
     }
@@ -251,7 +256,7 @@
     check("扫码登录默认不做手机端二次确认",
         props.indexOf("login.qr.confirm=0") >= 0);
     check("扫码登录成功默认直接进工作台对外地址",
-        props.indexOf("login.landing.url=/oaones/appsyn/desktop") >= 0);
+        landingPath.length > 0 && (landingOverride.length > 0 || !!desktopRouteMatch));
     check("扫码区只保留统一倒计时文案",
         login.indexOf('id="loginQrExpire"') >= 0
         && login.indexOf('data-i18n="qrExpireLabel"') >= 0

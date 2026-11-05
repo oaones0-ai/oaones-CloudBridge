@@ -11,12 +11,22 @@ import com.customization.oaones.appsyn.common.OaonesUtil;
 import com.customization.oaones.appsyn.dao.LogRetentionMapper;
 import com.customization.oaones.appsyn.entity.LogRetentionSetting;
 import com.customization.oaones.appsyn.service.LogRetentionService;
+import weaver.general.GCONST;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 日志保留设置实现。
@@ -36,8 +46,11 @@ public class LogRetentionServiceImpl implements LogRetentionService {
             LogRetentionCatalog.ATT_LOG,
             LogRetentionCatalog.SYNC_LOG_ITEM,
             LogRetentionCatalog.SYNC_LOG,
-            LogRetentionCatalog.MTG_SYNC_LOG
+            LogRetentionCatalog.MTG_SYNC_LOG,
+            LogRetentionCatalog.MYLOG_FILE
     };
+    private static final Pattern MYLOG_ARCHIVE_PATTERN =
+            Pattern.compile("^mylog_(\\d{8})\\.zip$", Pattern.CASE_INSENSITIVE);
 
     private String settingTable() {
         return OaonesProps.logRetentionTable();
@@ -50,7 +63,10 @@ public class LogRetentionServiceImpl implements LogRetentionService {
         JSONArray rows = new JSONArray();
         for (LogRetentionCatalog.Definition item : LogRetentionCatalog.all()) {
             Integer keep = saved.get(item.getCode());
-            rows.add(rowJson(item, keep == null ? 0 : keep.intValue(), countRows(item)));
+            int days = keep == null ? 0 : keep.intValue();
+            rows.add(item.isFileLog()
+                    ? fileRowJson(item, days, myLogFileStats())
+                    : rowJson(item, days, countRows(item)));
         }
         JSONObject data = new JSONObject();
         data.put("items", rows);
@@ -113,6 +129,9 @@ public class LogRetentionServiceImpl implements LogRetentionService {
             result.put("message", "永久保留，未清理");
             return result;
         }
+        if (item.isFileLog()) {
+            return cleanMyLogArchives(item, days);
+        }
 
         Calendar cutoff = Calendar.getInstance();
         cutoff.add(Calendar.DAY_OF_MONTH, -days);
@@ -147,6 +166,12 @@ public class LogRetentionServiceImpl implements LogRetentionService {
     }
 
     @Override
+    public JSONObject cleanOne(String operatorId, String logCode) {
+        requireAdmin(operatorId);
+        return cleanNow(logCode);
+    }
+
+    @Override
     public JSONObject cleanExpiredAll() {
         JSONArray results = new JSONArray();
         int deleted = 0;
@@ -164,8 +189,8 @@ public class LogRetentionServiceImpl implements LogRetentionService {
         data.put("deleted", Integer.valueOf(deleted));
         data.put("failed", Integer.valueOf(failed));
         data.put("message", failed > 0
-                ? ("清理完成，共删除 " + deleted + " 条，" + failed + " 项失败")
-                : ("清理完成，共删除 " + deleted + " 条"));
+                ? ("清理完成，共清理 " + deleted + " 条记录/文件，" + failed + " 项失败")
+                : ("清理完成，共清理 " + deleted + " 条记录/文件"));
         return data;
     }
 
@@ -240,6 +265,159 @@ public class LogRetentionServiceImpl implements LogRetentionService {
         }
     }
 
+    /** log/mylog 下全部文件的个数与总大小。 */
+    private JSONObject myLogFileStats() {
+        JSONObject stats = new JSONObject();
+        long totalSize = 0L;
+        int count = 0;
+        try {
+            File[] files = myLogDir().listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file != null && file.isFile()) {
+                        totalSize += file.length();
+                        count++;
+                    }
+                }
+            }
+            stats.put("available", Boolean.TRUE);
+        } catch (Throwable t) {
+            stats.put("available", Boolean.FALSE);
+            stats.put("error", firstLine(t));
+            OaonesLog.error("[logRetention] 统计 log/mylog 文件大小失败", t);
+        }
+        stats.put("totalSize", Long.valueOf(totalSize));
+        stats.put("fileCount", Integer.valueOf(count));
+        return stats;
+    }
+
+    /**
+     * 只清理 log/mylog/mylog_YYYYMMDD.zip；当前 mylog.log 和日志滚动文件保留。
+     *
+     * <p>保留 3 天时，删除文件名日期早于“今天减 3 天”的 zip 归档。</p>
+     */
+    private JSONObject cleanMyLogArchives(LogRetentionCatalog.Definition item, int days) {
+        JSONObject result = new JSONObject();
+        result.put("code", item.getCode());
+        result.put("name", item.getName());
+        result.put("table", item.getTableName());
+        result.put("keepDays", Integer.valueOf(days));
+
+        LocalDate cutoffDate = LocalDate.now().minusDays(days);
+        String cutoff = cutoffDate.toString();
+        int deletedFiles = 0;
+        int failedFiles = 0;
+        long deletedBytes = 0L;
+        try {
+            File[] files = myLogDir().listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    LocalDate fileDate = deletableArchiveDate(file, cutoffDate);
+                    if (fileDate == null) {
+                        continue;
+                    }
+                    try {
+                        long size = file.length();
+                        if (Files.deleteIfExists(file.toPath())) {
+                            deletedFiles++;
+                            deletedBytes += size;
+                        } else {
+                            failedFiles++;
+                        }
+                    } catch (DateTimeParseException e) {
+                        failedFiles++;
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            failedFiles++;
+            result.put("error", firstLine(t));
+            OaonesLog.error("[logRetention] 清理 log/mylog 压缩日志失败", t);
+        }
+
+        JSONObject stats = myLogFileStats();
+        result.put("cutoff", cutoff);
+        result.put("deleted", Integer.valueOf(deletedFiles));
+        result.put("deletedBytes", Long.valueOf(deletedBytes));
+        result.put("failedFiles", Integer.valueOf(failedFiles));
+        result.put("totalSize", stats.getLong("totalSize"));
+        result.put("fileCount", stats.getIntValue("fileCount"));
+        if (failedFiles > 0) {
+            result.put("failed", Boolean.TRUE);
+            result.put("message", "已清理 " + deletedFiles + " 个压缩日志，"
+                    + failedFiles + " 个文件删除失败");
+        } else {
+            result.put("message", "已清理 " + deletedFiles + " 个压缩日志（"
+                    + formatBytes(deletedBytes) + "）");
+        }
+        if (deletedFiles > 0) {
+            OaonesLog.step("[logRetention] mylog 压缩日志已清理 " + deletedFiles
+                    + " 个，共 " + formatBytes(deletedBytes) + "，时间截点=" + cutoff);
+        }
+        return result;
+    }
+
+    /**
+     * 判断候选对象是否确实是 log/mylog 内可删除的每日 ZIP 归档。
+     *
+     * <p>以下任一条件不满足都返回 null，调用方不会执行删除：</p>
+     * <ul>
+     *   <li>目录本身不是符号链接；</li>
+     *   <li>候选是普通文件、不是符号链接或目录；</li>
+     *   <li>文件名为 mylog_YYYYMMDD.zip；</li>
+     *   <li>规范化后的父目录仍是固定目录 log/mylog；</li>
+     *   <li>文件名日期早于保留截点。</li>
+     * </ul>
+     */
+    private LocalDate deletableArchiveDate(File candidate, LocalDate cutoffDate) {
+        if (candidate == null) {
+            return null;
+        }
+        File dir = myLogDir();
+        try {
+            if (Files.isSymbolicLink(dir.toPath())
+                    || Files.isSymbolicLink(candidate.toPath())
+                    || !Files.isRegularFile(candidate.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+                return null;
+            }
+            Matcher matcher = MYLOG_ARCHIVE_PATTERN.matcher(candidate.getName());
+            if (!matcher.matches()) {
+                return null;
+            }
+            File canonicalDir = dir.getCanonicalFile();
+            File canonicalParent = candidate.getCanonicalFile().getParentFile();
+            if (canonicalParent == null || !canonicalDir.equals(canonicalParent)) {
+                return null;
+            }
+            LocalDate fileDate = LocalDate.parse(
+                    matcher.group(1), DateTimeFormatter.BASIC_ISO_DATE);
+            return fileDate.isBefore(cutoffDate) ? fileDate : null;
+        } catch (IOException | SecurityException | DateTimeParseException e) {
+            OaonesLog.step("[logRetention] 跳过不符合安全规则的 mylog 文件："
+                    + candidate.getName());
+            return null;
+        }
+    }
+
+    private File myLogDir() {
+        return new File(OaonesUtil.s(GCONST.getRootPath()), "log/mylog");
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes < 1024L) {
+            return bytes + " B";
+        }
+        double kb = bytes / 1024.0;
+        if (kb < 1024.0) {
+            return String.format(java.util.Locale.ROOT, "%.1f KB", Double.valueOf(kb));
+        }
+        double mb = kb / 1024.0;
+        if (mb < 1024.0) {
+            return String.format(java.util.Locale.ROOT, "%.1f MB", Double.valueOf(mb));
+        }
+        return String.format(java.util.Locale.ROOT, "%.1f GB", Double.valueOf(mb / 1024.0));
+    }
+
     private void noteMissingTable(Throwable t) {
         if (!missingTableLogged) {
             missingTableLogged = true;
@@ -280,6 +458,17 @@ public class LogRetentionServiceImpl implements LogRetentionService {
         row.put("rowCountAvailable", Boolean.valueOf(rowCount != null));
         row.put("keepDays", Integer.valueOf(normalizeDays(keepDays)));
         row.put("permanent", Boolean.valueOf(keepDays <= 0));
+        return row;
+    }
+
+    private static JSONObject fileRowJson(
+            LogRetentionCatalog.Definition item, int keepDays, JSONObject stats) {
+        JSONObject row = rowJson(item, keepDays);
+        row.put("rowType", "file");
+        row.put("rowCount", null);
+        row.put("rowCountAvailable", Boolean.FALSE);
+        row.put("totalSize", Long.valueOf(stats.getLongValue("totalSize")));
+        row.put("fileCount", Integer.valueOf(stats.getIntValue("fileCount")));
         return row;
     }
 

@@ -26,7 +26,7 @@ import java.util.Properties;
  *
  * <pre>
  * route./oaones/appsyn/login=/oaones/appsyn/login/login.jsp|forward|hide
- * route./oaones/appsyn/desktop=/oaones/appsyn/appCenter/Desktop.jsp|forward|hide
+ * route./oaones/desktop=/oaones/appsyn/appCenter/Desktop.jsp|forward|hide
  * </pre>
  *
  * <ul>

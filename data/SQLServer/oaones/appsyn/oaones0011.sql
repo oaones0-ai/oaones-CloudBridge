@@ -5,7 +5,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','brand_left') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.brand_left already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','brand_top') IS NULL
     BEGIN
@@ -14,7 +14,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','brand_top') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.brand_top already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','brand_width') IS NULL
     BEGIN
@@ -23,7 +23,7 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','brand_width') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.brand_width already exists';
-GO
+
 
 IF COL_LENGTH('dbo.uf_oaones_login_config','brand_height') IS NULL
     BEGIN
@@ -32,4 +32,4 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','brand_height') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.brand_height already exists';
-GO
+

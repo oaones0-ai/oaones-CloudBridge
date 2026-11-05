@@ -1,7 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%--
   「操作监控平台」页主体：过滤栏 + 汇总条 + 列表。
-  只是标记与容器，交互脚本统一在 /oaones/appsyn/js/opMonitor.js。
+  只是标记与容器，交互脚本统一在 /oaones/appsyn/script/js/opMonitor.js。
 --%>
 <div class="card" id="opMonitorCard">
 <div class="filter-bar">
