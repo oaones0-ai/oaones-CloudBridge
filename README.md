@@ -16,6 +16,7 @@
 
 ```text
 前端文件集中在 `ecology/oaones` 下，使用jsp进行页面渲染。
+最新版本已独立为https://github.com/oaones0-ai/oaones-scripts.git，请先下载前端组件。
 ```
 
 ### 2.2 后端文件
