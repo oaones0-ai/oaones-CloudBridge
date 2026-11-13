@@ -243,3 +243,11 @@ hide_filters=1：隐藏全部搜索条件。
 hide_summary=1：隐藏统计行和明细截断提示。
 20.日志设置（系统设置）：/oaones/appsyn/systemSettings/systemSettings.jsp
 ```
+## 5. 注意事项
+
+```text
+泛微原有配置文件docpreview.properties，最好保持下面的值：
+DocPreviewType=2
+isUsePDFViewer=1
+如果依次是1 0，也是兼容的，但是页面格式不是很美观。
+```
