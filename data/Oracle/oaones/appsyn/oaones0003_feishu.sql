@@ -10,6 +10,7 @@ BEGIN
          title_tpl, context_tpl, url_tpl, mobile_url_tpl, cover_url, btn_json,
          app_id, yx, sort_no, remark)
     SELECT 2,
+
            NVL(NULLIF((SELECT l.labelname
                          FROM HtmlLabelInfo l
                         WHERE l.indexid = t.typename
@@ -56,7 +57,7 @@ BEGIN
                 ELSE NULL END,
            0, 0, t.code_int,
            '由「补齐全部消息类型」按默认口径初始化，可在本页调整'
-      FROM (SELECT /*+ NO_MERGE */
+      FROM (SELECT
                    t.id, t.typecode, t.sourcename, t.typename,
                    CASE WHEN REGEXP_LIKE(t.typecode, '^[0-9]+$')
                         THEN TO_NUMBER(t.typecode) END AS code_int
@@ -71,5 +72,6 @@ BEGIN
     COMMIT;
     DBMS_OUTPUT.PUT_LINE('补齐 uf_oaones_msg_type（飞书 type=2）：本次新增 ' || v_added || ' 行');
 END;
+/
 
 SELECT type, COUNT(1) AS mapping_rows FROM uf_oaones_msg_type GROUP BY type ORDER BY type;

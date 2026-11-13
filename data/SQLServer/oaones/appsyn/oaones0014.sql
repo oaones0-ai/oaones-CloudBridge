@@ -7,4 +7,4 @@ IF COL_LENGTH('dbo.uf_oaones_att_cfg','oa_account_rule') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_cfg.oa_account_rule already exists';
-
+;

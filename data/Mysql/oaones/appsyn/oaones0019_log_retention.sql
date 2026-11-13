@@ -1,4 +1,3 @@
-/* OAones：日志保留设置。默认 0 = 永久保留，自动任务每天检查一次。 */
 SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS uf_oaones_log_retention (

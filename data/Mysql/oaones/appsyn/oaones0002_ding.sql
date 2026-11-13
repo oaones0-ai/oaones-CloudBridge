@@ -3,6 +3,7 @@ INSERT IGNORE INTO uf_oaones_msg_type
      title_tpl, context_tpl, url_tpl, mobile_url_tpl, cover_url, btn_json,
      app_id, yx, sort_no, remark)
 SELECT 1 AS type,
+
        IFNULL(NULLIF((SELECT l.labelname
                         FROM HtmlLabelInfo l
                        WHERE l.indexid = t.typename AND l.languageid = 7
@@ -51,6 +52,7 @@ SELECT 1 AS type,
        t.code_int AS sort_no,
        '由「补齐全部消息类型」按默认口径初始化，可在本页调整' AS remark
   FROM (
+
         SELECT t.id,
                t.typecode,
                t.sourcename,
@@ -60,5 +62,7 @@ SELECT 1 AS type,
           FROM ECOLOGY_MESSAGE_TYPE t
        ) AS t
  WHERE t.code_int > 0;
+
 SELECT ROW_COUNT() AS added_rows;
+
 SELECT type, COUNT(1) AS mapping_rows FROM uf_oaones_msg_type GROUP BY type ORDER BY type;

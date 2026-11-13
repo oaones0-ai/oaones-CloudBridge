@@ -13,11 +13,7 @@ INSERT INTO dbo.uf_oaones_msg_type
      app_id, yx, sort_no, remark)
 SELECT
     2 as type,
-    -- 名称口径（与页面下拉完全一致）：① HtmlLabelInfo 简体中文标签 → ② sourcename
-    -- （多语言站点里是 ~`~`7 中文`~`8 English`~`~ 这种编码串，取简体中文那一段；不含标记的
-    --   纯文本名称原样用）→ ③ “消息类型 <typecode>”占位。
-    -- 用子查询而不是 join，避免同一标签多语言/多行时把一条标准类型补成两行；
-    -- 连的是 typename（标签索引 int），sourcename 只用来兜底取名（不 join、不转换，避免 245）。
+
     isnull(nullif((select top 1 l.labelname
                    from dbo.HtmlLabelInfo l
                    where l.indexid = t.typename and l.languageid = 7), ''),
@@ -70,4 +66,4 @@ WHERE t.code_int > 0
   AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type m WHERE m.std_type = t.code_int and m.type = 2);
 
 PRINT '补齐 uf_oaones_msg_type（飞书 type=2）：本次新增 ' + cast(@@ROWCOUNT as varchar(20)) + ' 行';
-
+;

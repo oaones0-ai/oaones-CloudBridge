@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS uf_oaones_qywx_config (
     modedatamodifier       int NULL,
     modedatamodifydatetime varchar(100) NULL,
     PRIMARY KEY (id),
+
     UNIQUE KEY UK_OAONES_QYWX_CONFIG_CORP (type, corp_id),
+
     KEY IDX_OAONES_QYWX_CONFIG_TYPE (type, qy)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 租户配置（企微 / 钉钉 / 飞书共用，type 区分平台）';
 
@@ -40,7 +42,9 @@ CREATE TABLE IF NOT EXISTS uf_oaones_dept_bind (
     modedatamodifydatetime varchar(100) NULL,
     PRIMARY KEY (id),
     UNIQUE KEY UK_OAONES_DEPT_BIND_OA (cfg_id, oa_dept_id),
+
     KEY IDX_OAONES_DEPT_BIND_WX (cfg_id, wx_dept_id),
+
     KEY IDX_OAONES_DEPT_BIND_KEY (cfg_id, wx_dept_key)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones OA部门 - 平台部门 绑定（多对一）';
 
@@ -137,8 +141,10 @@ CREATE TABLE IF NOT EXISTS uf_oaones_dep_tmp (
     modedatamodifier       int NULL,
     modedatamodifydatetime varchar(100) NULL,
     PRIMARY KEY (id),
+
     UNIQUE KEY UK_OAONES_DEP_TMP_KEY (corpid, wx_dept_id, wx_dept_key),
     KEY IDX_OAONES_DEP_TMP_STATUS (corpid, type, status),
+
     KEY IDX_OAONES_DEP_TMP_DEPT_KEY (corpid, type, wx_dept_key)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 部门快照（type 区分平台）';
 
@@ -181,8 +187,10 @@ CREATE TABLE IF NOT EXISTS uf_oaones_user_tmp (
     modedatamodifier       int NULL,
     modedatamodifydatetime varchar(100) NULL,
     PRIMARY KEY (id),
+
     UNIQUE KEY UK_OAONES_USER_TMP_KEY (corpid, wx_user_id),
     KEY IDX_OAONES_USER_TMP_STATUS (corpid, type, status),
+
     KEY IDX_OAONES_USER_TMP_DEPT_KEY (corpid, type, wx_dept_key)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 人员快照（type 区分平台）';
 
@@ -201,10 +209,31 @@ CREATE TABLE IF NOT EXISTS uf_oaones_sub_bind (
     modedatamodifier       int NULL,
     modedatamodifydatetime varchar(100) NULL,
     PRIMARY KEY (id),
+
     UNIQUE KEY UK_OAONES_SUB_BIND_OA (cfg_id, oa_sub_id),
+
     UNIQUE KEY UK_OAONES_SUB_BIND_SUB (type, oa_sub_id),
     UNIQUE KEY UK_OAONES_SUB_BIND_CFG (cfg_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones OA分部 - 租户 绑定（一对一）';
+
+CREATE TABLE IF NOT EXISTS uf_oaones_sub_tenant_map (
+    id                     int NOT NULL AUTO_INCREMENT,
+    cfg_id                 int NOT NULL,
+    oa_sub_id              int NOT NULL COMMENT 'hrmsubcompany.id',
+    type                   int NOT NULL DEFAULT 0 COMMENT '平台类型：0企微 / 1钉钉 / 2飞书',
+    yx                     int NULL DEFAULT 0 COMMENT '状态：0有效 / 1失效',
+    remark                 varchar(300) NULL,
+    formmodeid             int NULL,
+    modedatacreater        int NULL,
+    modedatacreatedate     varchar(10) NULL,
+    modedatacreatetime     varchar(8) NULL,
+    modedatamodifier       int NULL,
+    modedatamodifydatetime varchar(100) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY UK_OAONES_SUB_TENANT_SUB (type, oa_sub_id),
+    UNIQUE KEY UK_OAONES_SUB_TENANT_CFG (type, cfg_id),
+    KEY IDX_OAONES_SUB_TENANT_CFG (cfg_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones OA分部-平台租户一对一映射';
 
 CREATE TABLE IF NOT EXISTS uf_oaones_app_bind (
                                                   id                     int NOT NULL AUTO_INCREMENT,
@@ -222,6 +251,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_app_bind (
     modedatamodifier       int NULL,
     modedatamodifydatetime varchar(100) NULL,
     PRIMARY KEY (id),
+
     UNIQUE KEY UK_OAONES_APP_BIND_AGENT (cfg_id, agent_id),
     KEY IDX_OAONES_APP_BIND_CFG (cfg_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 工作台应用 - OA页面 绑定';
@@ -237,6 +267,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_app (
     open_mode              int NULL DEFAULT 0,
     maintainer_ids         varchar(2000) NULL,
     vis_all                int NULL DEFAULT 0,
+    vis_role_ids           varchar(2000) NULL,
     vis_sub_ids            varchar(2000) NULL,
     vis_dept_ids           varchar(2000) NULL,
     vis_user_ids           varchar(2000) NULL,
@@ -254,71 +285,6 @@ CREATE TABLE IF NOT EXISTS uf_oaones_app (
     UNIQUE KEY UK_OAONES_APP_NAME (app_name),
     KEY IDX_OAONES_APP_SORT (sort_no)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 应用中心（第三方应用列表）';
-
-SET @oaones_app_ddl := (
-    SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_app ADD COLUMN icon_seed varchar(200) NULL AFTER icon',
-    'SELECT ''uf_oaones_app.icon_seed already exists''')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-    AND table_name = 'uf_oaones_app'
-    AND column_name = 'icon_seed');
-        PREPARE oaones_app_stmt FROM @oaones_app_ddl;
-EXECUTE oaones_app_stmt;
-DEALLOCATE PREPARE oaones_app_stmt;
-
-UPDATE uf_oaones_app
-SET icon_seed = app_name
-WHERE icon_seed IS NULL
-  AND (icon IS NULL OR icon = '');
-
-SET @oaones_app_ddl := (
-    SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_app ADD COLUMN open_mode int NULL DEFAULT 0 AFTER icon_seed',
-    'SELECT ''uf_oaones_app.open_mode already exists''')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-    AND table_name = 'uf_oaones_app'
-    AND column_name = 'open_mode');
-        PREPARE oaones_app_stmt FROM @oaones_app_ddl;
-EXECUTE oaones_app_stmt;
-DEALLOCATE PREPARE oaones_app_stmt;
-
-SET @oaones_app_ddl := (
-    SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_app ADD COLUMN maintainer_ids varchar(2000) NULL AFTER open_mode',
-    'SELECT ''uf_oaones_app.maintainer_ids already exists''')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-    AND table_name = 'uf_oaones_app'
-    AND column_name = 'maintainer_ids');
-        PREPARE oaones_app_stmt FROM @oaones_app_ddl;
-EXECUTE oaones_app_stmt;
-DEALLOCATE PREPARE oaones_app_stmt;
-
-SET @oaones_app_ddl := (
-    SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_app ADD COLUMN vis_sub_ids varchar(2000) NULL AFTER maintainer_ids, ADD COLUMN vis_dept_ids varchar(2000) NULL AFTER vis_sub_ids, ADD COLUMN vis_user_ids varchar(2000) NULL AFTER vis_dept_ids',
-    'SELECT ''uf_oaones_app.vis_sub_ids already exists''')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-    AND table_name = 'uf_oaones_app'
-    AND column_name = 'vis_sub_ids');
-        PREPARE oaones_app_stmt FROM @oaones_app_ddl;
-EXECUTE oaones_app_stmt;
-DEALLOCATE PREPARE oaones_app_stmt;
-
-SET @oaones_app_ddl := (
-    SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_app ADD COLUMN vis_all int NULL DEFAULT 0 AFTER maintainer_ids',
-    'SELECT ''uf_oaones_app.vis_all already exists''')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-    AND table_name = 'uf_oaones_app'
-    AND column_name = 'vis_all');
-        PREPARE oaones_app_stmt FROM @oaones_app_ddl;
-EXECUTE oaones_app_stmt;
-DEALLOCATE PREPARE oaones_app_stmt;
 
 CREATE TABLE IF NOT EXISTS uf_oaones_scan_login (
                                                     id                     int NOT NULL AUTO_INCREMENT,
@@ -361,6 +327,9 @@ CREATE TABLE IF NOT EXISTS uf_oaones_login_config (
                                                       feishu_qr_enable       int NULL DEFAULT 0,
                                                       personal_wx_enable     int NULL DEFAULT 0,
                                                       qr_ttl_seconds         int NULL,
+                                                      logo                   varchar(500) NULL,
+                                                      bg_image               varchar(500) NULL,
+                                                      brand_html             longtext NULL,
                                                       remark                 varchar(500) NULL,
     modedatacreater        int NULL,
     modedatacreatedate     varchar(10) NULL,
@@ -475,96 +444,9 @@ CREATE TABLE IF NOT EXISTS uf_oaones_msg_type (
     modedatamodifier    int NULL,
     modedatamodifydatetime varchar(100) NULL,
     PRIMARY KEY (id),
+
     UNIQUE KEY UK_OAONES_MSG_TYPE_KEY (std_config_id, std_type, type)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 消息类型推送设置（std_config_id + std_type + type 唯一）';
-
-SET @oaones_mt_tbl := (SELECT IF(COUNT(1) > 0, 1, 0) FROM information_schema.tables
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_type');
-SET @oaones_mt_col := (SELECT IF(COUNT(1) > 0, 1, 0) FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_type'
-    AND column_name = 'std_config_id');
-SET @oaones_mt_sql := (SELECT IF(@oaones_mt_tbl = 1 AND @oaones_mt_col = 0,
-    'ALTER TABLE uf_oaones_msg_type ADD COLUMN std_config_id varchar(64) NOT NULL DEFAULT ''0'' AFTER type',
-    'SELECT ''uf_oaones_msg_type.std_config_id ready'''));
-        PREPARE oaones_mt_stmt FROM @oaones_mt_sql;
-EXECUTE oaones_mt_stmt;
-DEALLOCATE PREPARE oaones_mt_stmt;
-
-SET @oaones_mt_numcol := (SELECT IF(COUNT(1) > 0, 1, 0) FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_type'
-    AND column_name = 'std_config_id'
-    AND data_type IN ('int', 'bigint', 'smallint', 'tinyint', 'decimal', 'numeric'));
-SET @oaones_mt_sql := (SELECT IF(@oaones_mt_numcol = 1,
-    'ALTER TABLE uf_oaones_msg_type MODIFY COLUMN std_config_id varchar(64) NOT NULL DEFAULT ''0''',
-    'SELECT ''uf_oaones_msg_type.std_config_id varchar ready'''));
-        PREPARE oaones_mt_stmt FROM @oaones_mt_sql;
-EXECUTE oaones_mt_stmt;
-DEALLOCATE PREPARE oaones_mt_stmt;
-
-UPDATE uf_oaones_msg_type SET std_config_id = '0'
-WHERE std_config_id IS NULL OR std_config_id = '';
-
-SET @oaones_mt_old_uk := (SELECT IF(COUNT(1) > 0, 1, 0) FROM information_schema.statistics
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_type'
-    AND index_name = 'UK_OAONES_MSG_TYPE_STD_TYPE');
-SET @oaones_mt_sql := (SELECT IF(@oaones_mt_tbl = 1 AND @oaones_mt_old_uk = 1,
-    'ALTER TABLE uf_oaones_msg_type DROP INDEX UK_OAONES_MSG_TYPE_STD_TYPE',
-    'SELECT ''uf_oaones_msg_type old unique key ready'''));
-        PREPARE oaones_mt_stmt FROM @oaones_mt_sql;
-EXECUTE oaones_mt_stmt;
-DEALLOCATE PREPARE oaones_mt_stmt;
-
-SET @oaones_mt_old_uk2 := (SELECT IF(COUNT(1) > 0, 1, 0) FROM information_schema.statistics
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_type'
-    AND index_name = 'UK_OAONES_MSG_TYPE_STD');
-SET @oaones_mt_sql := (SELECT IF(@oaones_mt_tbl = 1 AND @oaones_mt_old_uk2 = 1,
-    'ALTER TABLE uf_oaones_msg_type DROP INDEX UK_OAONES_MSG_TYPE_STD',
-    'SELECT ''uf_oaones_msg_type legacy unique key ready'''));
-        PREPARE oaones_mt_stmt FROM @oaones_mt_sql;
-EXECUTE oaones_mt_stmt;
-DEALLOCATE PREPARE oaones_mt_stmt;
-
-SET @oaones_mt_dup := (SELECT IF(COUNT(1) > 0, 1, 0) FROM (
-    SELECT 1 FROM uf_oaones_msg_type
-    GROUP BY std_config_id, std_type, type HAVING COUNT(1) > 1) t_dup);
-SET @oaones_mt_new_uk := (SELECT IF(COUNT(1) > 0, 1, 0) FROM information_schema.statistics
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_type'
-    AND index_name = 'UK_OAONES_MSG_TYPE_KEY');
-SET @oaones_mt_sql := (SELECT IF(@oaones_mt_tbl = 1 AND @oaones_mt_new_uk = 0 AND @oaones_mt_dup = 0,
-    'ALTER TABLE uf_oaones_msg_type ADD UNIQUE KEY UK_OAONES_MSG_TYPE_KEY (std_config_id, std_type, type)',
-    IF(@oaones_mt_tbl = 1 AND @oaones_mt_dup > 0,
-    'SELECT ''存在重复的 (std_config_id, std_type, type)，请先清理重复数据再重跑本段；本脚本不删任何数据''',
-    'SELECT ''uf_oaones_msg_type new unique key ready''')));
-        PREPARE oaones_mt_stmt FROM @oaones_mt_sql;
-EXECUTE oaones_mt_stmt;
-DEALLOCATE PREPARE oaones_mt_stmt;
-
-SET @oaones_mt_nullable := (SELECT IF(COUNT(1) > 0, 1, 0) FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_type'
-    AND column_name = 'std_type' AND is_nullable = 'YES');
-SET @oaones_mt_sql := (SELECT IF(@oaones_mt_tbl = 1 AND @oaones_mt_nullable = 1,
-    'UPDATE uf_oaones_msg_type SET std_type = 0 WHERE std_type IS NULL',
-    'SELECT ''uf_oaones_msg_type.std_type not null ready'''));
-        PREPARE oaones_mt_stmt FROM @oaones_mt_sql;
-EXECUTE oaones_mt_stmt;
-DEALLOCATE PREPARE oaones_mt_stmt;
-
-SET @oaones_mt_sql := (SELECT IF(@oaones_mt_tbl = 1 AND @oaones_mt_nullable = 1,
-    'ALTER TABLE uf_oaones_msg_type MODIFY COLUMN std_type int NOT NULL DEFAULT 0',
-    'SELECT ''uf_oaones_msg_type.std_type not null ready'''));
-        PREPARE oaones_mt_stmt FROM @oaones_mt_sql;
-EXECUTE oaones_mt_stmt;
-DEALLOCATE PREPARE oaones_mt_stmt;
-
-SET @oaones_mt_std := (SELECT IF(COUNT(1) = 2, 1, 0) FROM information_schema.tables
-    WHERE table_schema = DATABASE()
-    AND table_name IN ('ecology_biz_mobile_config', 'ecology_message_type'));
-SET @oaones_mt_sql := (SELECT IF(@oaones_mt_tbl = 1 AND @oaones_mt_std = 1,
-    'UPDATE uf_oaones_msg_type m SET m.std_config_id = COALESCE((SELECT MIN(c.id) FROM ecology_biz_mobile_config c JOIN ecology_message_type s ON (c.messagetypeid LIKE CONCAT(''%,'', s.id, '',%'') OR c.messagetypeid = CAST(s.id AS char)) WHERE (c.isshow = ''y'' OR c.isshow IS NULL) AND s.typecode = CAST(m.std_type AS char)), ''0'') WHERE m.std_config_id = ''0'' AND m.std_type > 0',
-    'SELECT ''uf_oaones_msg_type std_config_id backfill skipped'''));
-        PREPARE oaones_mt_stmt FROM @oaones_mt_sql;
-EXECUTE oaones_mt_stmt;
-DEALLOCATE PREPARE oaones_mt_stmt;
 
 CREATE TABLE IF NOT EXISTS uf_oaones_msg_type_app (
                                                       id                     int NOT NULL AUTO_INCREMENT,
@@ -579,6 +461,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_msg_type_app (
     modedatamodifier       int NULL,
     modedatamodifydatetime varchar(100) NULL,
     PRIMARY KEY (id),
+
     UNIQUE KEY UK_OAONES_MSG_TYPE_APP_KEY (type, std_config_id, std_type, cfg_id),
     KEY IDX_OAONES_MSG_TYPE_APP_APP (app_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -606,11 +489,14 @@ CREATE TABLE IF NOT EXISTS uf_oaones_msg_log (
     status              int NULL DEFAULT 0,
     retry_count         int NULL DEFAULT 0,
     next_retry_time     varchar(19) NULL,
+
     api_log_id          int NULL,
     reason              varchar(1000) NULL,
+
     src_json            longtext NULL,
     operator_id         int NULL,
     formmodeid          int NULL,
+
     modedatacreater         int NULL,
     modedatacreatedate      varchar(10) NULL,
     modedatacreatetime      varchar(8)  NULL,
@@ -621,7 +507,9 @@ CREATE TABLE IF NOT EXISTS uf_oaones_msg_log (
     KEY IDX_OAONES_MSG_LOG_STATUS (status, retry_count),
     KEY IDX_OAONES_MSG_LOG_TIME (modedatacreatedate, modedatacreatetime),
     KEY IDX_OAONES_MSG_LOG_DEDUP (dedup_key, modedatacreatedate, modedatacreatetime),
+
     KEY IDX_OAONES_MSG_LOG_API (api_log_id),
+
     KEY IDX_OAONES_MSG_LOG_TYPE (type, modedatacreatedate, status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 推送日志（状态表；接口报文与结果在 uf_oaones_api_log）';
 
@@ -640,6 +528,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_msg_task (
     task_state          varchar(16)  NULL,
     log_id              varchar(50) NULL,
     expire_time         varchar(19) NULL,
+
     modedatacreater         int NULL,
     modedatacreatedate      varchar(10) NULL,
     modedatacreatetime      varchar(8)  NULL,
@@ -648,6 +537,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_msg_task (
     PRIMARY KEY (id),
     UNIQUE KEY UK_OAONES_MSG_TASK (task_id),
     KEY IDX_OAONES_MSG_TASK_BIZ (biz_type, biz_id, wx_userid),
+
     KEY IDX_OAONES_MSG_TASK_TYPE (type, biz_type, biz_id, wx_userid, task_state)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 卡片（待办）任务';
 
@@ -683,33 +573,6 @@ CREATE TABLE IF NOT EXISTS uf_oaones_sync_plan (
     KEY IDX_OAONES_SYNC_PLAN_CFG (type, cfgid, direction),
     KEY IDX_OAONES_SYNC_PLAN_NEXT (enabled, next_run_time)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 同步中心同步设置（计划任务，一行一条 同步规则，同一租户+方向可多条）';
-
-SET @oaones_plan_ddl := (
-    SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_sync_plan ADD COLUMN scope_set int NULL DEFAULT 0 AFTER default_dept_name, ADD COLUMN oa_sub_ids varchar(500) NULL AFTER scope_set, ADD COLUMN oa_dept_ids varchar(500) NULL AFTER oa_sub_ids, ADD COLUMN wx_dept_id varchar(64) NULL AFTER oa_dept_ids, ADD COLUMN scope_text varchar(500) NULL AFTER wx_dept_id, ADD COLUMN bind_forced int NULL DEFAULT 0 AFTER scope_text',
-    'SELECT ''uf_oaones_sync_plan.scope_set already exists''')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-    AND table_name = 'uf_oaones_sync_plan'
-    AND column_name = 'scope_set');
-        PREPARE oaones_plan_stmt FROM @oaones_plan_ddl;
-EXECUTE oaones_plan_stmt;
-DEALLOCATE PREPARE oaones_plan_stmt;
-
-SET @oaones_plan_mode_ddl := (
-    SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_sync_plan ADD COLUMN plan_mode int NULL DEFAULT 1 AFTER enabled, ADD COLUMN interval_min int NULL DEFAULT 30 AFTER plan_mode',
-    'SELECT ''uf_oaones_sync_plan.plan_mode already exists''')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-    AND table_name = 'uf_oaones_sync_plan'
-    AND column_name = 'plan_mode');
-        PREPARE oaones_plan_mode_stmt FROM @oaones_plan_mode_ddl;
-EXECUTE oaones_plan_mode_stmt;
-DEALLOCATE PREPARE oaones_plan_mode_stmt;
-
-UPDATE uf_oaones_sync_plan SET plan_mode = 1 WHERE plan_mode IS NULL;
-UPDATE uf_oaones_sync_plan SET interval_min = 30 WHERE interval_min IS NULL OR interval_min <= 0;
 
 CREATE TABLE IF NOT EXISTS uf_oaones_mtg_sync (
                                                   id                     int NOT NULL AUTO_INCREMENT,
@@ -913,6 +776,7 @@ INSERT INTO uf_oaones_msg_type
 (type, type_name, std_type, wx_msgtype, card_action, title_tpl, context_tpl,
  url_tpl, mobile_url_tpl, cover_url, btn_json, app_id, yx, sort_no, remark)
 SELECT * FROM (
+
                   SELECT 0 AS type, '流程待办提醒' AS type_name, 20 AS std_type, 'textcard' AS wx_msgtype, 'none' AS card_action,
                          '${targetName}' AS title_tpl,
                          '流程「${targetName}」由 ${creater} 于 ${date} ${time} 提交，请及时处理。' AS context_tpl,
@@ -960,6 +824,65 @@ DEALLOCATE PREPARE oaones_mt_stmt;
 SELECT CONCAT('初始化完成：uf_oaones_msg_config=', (SELECT COUNT(1) FROM uf_oaones_msg_config),
               ' 行，uf_oaones_msg_type=', (SELECT COUNT(1) FROM uf_oaones_msg_type),
               ' 行，uf_oaones_login_config=', (SELECT COUNT(1) FROM uf_oaones_login_config), ' 行') AS message;
+
+SELECT COUNT(1) AS wecom_mappings_before FROM uf_oaones_msg_type WHERE type = 0;
+
+INSERT IGNORE INTO uf_oaones_msg_type
+    (type, type_name, std_type, wx_msgtype, card_action,
+     title_tpl, context_tpl, url_tpl, mobile_url_tpl, cover_url, btn_json,
+     app_id, yx, sort_no, remark)
+SELECT 0 AS type,
+       IFNULL(NULLIF((SELECT l.labelname
+                      FROM HtmlLabelInfo l
+                      WHERE l.indexid = t.typename AND l.languageid = 7
+                          LIMIT 1), ''),
+              IFNULL(NULLIF(CASE
+                                WHEN LOCATE('~`~`7 ', t.sourcename) > 0
+                                    AND LOCATE('`~`8', t.sourcename, LOCATE('~`~`7 ', t.sourcename) + 6)
+                                         > LOCATE('~`~`7 ', t.sourcename) + 6
+                                    THEN TRIM(SUBSTRING(t.sourcename, LOCATE('~`~`7 ', t.sourcename) + 6,
+                                                        LOCATE('`~`8', t.sourcename, LOCATE('~`~`7 ', t.sourcename) + 6)
+                                                            - LOCATE('~`~`7 ', t.sourcename) - 6))
+                                WHEN LOCATE('~`~`', t.sourcename) = 0 THEN TRIM(t.sourcename)
+                                END, ''),
+                     CONCAT('消息类型 ', t.typecode))) AS type_name,
+       t.code_int AS std_type,
+       'textcard' AS wx_msgtype,
+       'none' AS card_action,
+       CASE WHEN t.code_int IN (20, 21, 63) THEN '${targetName}'
+            WHEN t.code_int = 25 THEN '流程已办结'
+            WHEN t.code_int = 27 THEN '流程已删除'
+            WHEN t.code_int = 34 THEN '流程已暂停'
+            WHEN t.code_int = 35 THEN '流程已撤销'
+            WHEN t.code_int = 38 THEN '流程已收回'
+            ELSE '${title}' END AS title_tpl,
+       CASE WHEN t.code_int = 20 THEN '流程「${targetName}」由 ${creater} 于 ${date} ${time} 提交，请及时处理。'
+            WHEN t.code_int = 21 THEN '流程「${targetName}」被退回，请重新处理。'
+            WHEN t.code_int = 63 THEN '任务「${targetName}」已到达，请及时处理。'
+            WHEN t.code_int = 25 THEN '流程「${targetName}」已办结。'
+            WHEN t.code_int = 27 THEN '流程「${targetName}」已删除，待办已失效。'
+            WHEN t.code_int = 34 THEN '流程「${targetName}」已暂停，待办已失效。'
+            WHEN t.code_int = 35 THEN '流程「${targetName}」已撤销，待办已失效。'
+            WHEN t.code_int = 38 THEN '流程「${targetName}」已被收回/撤销，待办已失效。'
+            ELSE '${context}' END AS context_tpl,
+       NULL, NULL, NULL,
+       NULL AS btn_json,
+       0 AS app_id,
+       0 AS yx,
+       t.code_int AS sort_no,
+       '由「补齐全部消息类型」按默认口径初始化，可在本页调整' AS remark
+FROM (
+         SELECT t.id,
+                t.typecode,
+                t.sourcename,
+                t.typename,
+                CASE WHEN t.typecode REGEXP '^[0-9]+$' AND t.typecode <> ''
+             THEN CAST(t.typecode AS SIGNED) END AS code_int
+          FROM ECOLOGY_MESSAGE_TYPE t
+       ) AS t
+ WHERE t.code_int > 0;
+
+SELECT ROW_COUNT() AS wecom_added_rows;
 
 SELECT COUNT(1) AS dingtalk_mappings_before FROM uf_oaones_msg_type WHERE type = 1;
 
@@ -1026,9 +949,7 @@ FROM (
        ) AS t
  WHERE t.code_int > 0;
 
-SELECT ROW_COUNT() AS added_rows;
-
-SELECT type, COUNT(1) AS mapping_rows FROM uf_oaones_msg_type GROUP BY type ORDER BY type;
+SELECT ROW_COUNT() AS dingtalk_added_rows;
 
 SELECT COUNT(1) AS feishu_mappings_before FROM uf_oaones_msg_type WHERE type = 2;
 
@@ -1095,61 +1016,172 @@ FROM (
        ) AS t
  WHERE t.code_int > 0;
 
-SET @ddl := (SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_msg_log ADD COLUMN api_log_id int NULL COMMENT ''最近一次接口调用对应的接口日志ID（uf_oaones_api_log.id）''',
-    'SELECT 1')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND column_name = 'api_log_id');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
+SELECT ROW_COUNT() AS feishu_added_rows;
 
-SET @ddl := (SELECT IF(COUNT(1) = 0,
-    'ALTER TABLE uf_oaones_msg_log ADD COLUMN reason varchar(1000) NULL COMMENT ''跳过 / 去重 / 拦截等业务原因''',
-    'SELECT 1')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND column_name = 'reason');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
+SELECT type, COUNT(1) AS mapping_rows FROM uf_oaones_msg_type GROUP BY type ORDER BY type;
 
-SET @ddl := (SELECT IF(COUNT(1) = 0,
-    'CREATE INDEX IDX_OAONES_MSG_LOG_API ON uf_oaones_msg_log(api_log_id)',
-    'SELECT 1')
-    FROM information_schema.statistics
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND index_name = 'IDX_OAONES_MSG_LOG_API');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
+CREATE TABLE IF NOT EXISTS uf_oaones_att_cfg (
+                                                 id                     int NOT NULL AUTO_INCREMENT,
+                                                 type                   int NOT NULL DEFAULT 0,
+                                                 cfgid                  int NOT NULL,
+                                                 row_type               int NOT NULL DEFAULT 0,
+                                                 cfg_name               varchar(60) NOT NULL DEFAULT '',
+                                                 dir                    int NOT NULL DEFAULT 0,
+                                                 scope_subs             varchar(1000) NULL,
+                                                 scope_depts            varchar(1000) NULL,
+                                                 scope_users            varchar(4000) NULL,
+                                                 scope_text             varchar(1000) NULL,
+                                                 data_types             int NOT NULL DEFAULT 1,
+                                                 sign_periods           int NOT NULL DEFAULT 3,
+                                                 win_mode               int NOT NULL DEFAULT 0,
+                                                 win_from               varchar(19) NULL,
+                                                 win_to                 varchar(19) NULL,
+                                                 win_days               int NULL DEFAULT 2,
+                                                 app_id                 int NOT NULL DEFAULT 0,
+                                                 plan_mode              int NOT NULL DEFAULT 0,
+                                                 plan_workday_group_id  int NULL DEFAULT 0,
+                                                 cron_day_type          int NULL DEFAULT 0,
+                                                 day_cron               varchar(100) NULL,
+    night_cron             varchar(100) NULL,
+    enabled                int NOT NULL DEFAULT 0,
+    check_state            int NOT NULL DEFAULT 0,
+    check_msg              varchar(1000) NULL,
+    check_time             varchar(19) NULL,
+    last_run_time          varchar(19) NULL,
+    last_result            int NULL,
+    last_result_text       varchar(1000) NULL,
+    fail_streak            int NULL DEFAULT 0,
+    last_log_id            int NULL DEFAULT 0,
+    remark                 varchar(500) NULL,
+    modedatacreater        int NULL,
+    modedatacreatedate     varchar(10) NULL,
+    modedatacreatetime     varchar(8) NULL,
+    modedatamodifier       int NULL,
+    modedatamodifydatetime varchar(100) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY UK_OAONES_ATT_CFG_NAME (type, cfgid, row_type, cfg_name),
+    KEY IDX_OAONES_ATT_CFG_TENANT (type, cfgid, row_type),
+    KEY IDX_OAONES_ATT_CFG_ENABLE (enabled, type)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步设置（一行 = 平台 + 租户 + 方向）';
 
-SET @ddl := (SELECT IF(COUNT(1) > 0,
-    'ALTER TABLE uf_oaones_msg_log DROP COLUMN request_json', 'SELECT 1')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND column_name = 'request_json');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
+CREATE TABLE IF NOT EXISTS uf_oaones_att_plan_item (
+                                                       id                     int NOT NULL AUTO_INCREMENT,
+                                                       cfg_id                 int NOT NULL,
+                                                       day_type               int NULL DEFAULT 0,
+                                                       start_time             varchar(5) NULL,
+    end_time               varchar(5) NULL,
+    interval_min           int NULL,
+    showorder              int NULL,
+    remark                 varchar(500) NULL,
+    modedatacreater        int NULL,
+    modedatacreatedate     varchar(10) NULL,
+    modedatacreatetime     varchar(8) NULL,
+    modedatamodifier       int NULL,
+    modedatamodifydatetime varchar(100) NULL,
+    PRIMARY KEY (id),
+    KEY idx_oaones_att_plan_item_cfg (cfg_id, showorder)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步计划任务时间段明细';
 
-SET @ddl := (SELECT IF(COUNT(1) > 0,
-    'ALTER TABLE uf_oaones_msg_log DROP COLUMN response_json', 'SELECT 1')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND column_name = 'response_json');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
+CREATE TABLE IF NOT EXISTS uf_oaones_att_log (
+                                                 id                     int NOT NULL AUTO_INCREMENT,
+                                                 type                   int NOT NULL DEFAULT 0,
+                                                 cfgid                  int NOT NULL,
+                                                 trigger_type           int NULL DEFAULT 0,
+                                                 dir                    int NULL DEFAULT 0,
+                                                 cfg_id                 int NULL DEFAULT 0,
+                                                 cfg_name               varchar(60) NULL,
+                                                 win_mode               int NULL DEFAULT 0,
+    win_from               varchar(19) NULL,
+    win_to                 varchar(19) NULL,
+    scope_text             varchar(1000) NULL,
+    data_types             int NULL DEFAULT 0,
+    begin_time             varchar(19) NULL,
+    end_time               varchar(19) NULL,
+    cost_ms                int NULL,
+    add_count              int NULL DEFAULT 0,
+    update_count           int NULL DEFAULT 0,
+    skip_count             int NULL DEFAULT 0,
+    fail_count             int NULL DEFAULT 0,
+    api_count              int NULL DEFAULT 0,
+    result                 int NULL,
+    message                varchar(1000) NULL,
+    operator_id            int NULL,
+    operator_name          varchar(200) NULL,
+    remark                 varchar(500) NULL,
+    modedatacreater        int NULL,
+    modedatacreatedate     varchar(10) NULL,
+    modedatacreatetime     varchar(8) NULL,
+    modedatamodifier       int NULL,
+    modedatamodifydatetime varchar(100) NULL,
+    PRIMARY KEY (id),
+    KEY IDX_OAONES_ATT_LOG_FILTER (type, cfgid, trigger_type, modedatacreatedate),
+    KEY IDX_OAONES_ATT_LOG_TIME (modedatacreatedate, modedatacreatetime),
+    KEY IDX_OAONES_ATT_LOG_CFG (cfg_id),
+    KEY IDX_OAONES_ATT_LOG_RESULT (result, modedatacreatedate)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步批次（一次执行一行）';
 
-SET @ddl := (SELECT IF(COUNT(1) > 0,
-    'ALTER TABLE uf_oaones_msg_log DROP COLUMN error_stack', 'SELECT 1')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND column_name = 'error_stack');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
+CREATE TABLE IF NOT EXISTS uf_oaones_att_log_item (
+                                                      id                     int NOT NULL AUTO_INCREMENT,
+                                                      log_id                 int NULL,
+                                                      type                   int NOT NULL DEFAULT 0,
+                                                      cfgid                  int NOT NULL,
+                                                      cfg_id                 int NULL DEFAULT 0,
+                                                      dir                    int NULL DEFAULT 0,
+                                                      trigger_type           int NULL DEFAULT 0,
+                                                      oa_user_id             int NULL,
+    oa_user_name           varchar(200) NULL,
+    login_id               varchar(100) NULL,
+    wx_user_id             varchar(128) NULL,
+    sign_date              varchar(10) NULL,
+    sign_time              varchar(8) NULL,
+    sign_datetime          varchar(19) NULL,
+    sign_type              int NULL,
+    data_type              int NULL,
+    raw_type               varchar(200) NULL,
+    raw_summary            varchar(500) NULL,
+    op                     int NULL,
+    message                varchar(1000) NULL,
+    oa_sign_id             varchar(64) NULL,
+    wx_record_id           varchar(128) NULL,
+    api_log_id             int NULL DEFAULT 0,
+    win_date               varchar(10) NULL,
+    remark                 varchar(500) NULL,
+    modedatacreater        int NULL,
+    modedatacreatedate     varchar(10) NULL,
+    modedatacreatetime     varchar(8) NULL,
+    modedatamodifier       int NULL,
+    modedatamodifydatetime varchar(100) NULL,
+    PRIMARY KEY (id),
+    KEY IDX_OAONES_ATT_ITEM_LOG (log_id),
+    KEY IDX_OAONES_ATT_ITEM_OA (type, cfgid, oa_user_id, sign_date),
+    KEY IDX_OAONES_ATT_ITEM_TIME (modedatacreatedate, modedatacreatetime),
+    KEY IDX_OAONES_ATT_ITEM_OP (op, type, cfgid)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步打卡明细（一条打卡一次动作一行）';
 
-SET @ddl := (SELECT IF(COUNT(1) > 0,
-    'ALTER TABLE uf_oaones_msg_log DROP COLUMN errcode', 'SELECT 1')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND column_name = 'errcode');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
-
-SET @ddl := (SELECT IF(COUNT(1) > 0,
-    'ALTER TABLE uf_oaones_msg_log DROP COLUMN errmsg', 'SELECT 1')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND column_name = 'errmsg');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
-
-SET @ddl := (SELECT IF(COUNT(1) > 0,
-    'ALTER TABLE uf_oaones_msg_log DROP COLUMN cost_ms', 'SELECT 1')
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'uf_oaones_msg_log' AND column_name = 'cost_ms');
-        PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
-
-SELECT 'uf_oaones_msg_log -> 推送状态表（api_log_id / reason）就绪' AS message;
+CREATE TABLE IF NOT EXISTS uf_oaones_att_link (
+                                                 id                     int NOT NULL AUTO_INCREMENT,
+                                                 type                   int NOT NULL DEFAULT 0,
+                                                 cfgid                  int NOT NULL,
+                                                 dir                    int NOT NULL DEFAULT 0,
+                                                 oa_user_id             int NOT NULL,
+                                                 wx_user_id             varchar(128) NOT NULL DEFAULT '',
+                                                 sign_date              varchar(10) NOT NULL DEFAULT '',
+                                                 sign_time              varchar(8) NOT NULL DEFAULT '',
+                                                 sign_type              int NOT NULL DEFAULT 1,
+                                                 data_type              int NOT NULL DEFAULT 1,
+                                                 wx_record_id           varchar(128) NOT NULL DEFAULT '',
+    oa_sign_id             varchar(64) NOT NULL DEFAULT '',
+    source                 int NOT NULL DEFAULT 0,
+    last_time              varchar(19) NULL,
+    raw_type               varchar(200) NULL,
+    remark                 varchar(500) NULL,
+    modedatacreater        int NULL,
+    modedatacreatedate     varchar(10) NULL,
+    modedatacreatetime     varchar(8) NULL,
+    modedatamodifier       int NULL,
+    modedatamodifydatetime varchar(100) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY UK_OAONES_ATT_LINK_KEY (type, cfgid, dir, oa_user_id, sign_date, sign_time, sign_type, data_type),
+    KEY IDX_OAONES_ATT_LINK_RECORD (type, cfgid, wx_record_id),
+    KEY IDX_OAONES_ATT_LINK_SOURCE (type, cfgid, source, dir)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步映射（平台打卡记录 与 OA 打卡记录）';

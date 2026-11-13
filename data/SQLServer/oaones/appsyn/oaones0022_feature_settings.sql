@@ -1,4 +1,3 @@
-/* OAones：系统设置 → 功能设置。默认全部启用。 */
 IF OBJECT_ID('dbo.uf_oaones_appsyn_feature_setting','U') IS NULL
 BEGIN
     CREATE TABLE dbo.uf_oaones_appsyn_feature_setting (
@@ -16,7 +15,7 @@ BEGIN
 END
 ELSE
     PRINT 'uf_oaones_appsyn_feature_setting already exists';
-
+;
 
 IF NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_appsyn_feature_setting WHERE feature_code = 'person.sync.oa2third')
     INSERT INTO dbo.uf_oaones_appsyn_feature_setting (feature_code, enabled) VALUES ('person.sync.oa2third', 1);
@@ -54,4 +53,4 @@ IF NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_appsyn_feature_setting WHERE feature_
     INSERT INTO dbo.uf_oaones_appsyn_feature_setting (feature_code, enabled) VALUES ('schedule.sync.oa2third', 1);
 IF NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_appsyn_feature_setting WHERE feature_code = 'schedule.sync.third2oa')
     INSERT INTO dbo.uf_oaones_appsyn_feature_setting (feature_code, enabled) VALUES ('schedule.sync.third2oa', 1);
-
+;

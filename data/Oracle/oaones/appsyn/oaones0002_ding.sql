@@ -8,6 +8,7 @@ BEGIN
          title_tpl, context_tpl, url_tpl, mobile_url_tpl, cover_url, btn_json,
          app_id, yx, sort_no, remark)
     SELECT 1,
+
            NVL(NULLIF((SELECT l.labelname
                          FROM HtmlLabelInfo l
                         WHERE l.indexid = t.typename
@@ -54,9 +55,9 @@ BEGIN
                 ELSE NULL END,
            0, 0, t.code_int,
            '由「补齐全部消息类型」按默认口径初始化，可在本页调整'
-      FROM (SELECT /*+ NO_MERGE */
+      FROM (SELECT
                    t.id, t.typecode, t.sourcename, t.typename,
-                   -- typecode 在 ECOLOGY_MESSAGE_TYPE 里是 varchar2：只有纯数字才能当编号用。
+
                    CASE WHEN REGEXP_LIKE(t.typecode, '^[0-9]+$')
                         THEN TO_NUMBER(t.typecode) END AS code_int
               FROM ECOLOGY_MESSAGE_TYPE t) t
@@ -70,5 +71,6 @@ BEGIN
     COMMIT;
     DBMS_OUTPUT.PUT_LINE('补齐 uf_oaones_msg_type（钉钉 type=1）：本次新增 ' || v_added || ' 行');
 END;
+/
 
 SELECT type, COUNT(1) AS mapping_rows FROM uf_oaones_msg_type GROUP BY type ORDER BY type;

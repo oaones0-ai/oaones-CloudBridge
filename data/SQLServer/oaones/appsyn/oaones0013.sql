@@ -5,4 +5,4 @@ IF COL_LENGTH('dbo.uf_oaones_user_bind','wx_dept_key') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_user_bind.wx_dept_key already exists';
-
+;

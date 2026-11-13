@@ -1,4 +1,3 @@
-/* OAones：系统设置 → 功能设置。默认全部启用。 */
 DECLARE
     v_cnt NUMBER;
 BEGIN

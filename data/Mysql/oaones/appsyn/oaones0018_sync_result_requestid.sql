@@ -1,5 +1,3 @@
-/* OAones：同步结果汇总与逐条明细增加 requestid（OA 流程请求ID）。
- * 流程建号写同一 requestid，可在同步结果页跨平台、跨租户统一查询。 */
 SET @oaones_add_log_requestid := (
     SELECT IF(COUNT(1) = 0,
         'ALTER TABLE uf_oaones_sync_log ADD COLUMN requestid int NULL AFTER id',

@@ -1,5 +1,3 @@
-/* OAones：允许同一 OA 部门在同一租户映射多个平台部门。
- * 人员同步默认部门 = 该 OA 部门启用绑定中 id 最小的一条；删除后由下一条自动接替。 */
 DECLARE
     v_cnt NUMBER;
 BEGIN

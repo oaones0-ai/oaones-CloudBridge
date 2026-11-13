@@ -1,4 +1,3 @@
-/* OAones：系统设置 → 功能设置。默认全部启用。 */
 SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS uf_oaones_appsyn_feature_setting (

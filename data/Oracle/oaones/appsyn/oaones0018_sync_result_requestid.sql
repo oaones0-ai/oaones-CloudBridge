@@ -1,4 +1,3 @@
-/* OAones：同步结果汇总与逐条明细增加 requestid（OA 流程请求ID）。 */
 DECLARE
     v_cnt NUMBER;
 BEGIN

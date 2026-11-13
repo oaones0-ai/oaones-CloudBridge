@@ -19,13 +19,14 @@ IF OBJECT_ID('dbo.uf_oaones_qywx_config','U') IS NULL
                                                    modedatamodifier       int NULL,
                                                    modedatamodifydatetime varchar(100) NULL
         );
+
         CREATE UNIQUE INDEX UK_OAONES_QYWX_CONFIG_CORP ON dbo.uf_oaones_qywx_config(type, corp_id);
         CREATE INDEX IDX_OAONES_QYWX_CONFIG_TYPE ON dbo.uf_oaones_qywx_config(type, qy);
         PRINT 'created uf_oaones_qywx_config';
     END
 ELSE
     PRINT 'uf_oaones_qywx_config already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_dept_bind','U') IS NULL
     BEGIN
@@ -46,13 +47,15 @@ IF OBJECT_ID('dbo.uf_oaones_dept_bind','U') IS NULL
                                                  modedatamodifydatetime varchar(100) NULL
         );
         CREATE UNIQUE INDEX UK_OAONES_DEPT_BIND_OA ON dbo.uf_oaones_dept_bind(cfg_id, oa_dept_id);
+
         CREATE INDEX IDX_OAONES_DEPT_BIND_WX ON dbo.uf_oaones_dept_bind(cfg_id, wx_dept_id);
+
         CREATE INDEX IDX_OAONES_DEPT_BIND_KEY ON dbo.uf_oaones_dept_bind(cfg_id, wx_dept_key);
         PRINT 'created uf_oaones_dept_bind';
     END
 ELSE
     PRINT 'uf_oaones_dept_bind already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_user_bind','U') IS NULL
     BEGIN
@@ -63,7 +66,9 @@ IF OBJECT_ID('dbo.uf_oaones_user_bind','U') IS NULL
                                                  oa_user_id             int NULL,
                                                  x_user_id              varchar(128) NULL,
                                                  wx_dept_id             int NULL,
+                                                 wx_dept_key            varchar(128) NULL,
                                                  bind_state             int NULL DEFAULT 1,
+
                                                  bind_source            int NOT NULL CONSTRAINT DF_UF_OAONES_USER_BIND_SOURCE DEFAULT 1,
                                                  bind_time              varchar(19) NULL,
                                                  last_sync_direction    int NULL,
@@ -80,7 +85,7 @@ IF OBJECT_ID('dbo.uf_oaones_user_bind','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_user_bind already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_sync_log','U') IS NULL
     BEGIN
@@ -101,6 +106,7 @@ IF OBJECT_ID('dbo.uf_oaones_sync_log','U') IS NULL
                                                 endtime                varchar(19) NULL,
                                                 runstatus              int NULL,
                                                 detail                 nvarchar(max) NULL,
+                                                modeuuid               varchar(100) NULL,
                                                 modedatacreater        int NULL,
                                                 modedatacreatedate     varchar(10) NULL,
                                                 modedatacreatetime     varchar(8) NULL,
@@ -112,7 +118,7 @@ IF OBJECT_ID('dbo.uf_oaones_sync_log','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_sync_log already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_sync_log_item','U') IS NULL
     BEGIN
@@ -131,7 +137,6 @@ IF OBJECT_ID('dbo.uf_oaones_sync_log_item','U') IS NULL
                                                      parent_name            varchar(255) NULL,
                                                      seq                    int NULL,
                                                      message                varchar(1000) NULL,
-                                                     formmodeid             int NULL,
                                                      modedatacreater        int NULL,
                                                      modedatacreatedate     varchar(10) NULL,
                                                      modedatacreatetime     varchar(8) NULL,
@@ -144,7 +149,7 @@ IF OBJECT_ID('dbo.uf_oaones_sync_log_item','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_sync_log_item already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_dep_tmp','U') IS NULL
     BEGIN
@@ -166,15 +171,17 @@ IF OBJECT_ID('dbo.uf_oaones_dep_tmp','U') IS NULL
                                                modedatacreatetime     varchar(8) NULL,
                                                modedatamodifier       int NULL,
                                                modedatamodifydatetime varchar(100) NULL,
+
                                                CONSTRAINT UK_OAONES_DEP_TMP_KEY UNIQUE (corpid, wx_dept_id, wx_dept_key)
         );
         CREATE INDEX IDX_OAONES_DEP_TMP_STATUS ON dbo.uf_oaones_dep_tmp(corpid, type, status);
+
         CREATE INDEX IDX_OAONES_DEP_TMP_KEY ON dbo.uf_oaones_dep_tmp(corpid, type, wx_dept_key);
         PRINT 'created uf_oaones_dep_tmp';
     END
 ELSE
     PRINT 'uf_oaones_dep_tmp already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_user_rule','U') IS NULL
     BEGIN
@@ -193,7 +200,7 @@ IF OBJECT_ID('dbo.uf_oaones_user_rule','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_user_rule already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_user_tmp','U') IS NULL
     BEGIN
@@ -222,18 +229,17 @@ IF OBJECT_ID('dbo.uf_oaones_user_tmp','U') IS NULL
                                                 modedatacreatetime     varchar(8) NULL,
                                                 modedatamodifier       int NULL,
                                                 modedatamodifydatetime varchar(100) NULL,
+
                                                 CONSTRAINT UK_OAONES_USER_TMP_KEY UNIQUE (corpid, wx_user_id)
         );
         CREATE INDEX IDX_OAONES_USER_TMP_STATUS ON dbo.uf_oaones_user_tmp(corpid, type, status);
+
         CREATE INDEX IDX_OAONES_USER_TMP_DEPT_KEY ON dbo.uf_oaones_user_tmp(corpid, type, wx_dept_key);
         PRINT 'created uf_oaones_user_tmp';
     END
 ELSE
     PRINT 'uf_oaones_user_tmp already exists';
-
-
-
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_sub_bind','U') IS NULL
     BEGIN
@@ -252,13 +258,44 @@ IF OBJECT_ID('dbo.uf_oaones_sub_bind','U') IS NULL
                                                 modedatamodifier       int NULL,
                                                 modedatamodifydatetime varchar(100) NULL
         );
+
         CREATE UNIQUE INDEX UK_OAONES_SUB_BIND_OA ON dbo.uf_oaones_sub_bind(cfg_id, oa_sub_id);
+
         CREATE UNIQUE INDEX UK_OAONES_SUB_BIND_SUB ON dbo.uf_oaones_sub_bind(type, oa_sub_id);
         CREATE UNIQUE INDEX UK_OAONES_SUB_BIND_CFG ON dbo.uf_oaones_sub_bind(cfg_id);
         PRINT 'created uf_oaones_sub_bind';
     END
 ELSE
     PRINT 'uf_oaones_sub_bind already exists';
+;
+
+IF OBJECT_ID('dbo.uf_oaones_sub_tenant_map','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.uf_oaones_sub_tenant_map (
+            id                     int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+            cfg_id                 int NOT NULL,
+            oa_sub_id              int NOT NULL,
+            type                   int NOT NULL DEFAULT 0,
+            yx                     int NULL DEFAULT 0,
+            remark                 varchar(300) NULL,
+            formmodeid             int NULL,
+            modedatacreater        int NULL,
+            modedatacreatedate     varchar(10) NULL,
+            modedatacreatetime     varchar(8) NULL,
+            modedatamodifier       int NULL,
+            modedatamodifydatetime varchar(100) NULL
+        );
+        CREATE UNIQUE INDEX UK_OAONES_SUB_TENANT_SUB
+            ON dbo.uf_oaones_sub_tenant_map(type, oa_sub_id);
+        CREATE UNIQUE INDEX UK_OAONES_SUB_TENANT_CFG
+            ON dbo.uf_oaones_sub_tenant_map(type, cfg_id);
+        CREATE INDEX IDX_OAONES_SUB_TENANT_CFG
+            ON dbo.uf_oaones_sub_tenant_map(cfg_id);
+        PRINT 'created uf_oaones_sub_tenant_map';
+    END
+ELSE
+    PRINT 'uf_oaones_sub_tenant_map already exists';
+;
 
 IF OBJECT_ID('dbo.uf_oaones_app_bind','U') IS NULL
     BEGIN
@@ -278,13 +315,14 @@ IF OBJECT_ID('dbo.uf_oaones_app_bind','U') IS NULL
                                                 modedatamodifier       int NULL,
                                                 modedatamodifydatetime varchar(100) NULL
         );
+
         CREATE UNIQUE INDEX UK_OAONES_APP_BIND_AGENT ON dbo.uf_oaones_app_bind(cfg_id, agent_id);
         CREATE INDEX IDX_OAONES_APP_BIND_CFG ON dbo.uf_oaones_app_bind(cfg_id);
         PRINT 'created uf_oaones_app_bind';
     END
 ELSE
     PRINT 'uf_oaones_app_bind already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_app','U') IS NULL
     BEGIN
@@ -299,96 +337,27 @@ IF OBJECT_ID('dbo.uf_oaones_app','U') IS NULL
                                            open_mode              int NULL DEFAULT 0,
                                            maintainer_ids         varchar(2000) NULL,
                                            vis_all                int NULL DEFAULT 0,
+                                           vis_role_ids           varchar(2000) NULL,
                                            vis_sub_ids            varchar(2000) NULL,
                                            vis_dept_ids           varchar(2000) NULL,
                                            vis_user_ids           varchar(2000) NULL,
                                            sort_no                int NULL DEFAULT 0,
                                            qy                     int NULL DEFAULT 1,
                                            remark                 varchar(500) NULL,
-                                           formmodeid             int NULL,
                                            modedatacreater        int NULL,
-                                           modedatacreatertype    int NULL,
                                            modedatacreatedate     varchar(10) NULL,
                                            modedatacreatetime     varchar(8) NULL,
                                            modedatamodifier       int NULL,
                                            modedatamodifydatetime varchar(100) NULL
         );
+
         CREATE UNIQUE INDEX UK_OAONES_APP_NAME ON dbo.uf_oaones_app(app_name);
         CREATE INDEX IDX_OAONES_APP_SORT ON dbo.uf_oaones_app(sort_no);
         PRINT 'created uf_oaones_app';
     END
 ELSE
     PRINT 'uf_oaones_app already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_app','icon_seed') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_app ADD icon_seed varchar(200) NULL;
-        PRINT 'added uf_oaones_app.icon_seed';
-    END
-ELSE
-    PRINT 'uf_oaones_app.icon_seed already exists';
-
-
-UPDATE dbo.uf_oaones_app
-SET icon_seed = app_name
-WHERE icon_seed IS NULL
-  AND (icon IS NULL OR icon = '');
-
-
-IF COL_LENGTH('dbo.uf_oaones_app','open_mode') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_app ADD open_mode int NULL DEFAULT 0;
-        PRINT 'added uf_oaones_app.open_mode';
-    END
-ELSE
-    PRINT 'uf_oaones_app.open_mode already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_app','maintainer_ids') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_app ADD maintainer_ids varchar(2000) NULL;
-        PRINT 'added uf_oaones_app.maintainer_ids';
-    END
-ELSE
-    PRINT 'uf_oaones_app.maintainer_ids already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_app','vis_sub_ids') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_app ADD vis_sub_ids varchar(2000) NULL;
-        PRINT 'added uf_oaones_app.vis_sub_ids';
-    END
-ELSE
-    PRINT 'uf_oaones_app.vis_sub_ids already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_app','vis_dept_ids') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_app ADD vis_dept_ids varchar(2000) NULL;
-        PRINT 'added uf_oaones_app.vis_dept_ids';
-    END
-ELSE
-    PRINT 'uf_oaones_app.vis_dept_ids already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_app','vis_user_ids') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_app ADD vis_user_ids varchar(2000) NULL;
-        PRINT 'added uf_oaones_app.vis_user_ids';
-    END
-ELSE
-    PRINT 'uf_oaones_app.vis_user_ids already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_app','vis_all') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_app ADD vis_all int NULL DEFAULT 0;
-        PRINT 'added uf_oaones_app.vis_all';
-    END
-ELSE
-    PRINT 'uf_oaones_app.vis_all already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_scan_login','U') IS NULL
     BEGIN
@@ -425,7 +394,7 @@ IF OBJECT_ID('dbo.uf_oaones_scan_login','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_scan_login already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_login_config','U') IS NULL
     BEGIN
@@ -439,6 +408,9 @@ IF OBJECT_ID('dbo.uf_oaones_login_config','U') IS NULL
                                                     feishu_qr_enable       int NULL DEFAULT 0,
                                                     personal_wx_enable     int NULL DEFAULT 0,
                                                     qr_ttl_seconds         int NULL,
+                                                    logo                   varchar(500) NULL,
+                                                    bg_image               varchar(500) NULL,
+                                                    brand_html             nvarchar(max) NULL,
                                                     remark                 varchar(500) NULL,
                                                     modedatacreater        int NULL,
                                                     modedatacreatedate     varchar(10) NULL,
@@ -450,7 +422,7 @@ IF OBJECT_ID('dbo.uf_oaones_login_config','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_login_sms','U') IS NULL
     BEGIN
@@ -483,7 +455,7 @@ IF OBJECT_ID('dbo.uf_oaones_login_sms','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_sms already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_personal_wx_config','U') IS NULL
     BEGIN
@@ -502,7 +474,7 @@ IF OBJECT_ID('dbo.uf_oaones_personal_wx_config','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_personal_wx_config already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_personal_wx_bind','U') IS NULL
     BEGIN
@@ -528,7 +500,7 @@ IF OBJECT_ID('dbo.uf_oaones_personal_wx_bind','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_personal_wx_bind already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_msg_config','U') IS NULL
     BEGIN
@@ -555,7 +527,7 @@ IF OBJECT_ID('dbo.uf_oaones_msg_config','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_msg_config already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NULL
     BEGIN
@@ -583,145 +555,13 @@ IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NULL
                                                 modedatamodifier    int NULL,
                                                 modedatamodifydatetime varchar(100) NULL
         );
+
         CREATE UNIQUE INDEX UK_OAONES_MSG_TYPE_KEY ON dbo.uf_oaones_msg_type(std_config_id, std_type, type);
         PRINT 'created uf_oaones_msg_type';
     END
 ELSE
     PRINT 'uf_oaones_msg_type already exists';
-
-
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND COL_LENGTH('dbo.uf_oaones_msg_type','std_config_id') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_msg_type ADD std_config_id varchar(64) NOT NULL DEFAULT '0';
-        PRINT 'altered uf_oaones_msg_type add std_config_id';
-    END
-
-
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_NAME = 'uf_oaones_msg_type' AND COLUMN_NAME = 'std_config_id'
-                  AND DATA_TYPE IN ('int', 'bigint', 'smallint', 'tinyint', 'numeric', 'decimal'))
-    BEGIN
-        DECLARE @oaones_mt_df sysname;
-        SELECT @oaones_mt_df = dc.name
-        FROM sys.default_constraints dc
-                 JOIN sys.columns c
-                      ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
-        WHERE dc.parent_object_id = OBJECT_ID('dbo.uf_oaones_msg_type')
-          AND c.name = 'std_config_id';
-        IF @oaones_mt_df IS NOT NULL
-            EXEC('ALTER TABLE dbo.uf_oaones_msg_type DROP CONSTRAINT [' + @oaones_mt_df + ']');
-
-        IF EXISTS (SELECT 1 FROM sys.indexes
-                   WHERE object_id = OBJECT_ID('dbo.uf_oaones_msg_type') AND name = 'UK_OAONES_MSG_TYPE_KEY')
-            DROP INDEX UK_OAONES_MSG_TYPE_KEY ON dbo.uf_oaones_msg_type;
-        IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UK_OAONES_MSG_TYPE_KEY')
-        ALTER TABLE dbo.uf_oaones_msg_type DROP CONSTRAINT UK_OAONES_MSG_TYPE_KEY;
-
-        ALTER TABLE dbo.uf_oaones_msg_type ALTER COLUMN std_config_id varchar(64) NOT NULL;
-        IF NOT EXISTS (SELECT 1 FROM sys.default_constraints
-                       WHERE parent_object_id = OBJECT_ID('dbo.uf_oaones_msg_type')
-                         AND col_name(parent_object_id, parent_column_id) = 'std_config_id')
-        ALTER TABLE dbo.uf_oaones_msg_type
-            ADD CONSTRAINT DF_UF_OAONES_MSG_TYPE_STD_CONFIG_ID DEFAULT '0' FOR std_config_id;
-        PRINT 'altered uf_oaones_msg_type.std_config_id to varchar(64)';
-    END
-
-
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND COL_LENGTH('dbo.uf_oaones_msg_type','std_config_id') IS NOT NULL
-    BEGIN
-        UPDATE dbo.uf_oaones_msg_type SET std_config_id = '0'
-        WHERE std_config_id IS NULL OR std_config_id = '';
-        PRINT 'normalized uf_oaones_msg_type.std_config_id';
-    END
-
-
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND EXISTS (SELECT 1 FROM sys.indexes
-                WHERE object_id = OBJECT_ID('dbo.uf_oaones_msg_type')
-                  AND name = 'UK_OAONES_MSG_TYPE_STD')
-    BEGIN
-        DROP INDEX UK_OAONES_MSG_TYPE_STD ON dbo.uf_oaones_msg_type;
-        PRINT 'dropped old unique index UK_OAONES_MSG_TYPE_STD';
-    END
-
-
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND EXISTS (SELECT 1 FROM sys.indexes
-                WHERE object_id = OBJECT_ID('dbo.uf_oaones_msg_type')
-                  AND name = 'UK_OAONES_MSG_TYPE_STD_TYPE')
-    BEGIN
-        DROP INDEX UK_OAONES_MSG_TYPE_STD_TYPE ON dbo.uf_oaones_msg_type;
-        PRINT 'dropped old unique index UK_OAONES_MSG_TYPE_STD_TYPE';
-    END
-
-
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND NOT EXISTS (SELECT 1 FROM sys.indexes
-                    WHERE object_id = OBJECT_ID('dbo.uf_oaones_msg_type')
-                      AND name = 'UK_OAONES_MSG_TYPE_KEY')
-    AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type
-                    GROUP BY std_config_id, std_type, type
-                    HAVING COUNT(1) > 1)
-    BEGIN
-        CREATE UNIQUE INDEX UK_OAONES_MSG_TYPE_KEY
-            ON dbo.uf_oaones_msg_type(std_config_id, std_type, type);
-        PRINT 'created unique index UK_OAONES_MSG_TYPE_KEY';
-    END
-
-
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND NOT EXISTS (SELECT 1 FROM sys.indexes
-                    WHERE object_id = OBJECT_ID('dbo.uf_oaones_msg_type')
-                      AND name = 'UK_OAONES_MSG_TYPE_KEY')
-    AND EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type
-                GROUP BY std_config_id, std_type, type
-                HAVING COUNT(1) > 1)
-    BEGIN
-        PRINT '¥Ê‘⁄÷ÿ∏¥µƒ (std_config_id, std_type, type)£∫«Îœ»«Â¿Ì÷ÿ∏¥ ˝æ›‘Ÿ÷ÿ≈‹±æ∂Œ£ª±æΩ≈±æ≤ª…æ»Œ∫Œ ˝æ›°£';
-    END
-
-
-DECLARE @oaones_mt_rows int;
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND COL_LENGTH('dbo.uf_oaones_msg_type','std_type') IS NOT NULL
-    BEGIN
-        UPDATE dbo.uf_oaones_msg_type SET std_type = 0 WHERE std_type IS NULL;
-        SET @oaones_mt_rows = @@ROWCOUNT;
-        IF @oaones_mt_rows > 0
-            PRINT 'normalized uf_oaones_msg_type.std_type (NULL -> 0) rows: ' + CAST(@oaones_mt_rows AS varchar(20));
-        IF EXISTS (SELECT 1 FROM sys.columns
-                   WHERE object_id = OBJECT_ID('dbo.uf_oaones_msg_type')
-                     AND name = 'std_type' AND is_nullable = 1)
-        ALTER TABLE dbo.uf_oaones_msg_type ALTER COLUMN std_type int NOT NULL;
-        IF NOT EXISTS (SELECT 1 FROM sys.default_constraints
-                       WHERE parent_object_id = OBJECT_ID('dbo.uf_oaones_msg_type')
-                         AND col_name(parent_object_id, parent_column_id) = 'std_type')
-        ALTER TABLE dbo.uf_oaones_msg_type
-            ADD CONSTRAINT DF_UF_OAONES_MSG_TYPE_STD_TYPE DEFAULT 0 FOR std_type;
-    END
-
-
-IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
-    AND OBJECT_ID('dbo.ecology_biz_mobile_config','U') IS NOT NULL
-    AND OBJECT_ID('dbo.ecology_message_type','U') IS NOT NULL
-    BEGIN
-        UPDATE m
-        SET m.std_config_id = ISNULL((
-                                         SELECT MIN(c.id)
-                                         FROM dbo.ecology_biz_mobile_config c
-                                                  JOIN dbo.ecology_message_type s
-                                                       ON c.messagetypeid LIKE '%,' + CAST(s.id AS varchar(20)) + ',%'
-                                                           OR c.messagetypeid = CAST(s.id AS varchar(20))
-                                         WHERE (c.isshow = 'y' OR c.isshow IS NULL)
-                                           AND CAST(s.typecode AS varchar(60)) = CAST(m.std_type AS varchar(60))), '0')
-        FROM dbo.uf_oaones_msg_type m
-        WHERE m.std_config_id = '0' AND m.std_type > 0;
-        PRINT 'backfilled uf_oaones_msg_type.std_config_id by standard message type';
-    END
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_msg_type_app','U') IS NULL
     BEGIN
@@ -738,13 +578,14 @@ IF OBJECT_ID('dbo.uf_oaones_msg_type_app','U') IS NULL
                                                     modedatamodifier       int NULL,
                                                     modedatamodifydatetime varchar(100) NULL
         );
+
         CREATE UNIQUE INDEX UK_OAONES_MSG_TYPE_APP_KEY ON dbo.uf_oaones_msg_type_app(type, std_config_id, std_type, cfg_id);
         CREATE INDEX IDX_OAONES_MSG_TYPE_APP_APP ON dbo.uf_oaones_msg_type_app(app_id);
         PRINT 'created uf_oaones_msg_type_app';
     END
 ELSE
     PRINT 'uf_oaones_msg_type_app already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_msg_log','U') IS NULL
     BEGIN
@@ -771,11 +612,13 @@ IF OBJECT_ID('dbo.uf_oaones_msg_log','U') IS NULL
                                                status              int NULL DEFAULT 0,
                                                retry_count         int NULL DEFAULT 0,
                                                next_retry_time     varchar(19) NULL,
+
                                                api_log_id          int NULL,
                                                reason              nvarchar(1000) NULL,
+
                                                src_json            nvarchar(max) NULL,
                                                operator_id         int NULL,
-                                               formmodeid          int NULL,
+
                                                modedatacreater         int NULL,
                                                modedatacreatedate      varchar(10) NULL,
                                                modedatacreatetime      varchar(8)  NULL,
@@ -786,13 +629,15 @@ IF OBJECT_ID('dbo.uf_oaones_msg_log','U') IS NULL
         CREATE INDEX IDX_OAONES_MSG_LOG_STATUS ON dbo.uf_oaones_msg_log(status, retry_count);
         CREATE INDEX IDX_OAONES_MSG_LOG_TIME ON dbo.uf_oaones_msg_log(modedatacreatedate, modedatacreatetime);
         CREATE INDEX IDX_OAONES_MSG_LOG_DEDUP ON dbo.uf_oaones_msg_log(dedup_key, modedatacreatedate, modedatacreatetime);
+
         CREATE INDEX IDX_OAONES_MSG_LOG_API ON dbo.uf_oaones_msg_log(api_log_id);
+
         CREATE INDEX IDX_OAONES_MSG_LOG_TYPE ON dbo.uf_oaones_msg_log(type, modedatacreatedate, status);
         PRINT 'created uf_oaones_msg_log';
     END
 ELSE
     PRINT 'uf_oaones_msg_log already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_msg_task','U') IS NULL
     BEGIN
@@ -811,6 +656,7 @@ IF OBJECT_ID('dbo.uf_oaones_msg_task','U') IS NULL
                                                 task_state          varchar(16)  NULL,
                                                 log_id              varchar(50) NULL,
                                                 expire_time         varchar(19) NULL,
+
                                                 modedatacreater         int NULL,
                                                 modedatacreatedate      varchar(10) NULL,
                                                 modedatacreatetime      varchar(8)  NULL,
@@ -819,12 +665,13 @@ IF OBJECT_ID('dbo.uf_oaones_msg_task','U') IS NULL
         );
         CREATE UNIQUE INDEX UK_OAONES_MSG_TASK ON dbo.uf_oaones_msg_task(task_id);
         CREATE INDEX IDX_OAONES_MSG_TASK_BIZ ON dbo.uf_oaones_msg_task(biz_type, biz_id, wx_userid);
+
         CREATE INDEX IDX_OAONES_MSG_TASK_TYPE ON dbo.uf_oaones_msg_task(type, biz_type, biz_id, wx_userid, task_state);
         PRINT 'created uf_oaones_msg_task';
     END
 ELSE
     PRINT 'uf_oaones_msg_task already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_sync_plan','U') IS NULL
     BEGIN
@@ -857,46 +704,14 @@ IF OBJECT_ID('dbo.uf_oaones_sync_plan','U') IS NULL
                                                  modedatamodifier       int NULL,
                                                  modedatamodifydatetime varchar(100) NULL
         );
+
         CREATE INDEX IDX_OAONES_SYNC_PLAN_CFG ON dbo.uf_oaones_sync_plan(type, cfgid, direction);
         CREATE INDEX IDX_OAONES_SYNC_PLAN_NEXT ON dbo.uf_oaones_sync_plan(enabled, next_run_time);
         PRINT 'created uf_oaones_sync_plan';
     END
 ELSE
     PRINT 'uf_oaones_sync_plan already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_sync_plan','scope_set') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_sync_plan ADD
-            scope_set  int NULL DEFAULT 0,
-            oa_sub_ids varchar(500) NULL,
-            oa_dept_ids varchar(500) NULL,
-            wx_dept_id varchar(64) NULL,
-            scope_text varchar(500) NULL,
-            bind_forced int NULL DEFAULT 0;
-        PRINT 'altered uf_oaones_sync_plan (scope_set)';
-    END
-ELSE
-    PRINT 'uf_oaones_sync_plan.scope_set already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_sync_plan','plan_mode') IS NULL
-    BEGIN
-        ALTER TABLE dbo.uf_oaones_sync_plan ADD
-            plan_mode    int NULL DEFAULT 1,
-            interval_min int NULL DEFAULT 30;
-        PRINT 'altered uf_oaones_sync_plan (plan_mode)';
-    END
-ELSE
-    PRINT 'uf_oaones_sync_plan.plan_mode already exists';
-
-
-IF COL_LENGTH('dbo.uf_oaones_sync_plan','plan_mode') IS NOT NULL
-    BEGIN
-        UPDATE dbo.uf_oaones_sync_plan SET plan_mode = 1 WHERE plan_mode IS NULL;
-        UPDATE dbo.uf_oaones_sync_plan SET interval_min = 30 WHERE interval_min IS NULL OR interval_min <= 0;
-    END
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_mtg_sync','U') IS NULL
     BEGIN
@@ -922,7 +737,7 @@ IF OBJECT_ID('dbo.uf_oaones_mtg_sync','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_mtg_sync already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_mtg_sync_log','U') IS NULL
     BEGIN
@@ -956,7 +771,7 @@ IF OBJECT_ID('dbo.uf_oaones_mtg_sync_log','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_mtg_sync_log already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_mtg_sync_user','U') IS NULL
     BEGIN
@@ -983,7 +798,7 @@ IF OBJECT_ID('dbo.uf_oaones_mtg_sync_user','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_mtg_sync_user already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_mtg_link','U') IS NULL
     BEGIN
@@ -1012,7 +827,7 @@ IF OBJECT_ID('dbo.uf_oaones_mtg_link','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_mtg_link already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_api_log','U') IS NULL
     BEGIN
@@ -1035,7 +850,6 @@ IF OBJECT_ID('dbo.uf_oaones_api_log','U') IS NULL
                                                cost_ms                int NULL,
                                                error_stack            nvarchar(max) NULL,
                                                operator_id            int NULL,
-                                               formmodeid             int NULL,
                                                modedatacreatedate     varchar(10) NULL,
                                                modedatacreatetime     varchar(8)  NULL
         );
@@ -1046,7 +860,7 @@ IF OBJECT_ID('dbo.uf_oaones_api_log','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_api_log already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_op_log','U') IS NULL
     BEGIN
@@ -1064,7 +878,6 @@ IF OBJECT_ID('dbo.uf_oaones_op_log','U') IS NULL
                                               client_ip              varchar(100) NULL,
                                               device                 varchar(16) NULL,
                                               session_id             varchar(100) NULL,
-                                              formmodeid             int NULL,
                                               modedatacreatedate     varchar(10) NULL,
                                               modedatacreatetime     varchar(8)  NULL
         );
@@ -1076,7 +889,7 @@ IF OBJECT_ID('dbo.uf_oaones_op_log','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_op_log already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_mtg_cron','U') IS NULL
     BEGIN
@@ -1099,7 +912,7 @@ IF OBJECT_ID('dbo.uf_oaones_mtg_cron','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_mtg_cron already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_mtg_plan_item','U') IS NULL
     BEGIN
@@ -1123,10 +936,10 @@ IF OBJECT_ID('dbo.uf_oaones_mtg_plan_item','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_mtg_plan_item already exists';
-
+;
 
 PRINT 'OAones public tables created.';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_msg_config','U') IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_config WHERE id = 1)
@@ -1136,11 +949,11 @@ IF OBJECT_ID('dbo.uf_oaones_msg_config','U') IS NOT NULL
         (id, push_enable, default_app_id, retry_times, retry_interval, shard_size,
          timeout_ms, token_advance_sec, dedup_window_sec, log_keep_days, task_keep_days, remark)
         VALUES
-            (1, 1, 0, 3, 60, 1000, 30000, 300, 600, 90, 30, N'ƒ¨»œ≤Œ ˝£¨ø…‘⁄°∞œ˚œ¢÷––ƒ-Õ∆ÀÕ≈‰÷√°±“≥Œ¨ª§');
+            (1, 1, 0, 3, 60, 1000, 30000, 300, 600, 90, 30, N'ÈªòËÆ§ÂèÇÊï∞ÔºåÂèØÂú®‚ÄúÊ∂àÊÅØ‰∏≠ÂøÉ-Êé®ÈÄÅÈÖçÁΩÆ‚ÄùÈ°µÁª¥Êä§');
         SET IDENTITY_INSERT dbo.uf_oaones_msg_config OFF;
         PRINT 'init uf_oaones_msg_config row';
     END
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_login_config','U') IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_login_config)
@@ -1151,254 +964,243 @@ IF OBJECT_ID('dbo.uf_oaones_login_config','U') IS NOT NULL
         VALUES (1, 0, 1, 0, 0, 0, 180, CONVERT(varchar(10), GETDATE(), 120), '000000');
         PRINT 'init uf_oaones_login_config row';
     END
+;
 
-IF OBJECT_ID('dbo.ecology_biz_mobile_config','U') IS NOT NULL
-    AND OBJECT_ID('dbo.ecology_message_type','U') IS NOT NULL
+IF OBJECT_ID('dbo.uf_oaones_msg_type','U') IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type)
     BEGIN
-        UPDATE m
-        SET m.std_config_id = ISNULL((
-                                         SELECT MIN(c.id)
-                                         FROM dbo.ecology_biz_mobile_config c
-                                                  JOIN dbo.ecology_message_type s
-                                                       ON c.messagetypeid LIKE '%,' + CAST(s.id AS varchar(20)) + ',%'
-                                                           OR c.messagetypeid = CAST(s.id AS varchar(20))
-                                         WHERE (c.isshow = 'y' OR c.isshow IS NULL)
-                                           AND CAST(s.typecode AS varchar(60)) = CAST(m.std_type AS varchar(60))), '0')
-        FROM dbo.uf_oaones_msg_type m
-        WHERE m.std_config_id = '0' AND m.std_type > 0;
-        PRINT 'backfilled uf_oaones_msg_type.std_config_id by standard message type';
-    END
+        INSERT INTO dbo.uf_oaones_msg_type
+        (type, type_name, std_type, wx_msgtype, card_action, title_tpl, context_tpl, url_tpl, mobile_url_tpl, cover_url, btn_json, app_id, yx, sort_no, remark)
+        VALUES
 
+            (0, N'ÊµÅÁ®ãÂæÖÂäûÊèêÈÜí', 20, N'textcard', N'none',
+             N'${targetName}', N'ÊµÅÁ®ã„Äå${targetName}„ÄçÁî± ${creater} ‰∫é ${date} ${time} Êèê‰∫§ÔºåËØ∑ÂèäÊó∂Â§ÑÁêÜ„ÄÇ',
+             NULL, NULL, NULL, NULL,
+             0, 0, 10, N'OA Êñ∞Âà∞ËææÊµÅÁ®ã -> ‰ºÅÂæÆÊñáÊú¨Âç°Áâá'),
+            (0, N'ÊµÅÁ®ãÈÄÄÂõûÊèêÈÜí', 21, N'textcard', N'none',
+             N'${targetName}', N'ÊµÅÁ®ã„Äå${targetName}„ÄçË¢´ÈÄÄÂõûÔºåËØ∑ÈáçÊñ∞Â§ÑÁêÜ„ÄÇ',
+             NULL, NULL, NULL, NULL,
+             0, 0, 20, NULL),
+            (0, N'ÊµÅÁ®ãÂäûÁªìÊèêÈÜí', 25, N'textcard', N'none',
+             N'ÊµÅÁ®ãÂ∑≤ÂäûÁªì', N'ÊµÅÁ®ã„Äå${targetName}„ÄçÂ∑≤ÂäûÁªì„ÄÇ', NULL, NULL, NULL, NULL, 0, 0, 30, NULL),
+            (0, N'ÊµÅÁ®ãÊí§ÈîÄ/Êî∂ÂõûÊèêÈÜí', 38, N'textcard', N'none',
+             N'ÊµÅÁ®ãÂ∑≤Êî∂Âõû', N'ÊµÅÁ®ã„Äå${targetName}„ÄçÂ∑≤Ë¢´Êî∂Âõû/Êí§ÈîÄ„ÄÇ', NULL, NULL, NULL, NULL, 0, 0, 40, N'Â¶ÇÈúÄ 27/34/35 ÂêåÂè£ÂæÑÔºåÂèØÂ§çÂà∂Êú¨Ë°åÊîπ std_type'),
+            (0, N'ÊµÅÁ®ãÊäÑÈÄÅ/‰º†ÈòÖÊèêÈÜí', 23, N'textcard', N'none',
+             N'ÊµÅÁ®ãÊäÑÈÄÅÔºö${targetName}', N'Áî± ${creater} ‰∫é ${date} ${time} ÊäÑÈÄÅÁªô‰Ω†ÔºåËØ∑Êü•ÈòÖ„ÄÇ', NULL, NULL, NULL, NULL, 0, 0, 50, NULL),
+            (0, N'ÊµÅÁ®ãËΩ¨ÂèëÊèêÈÜí', 22, N'textcard', N'none',
+             N'ÊµÅÁ®ãËΩ¨ÂèëÔºö${targetName}', N'${creater} ËΩ¨Âèë‰∫ÜÊµÅÁ®ã„Äå${targetName}„ÄçÔºåËØ∑Êü•ÈòÖ„ÄÇ', NULL, NULL, NULL, NULL, 0, 0, 60, NULL),
+            (0, N'ÊµÅÁ®ãË∂ÖÊó∂ÊèêÈÜí', 120, N'textcard', N'none',
+             N'ÊµÅÁ®ãË∂ÖÊó∂Ôºö${targetName}', N'ÊµÅÁ®ã„Äå${targetName}„ÄçÂ∑≤Ë∂ÖÊó∂ÔºåËØ∑Â∞ΩÂø´Â§ÑÁêÜ„ÄÇ', NULL, NULL, NULL, NULL, 0, 0, 70, NULL),
+            (0, N'‰ºöËÆÆÊèêÈÜí', 64, N'textcard', N'none',
+             N'‰ºöËÆÆÊèêÈÜíÔºö${targetName}', N'${context}', NULL, NULL, NULL, NULL, 0, 0, 80, NULL),
+            (0, N'Êñ∞‰ºöËÆÆÊèêÈÜí', 124, N'textcard', N'none',
+             N'Êñ∞‰ºöËÆÆÔºö${targetName}', N'${context}', NULL, NULL, NULL, NULL, 0, 0, 90, NULL),
+            (0, N'‰ºöËÆÆÂºÄÂßãÂâçÊèêÈÜí', 125, N'textcard', N'none',
+             N'‰ºöËÆÆÂç≥Â∞ÜÂºÄÂßãÔºö${targetName}', N'${context}', NULL, NULL, NULL, NULL, 0, 0, 100, NULL),
+            (0, N'‰ºöËÆÆÁªìÊùüÂâçÊèêÈÜí', 126, N'textcard', N'none',
+             N'‰ºöËÆÆÂç≥Â∞ÜÁªìÊùüÔºö${targetName}', N'${context}', NULL, NULL, NULL, NULL, 0, 0, 110, NULL),
+            (0, N'‰ºöËÆÆÂèñÊ∂àÊèêÈÜí', 127, N'textcard', N'none',
+             N'‰ºöËÆÆÂèñÊ∂àÔºö${targetName}', N'${context}', NULL, NULL, NULL, NULL, 0, 0, 120, NULL);
+        PRINT 'init uf_oaones_msg_type rows (wecom type=0)';
+    END
+;
 
 PRINT 'OAones public tables init finished.';
+;
 
+IF OBJECT_ID('dbo.uf_oaones_att_cfg','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.uf_oaones_att_cfg (
+                                               id                     int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                                               type                   int NOT NULL DEFAULT 0,
+                                               cfgid                  int NOT NULL,
+                                               row_type               int NOT NULL DEFAULT 0,
+                                               cfg_name               varchar(60) NOT NULL DEFAULT '',
+                                               dir                    int NOT NULL DEFAULT 0,
+                                               scope_subs             varchar(1000) NULL,
+                                               scope_depts            varchar(1000) NULL,
+                                               scope_users            varchar(4000) NULL,
+                                               scope_text             varchar(1000) NULL,
+                                               data_types             int NOT NULL DEFAULT 1,
+                                               sign_periods           int NOT NULL DEFAULT 3,
+                                               win_mode               int NOT NULL DEFAULT 0,
+                                               win_from               varchar(19) NULL,
+                                               win_to                 varchar(19) NULL,
+                                               win_days               int NULL DEFAULT 2,
+                                               app_id                 int NOT NULL DEFAULT 0,
+                                               plan_mode              int NOT NULL DEFAULT 0,
+                                               plan_workday_group_id  int NULL DEFAULT 0,
+                                               cron_day_type          int NULL DEFAULT 0,
+                                               day_cron               varchar(100) NULL,
+                                               night_cron             varchar(100) NULL,
+                                               enabled                int NOT NULL DEFAULT 0,
+                                               check_state            int NOT NULL DEFAULT 0,
+                                               check_msg              varchar(1000) NULL,
+                                               check_time             varchar(19) NULL,
+                                               last_run_time          varchar(19) NULL,
+                                               last_result            int NULL,
+                                               last_result_text       varchar(1000) NULL,
+                                               fail_streak            int NULL DEFAULT 0,
+                                               last_log_id            int NULL DEFAULT 0,
+                                               remark                 varchar(500) NULL,
+                                               modedatacreater        int NULL,
+                                               modedatacreatedate     varchar(10) NULL,
+                                               modedatacreatetime     varchar(8) NULL,
+                                               modedatamodifier       int NULL,
+                                               modedatamodifydatetime varchar(100) NULL
+        );
+        CREATE UNIQUE INDEX UK_OAONES_ATT_CFG_NAME ON dbo.uf_oaones_att_cfg(type, cfgid, row_type, cfg_name);
+        CREATE INDEX IDX_OAONES_ATT_CFG_TENANT ON dbo.uf_oaones_att_cfg(type, cfgid, row_type);
+        CREATE INDEX IDX_OAONES_ATT_CFG_ENABLE ON dbo.uf_oaones_att_cfg(enabled, type);
+        PRINT 'created uf_oaones_att_cfg';
+    END
+ELSE
+    PRINT 'uf_oaones_att_cfg already exists';
+;
 
-;WITH src AS (
-    SELECT t.id,
-           t.typecode,
-           t.sourcename,
-           t.typename,
-           CASE WHEN t.typecode NOT LIKE '%[^0-9]%' AND t.typecode <> ''
-                    THEN CAST(t.typecode AS int) END AS code_int
-    FROM dbo.ECOLOGY_MESSAGE_TYPE t
-)
- INSERT INTO dbo.uf_oaones_msg_type
- (type, type_name, std_type, wx_msgtype, card_action,
-  title_tpl, context_tpl, url_tpl, mobile_url_tpl, cover_url, btn_json,
-  app_id, yx, sort_no, remark)
- SELECT
-     1 as type,
-     isnull(nullif((select top 1 l.labelname
-                    from dbo.HtmlLabelInfo l
-                    where l.indexid = t.typename and l.languageid = 7), ''),
-            isnull(nullif(case
-                              when charindex('~`~`7 ', t.sourcename) > 0
-                                  and charindex('`~`8', t.sourcename,
-                                                charindex('~`~`7 ', t.sourcename) + 6) > charindex('~`~`7 ', t.sourcename) + 6
-                                  then ltrim(rtrim(substring(t.sourcename,
-                                                             charindex('~`~`7 ', t.sourcename) + 6,
-                                                             charindex('`~`8', t.sourcename,
-                                                                       charindex('~`~`7 ', t.sourcename) + 6)
-                                                                 - charindex('~`~`7 ', t.sourcename) - 6)))
-                              when charindex('~`~`', t.sourcename) = 0 then ltrim(rtrim(t.sourcename))
-                              end, ''),
-                   N'œ˚œ¢¿‡–Õ ' + cast(t.typecode as nvarchar(20)))) as type_name,
-     t.code_int,
-     case when t.code_int in (20, 21, 25, 27, 34, 35, 38, 63)
-              then N'task_card' else N'markdown' end as wx_msgtype,
-     case when t.code_int in (20, 21, 63) then N'create'
-          when t.code_int = 25 then N'done'
-          when t.code_int in (27, 34, 35, 38) then N'invalid'
-          else N'none' end as card_action,
-     case when t.code_int in (20, 21, 63) then N'${targetName}'
-          when t.code_int = 25 then N'¡˜≥Ã“—∞ÏΩ·'
-          when t.code_int = 27 then N'¡˜≥Ã“—…æ≥˝'
-          when t.code_int = 34 then N'¡˜≥Ã“—‘›Õ£'
-          when t.code_int = 35 then N'¡˜≥Ã“—≥∑œ˙'
-          when t.code_int = 38 then N'¡˜≥Ã“— ’ªÿ'
-          else N'${title}' end as title_tpl,
-     case when t.code_int = 20 then N'¡˜≥Ã°∏${targetName}°π”… ${creater} ”⁄ ${date} ${time} Ã·Ωª£¨«Îº∞ ±¥¶¿Ì°£'
-          when t.code_int = 21 then N'¡˜≥Ã°∏${targetName}°π±ªÕÀªÿ£¨«Î÷ÿ–¬¥¶¿Ì°£'
-          when t.code_int = 63 then N'»ŒŒÒ°∏${targetName}°π“—µΩ¥Ô£¨«Îº∞ ±¥¶¿Ì°£'
-          when t.code_int = 25 then N'¡˜≥Ã°∏${targetName}°π“—∞ÏΩ·°£'
-          when t.code_int = 27 then N'¡˜≥Ã°∏${targetName}°π“—…æ≥˝£¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 34 then N'¡˜≥Ã°∏${targetName}°π“—‘›Õ££¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 35 then N'¡˜≥Ã°∏${targetName}°π“—≥∑œ˙£¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 38 then N'¡˜≥Ã°∏${targetName}°π“—±ª ’ªÿ/≥∑œ˙£¨¥˝∞Ï“— ß–ß°£'
-          else N'${context}' end as context_tpl,
-     NULL, NULL, NULL,
-     case when t.code_int in (20, 63) then
-              N'[{"key":"agree","name":"Õ¨“‚","replace_name":"“—Õ¨“‚","color":"blue","is_bold":true},'
-                  + N'{"key":"reject","name":"≤µªÿ","replace_name":"“—≤µªÿ","color":"red","is_bold":false}]'
-          when t.code_int = 21 then
-              N'[{"key":"agree","name":"¥¶¿Ì","replace_name":"“—¥¶¿Ì","color":"blue","is_bold":true}]'
-          else NULL end as btn_json,
-     0, 0, t.code_int,
-     N'”…°∏≤π∆Î»´≤øœ˚œ¢¿‡–Õ°π∞¥ƒ¨»œø⁄æ∂≥ı ºªØ£¨ø…‘⁄±æ“≥µ˜’˚'
- FROM src t
- WHERE t.code_int > 0
-   AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type m WHERE m.std_type = t.code_int and m.type = 1);
+IF OBJECT_ID('dbo.uf_oaones_att_plan_item','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.uf_oaones_att_plan_item (
+                                                     id                     int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                                                     cfg_id                 int NOT NULL,
+                                                     day_type               int NULL DEFAULT 0,
+                                                     start_time             varchar(5) NULL,
+                                                     end_time               varchar(5) NULL,
+                                                     interval_min           int NULL,
+                                                     showorder              int NULL,
+                                                     remark                 varchar(500) NULL,
+                                                     modedatacreater        int NULL,
+                                                     modedatacreatedate     varchar(10) NULL,
+                                                     modedatacreatetime     varchar(8) NULL,
+                                                     modedatamodifier       int NULL,
+                                                     modedatamodifydatetime varchar(100) NULL
+        );
+        CREATE INDEX idx_oaones_att_plan_item_cfg ON dbo.uf_oaones_att_plan_item(cfg_id, showorder);
+        PRINT 'created uf_oaones_att_plan_item';
+    END
+ELSE
+    PRINT 'uf_oaones_att_plan_item already exists';
+;
 
-PRINT '≤π∆Î uf_oaones_msg_type£∫±æ¥Œ–¬‘ˆ ' + cast(@@ROWCOUNT as varchar(20)) + ' ––';
+IF OBJECT_ID('dbo.uf_oaones_att_log','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.uf_oaones_att_log (
+                                               id                     int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                                               type                   int NOT NULL DEFAULT 0,
+                                               cfgid                  int NOT NULL,
+                                               trigger_type           int NULL DEFAULT 0,
+                                               dir                    int NULL DEFAULT 0,
+                                               cfg_id                 int NULL DEFAULT 0,
+                                               cfg_name               varchar(60) NULL,
+                                               win_mode               int NULL DEFAULT 0,
+                                               win_from               varchar(19) NULL,
+                                               win_to                 varchar(19) NULL,
+                                               scope_text             varchar(1000) NULL,
+                                               data_types             int NULL DEFAULT 0,
+                                               begin_time             varchar(19) NULL,
+                                               end_time               varchar(19) NULL,
+                                               cost_ms                int NULL,
+                                               add_count              int NULL DEFAULT 0,
+                                               update_count           int NULL DEFAULT 0,
+                                               skip_count             int NULL DEFAULT 0,
+                                               fail_count             int NULL DEFAULT 0,
+                                               api_count              int NULL DEFAULT 0,
+                                               result                 int NULL,
+                                               message                varchar(1000) NULL,
+                                               operator_id            int NULL,
+                                               operator_name          varchar(200) NULL,
+                                               remark                 varchar(500) NULL,
+                                               modedatacreater        int NULL,
+                                               modedatacreatedate     varchar(10) NULL,
+                                               modedatacreatetime     varchar(8) NULL,
+                                               modedatamodifier       int NULL,
+                                               modedatamodifydatetime varchar(100) NULL
+        );
+        CREATE INDEX IDX_OAONES_ATT_LOG_FILTER ON dbo.uf_oaones_att_log(type, cfgid, trigger_type, modedatacreatedate);
+        CREATE INDEX IDX_OAONES_ATT_LOG_TIME ON dbo.uf_oaones_att_log(modedatacreatedate, modedatacreatetime);
+        CREATE INDEX IDX_OAONES_ATT_LOG_CFG ON dbo.uf_oaones_att_log(cfg_id);
+        CREATE INDEX IDX_OAONES_ATT_LOG_RESULT ON dbo.uf_oaones_att_log(result, modedatacreatedate);
+        PRINT 'created uf_oaones_att_log';
+    END
+ELSE
+    PRINT 'uf_oaones_att_log already exists';
+;
 
+IF OBJECT_ID('dbo.uf_oaones_att_log_item','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.uf_oaones_att_log_item (
+                                                    id                     int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                                                    log_id                 int NULL,
+                                                    type                   int NOT NULL DEFAULT 0,
+                                                    cfgid                  int NOT NULL,
+                                                    cfg_id                 int NULL DEFAULT 0,
+                                                    dir                    int NULL DEFAULT 0,
+                                                    trigger_type           int NULL DEFAULT 0,
+                                                    oa_user_id             int NULL,
+                                                    oa_user_name           varchar(200) NULL,
+                                                    login_id               varchar(100) NULL,
+                                                    wx_user_id             varchar(128) NULL,
+                                                    sign_date              varchar(10) NULL,
+                                                    sign_time              varchar(8) NULL,
+                                                    sign_datetime          varchar(19) NULL,
+                                                    sign_type              int NULL,
+                                                    data_type              int NULL,
+                                                    raw_type               varchar(200) NULL,
+                                                    raw_summary            varchar(500) NULL,
+                                                    op                     int NULL,
+                                                    message                varchar(1000) NULL,
+                                                    oa_sign_id             varchar(64) NULL,
+                                                    wx_record_id           varchar(128) NULL,
+                                                    api_log_id             int NULL DEFAULT 0,
+                                                    win_date               varchar(10) NULL,
+                                                    remark                 varchar(500) NULL,
+                                                    modedatacreater        int NULL,
+                                                    modedatacreatedate     varchar(10) NULL,
+                                                    modedatacreatetime     varchar(8) NULL,
+                                                    modedatamodifier       int NULL,
+                                                    modedatamodifydatetime varchar(100) NULL
+        );
+        CREATE INDEX IDX_OAONES_ATT_ITEM_LOG ON dbo.uf_oaones_att_log_item(log_id);
+        CREATE INDEX IDX_OAONES_ATT_ITEM_OA ON dbo.uf_oaones_att_log_item(type, cfgid, oa_user_id, sign_date);
+        CREATE INDEX IDX_OAONES_ATT_ITEM_TIME ON dbo.uf_oaones_att_log_item(modedatacreatedate, modedatacreatetime);
+        CREATE INDEX IDX_OAONES_ATT_ITEM_OP ON dbo.uf_oaones_att_log_item(op, type, cfgid);
+        PRINT 'created uf_oaones_att_log_item';
+    END
+ELSE
+    PRINT 'uf_oaones_att_log_item already exists';
+;
 
-;WITH src AS (
-    SELECT t.id,
-           t.typecode,
-           t.sourcename,
-           t.typename,
-           CASE WHEN t.typecode NOT LIKE '%[^0-9]%' AND t.typecode <> ''
-                    THEN CAST(t.typecode AS int) END AS code_int
-    FROM dbo.ECOLOGY_MESSAGE_TYPE t
-)
- INSERT INTO dbo.uf_oaones_msg_type
- (type, type_name, std_type, wx_msgtype, card_action,
-  title_tpl, context_tpl, url_tpl, mobile_url_tpl, cover_url, btn_json,
-  app_id, yx, sort_no, remark)
- SELECT
-     2 as type,
-     isnull(nullif((select top 1 l.labelname
-                    from dbo.HtmlLabelInfo l
-                    where l.indexid = t.typename and l.languageid = 7), ''),
-            isnull(nullif(case
-                              when charindex('~`~`7 ', t.sourcename) > 0
-                                  and charindex('`~`8', t.sourcename,
-                                                charindex('~`~`7 ', t.sourcename) + 6) > charindex('~`~`7 ', t.sourcename) + 6
-                                  then ltrim(rtrim(substring(t.sourcename,
-                                                             charindex('~`~`7 ', t.sourcename) + 6,
-                                                             charindex('`~`8', t.sourcename,
-                                                                       charindex('~`~`7 ', t.sourcename) + 6)
-                                                                 - charindex('~`~`7 ', t.sourcename) - 6)))
-                              when charindex('~`~`', t.sourcename) = 0 then ltrim(rtrim(t.sourcename))
-                              end, ''),
-                   N'œ˚œ¢¿‡–Õ ' + cast(t.typecode as nvarchar(20)))) as type_name,
-     t.code_int,
-     case when t.code_int in (20, 21, 25, 27, 34, 35, 38, 63)
-              then N'task_card' else N'post' end as wx_msgtype,
-     case when t.code_int in (20, 21, 63) then N'create'
-          when t.code_int = 25 then N'done'
-          when t.code_int in (27, 34, 35, 38) then N'invalid'
-          else N'none' end as card_action,
-     case when t.code_int in (20, 21, 63) then N'${targetName}'
-          when t.code_int = 25 then N'¡˜≥Ã“—∞ÏΩ·'
-          when t.code_int = 27 then N'¡˜≥Ã“—…æ≥˝'
-          when t.code_int = 34 then N'¡˜≥Ã“—‘›Õ£'
-          when t.code_int = 35 then N'¡˜≥Ã“—≥∑œ˙'
-          when t.code_int = 38 then N'¡˜≥Ã“— ’ªÿ'
-          else N'${title}' end as title_tpl,
-     case when t.code_int = 20 then N'¡˜≥Ã°∏${targetName}°π”… ${creater} ”⁄ ${date} ${time} Ã·Ωª£¨«Îº∞ ±¥¶¿Ì°£'
-          when t.code_int = 21 then N'¡˜≥Ã°∏${targetName}°π±ªÕÀªÿ£¨«Î÷ÿ–¬¥¶¿Ì°£'
-          when t.code_int = 63 then N'»ŒŒÒ°∏${targetName}°π“—µΩ¥Ô£¨«Îº∞ ±¥¶¿Ì°£'
-          when t.code_int = 25 then N'¡˜≥Ã°∏${targetName}°π“—∞ÏΩ·°£'
-          when t.code_int = 27 then N'¡˜≥Ã°∏${targetName}°π“—…æ≥˝£¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 34 then N'¡˜≥Ã°∏${targetName}°π“—‘›Õ££¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 35 then N'¡˜≥Ã°∏${targetName}°π“—≥∑œ˙£¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 38 then N'¡˜≥Ã°∏${targetName}°π“—±ª ’ªÿ/≥∑œ˙£¨¥˝∞Ï“— ß–ß°£'
-          else N'${context}' end as context_tpl,
-     NULL, NULL, NULL,
-     case when t.code_int in (20, 63) then
-              N'[{"key":"agree","name":"Õ¨“‚","replace_name":"“—Õ¨“‚","color":"blue","is_bold":true},'
-                  + N'{"key":"reject","name":"≤µªÿ","replace_name":"“—≤µªÿ","color":"red","is_bold":false}]'
-          when t.code_int = 21 then
-              N'[{"key":"agree","name":"¥¶¿Ì","replace_name":"“—¥¶¿Ì","color":"blue","is_bold":true}]'
-          else NULL end as btn_json,
-     0, 0, t.code_int,
-     N'”…°∏≤π∆Î»´≤øœ˚œ¢¿‡–Õ°π∞¥ƒ¨»œø⁄æ∂≥ı ºªØ£¨ø…‘⁄±æ“≥µ˜’˚'
- FROM src t
- WHERE t.code_int > 0
-   AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type m WHERE m.std_type = t.code_int and m.type = 2);
-
-PRINT '≤π∆Î uf_oaones_msg_type£®∑… È type=2£©£∫±æ¥Œ–¬‘ˆ ' + cast(@@ROWCOUNT as varchar(20)) + ' ––';
-
-
-;WITH src AS (
-    SELECT t.id,
-           t.typecode,
-           t.sourcename,
-           t.typename,
-           CASE WHEN t.typecode NOT LIKE '%[^0-9]%' AND t.typecode <> ''
-                    THEN CAST(t.typecode AS int) END AS code_int
-    FROM dbo.ECOLOGY_MESSAGE_TYPE t
-)
- INSERT INTO dbo.uf_oaones_msg_type
- (type_name, std_type, wx_msgtype, card_action,
-  title_tpl, context_tpl, url_tpl, mobile_url_tpl, cover_url, btn_json,
-  app_id, yx, sort_no, remark)
- SELECT
-     isnull(nullif((select top 1 l.labelname
-                    from dbo.HtmlLabelInfo l
-                    where l.indexid = t.typename and l.languageid = 7), ''),
-            isnull(nullif(case
-                              when charindex('~`~`7 ', t.sourcename) > 0
-                                  and charindex('`~`8', t.sourcename,
-                                                charindex('~`~`7 ', t.sourcename) + 6) > charindex('~`~`7 ', t.sourcename) + 6
-                                  then ltrim(rtrim(substring(t.sourcename,
-                                                             charindex('~`~`7 ', t.sourcename) + 6,
-                                                             charindex('`~`8', t.sourcename,
-                                                                       charindex('~`~`7 ', t.sourcename) + 6)
-                                                                 - charindex('~`~`7 ', t.sourcename) - 6)))
-                              when charindex('~`~`', t.sourcename) = 0 then ltrim(rtrim(t.sourcename))
-                              end, ''),
-                   N'œ˚œ¢¿‡–Õ ' + cast(t.typecode as nvarchar(20)))) as type_name,
-     t.code_int,
-     N'textcard' as wx_msgtype,
-     N'none' as card_action,
-     case when t.code_int in (20, 21, 63) then N'${targetName}'
-          when t.code_int = 25 then N'¡˜≥Ã“—∞ÏΩ·'
-          when t.code_int = 27 then N'¡˜≥Ã“—…æ≥˝'
-          when t.code_int = 34 then N'¡˜≥Ã“—‘›Õ£'
-          when t.code_int = 35 then N'¡˜≥Ã“—≥∑œ˙'
-          when t.code_int = 38 then N'¡˜≥Ã“— ’ªÿ'
-          else N'${title}' end as title_tpl,
-     case when t.code_int = 20 then N'¡˜≥Ã°∏${targetName}°π”… ${creater} ”⁄ ${date} ${time} Ã·Ωª£¨«Îº∞ ±¥¶¿Ì°£'
-          when t.code_int = 21 then N'¡˜≥Ã°∏${targetName}°π±ªÕÀªÿ£¨«Î÷ÿ–¬¥¶¿Ì°£'
-          when t.code_int = 63 then N'»ŒŒÒ°∏${targetName}°π“—µΩ¥Ô£¨«Îº∞ ±¥¶¿Ì°£'
-          when t.code_int = 25 then N'¡˜≥Ã°∏${targetName}°π“—∞ÏΩ·°£'
-          when t.code_int = 27 then N'¡˜≥Ã°∏${targetName}°π“—…æ≥˝£¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 34 then N'¡˜≥Ã°∏${targetName}°π“—‘›Õ££¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 35 then N'¡˜≥Ã°∏${targetName}°π“—≥∑œ˙£¨¥˝∞Ï“— ß–ß°£'
-          when t.code_int = 38 then N'¡˜≥Ã°∏${targetName}°π“—±ª ’ªÿ/≥∑œ˙£¨¥˝∞Ï“— ß–ß°£'
-          else N'${context}' end as context_tpl,
-     NULL, NULL, NULL,
-     NULL as btn_json,
-     0, 0, t.code_int,
-     N'”…°∏≤π∆Î»´≤øœ˚œ¢¿‡–Õ°π∞¥ƒ¨»œø⁄æ∂≥ı ºªØ£¨ø…‘⁄±æ“≥µ˜’˚'
- FROM src t
- WHERE t.code_int > 0
-   AND NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_msg_type m WHERE m.std_type = t.code_int);
-PRINT '≤π∆Î uf_oaones_msg_type£∫±æ¥Œ–¬‘ˆ ' + cast(@@ROWCOUNT as varchar(20)) + ' ––';
-
-
-IF COL_LENGTH('dbo.uf_oaones_msg_log','api_log_id') IS NULL
-ALTER TABLE dbo.uf_oaones_msg_log ADD api_log_id int NULL;
-
-IF COL_LENGTH('dbo.uf_oaones_msg_log','reason') IS NULL
-ALTER TABLE dbo.uf_oaones_msg_log ADD reason nvarchar(1000) NULL;
-
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes
-               WHERE name = 'IDX_OAONES_MSG_LOG_API'
-                 AND object_id = OBJECT_ID('dbo.uf_oaones_msg_log'))
-CREATE INDEX IDX_OAONES_MSG_LOG_API ON dbo.uf_oaones_msg_log(api_log_id);
-
-
-IF COL_LENGTH('dbo.uf_oaones_msg_log','request_json') IS NOT NULL
-ALTER TABLE dbo.uf_oaones_msg_log DROP COLUMN request_json;
-
-IF COL_LENGTH('dbo.uf_oaones_msg_log','response_json') IS NOT NULL
-ALTER TABLE dbo.uf_oaones_msg_log DROP COLUMN response_json;
-
-IF COL_LENGTH('dbo.uf_oaones_msg_log','error_stack') IS NOT NULL
-ALTER TABLE dbo.uf_oaones_msg_log DROP COLUMN error_stack;
-
-IF COL_LENGTH('dbo.uf_oaones_msg_log','errcode') IS NOT NULL
-ALTER TABLE dbo.uf_oaones_msg_log DROP COLUMN errcode;
-
-IF COL_LENGTH('dbo.uf_oaones_msg_log','errmsg') IS NOT NULL
-ALTER TABLE dbo.uf_oaones_msg_log DROP COLUMN errmsg;
-
-IF COL_LENGTH('dbo.uf_oaones_msg_log','cost_ms') IS NOT NULL
-ALTER TABLE dbo.uf_oaones_msg_log DROP COLUMN cost_ms;
-
-
-PRINT 'uf_oaones_msg_log -> Õ∆ÀÕ◊¥Ã¨±Ì£®api_log_id / reason£©æÕ–˜';
+IF OBJECT_ID('dbo.uf_oaones_att_link','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.uf_oaones_att_link (
+                                               id                     int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                                               type                   int NOT NULL DEFAULT 0,
+                                               cfgid                  int NOT NULL,
+                                               dir                    int NOT NULL DEFAULT 0,
+                                               oa_user_id             int NOT NULL,
+                                               wx_user_id             varchar(128) NOT NULL DEFAULT '',
+                                               sign_date              varchar(10) NOT NULL DEFAULT '',
+                                               sign_time              varchar(8) NOT NULL DEFAULT '',
+                                               sign_type              int NOT NULL DEFAULT 1,
+                                               data_type              int NOT NULL DEFAULT 1,
+                                               wx_record_id           varchar(128) NOT NULL DEFAULT '',
+                                               oa_sign_id             varchar(64) NOT NULL DEFAULT '',
+                                               source                 int NOT NULL DEFAULT 0,
+                                               last_time              varchar(19) NULL,
+                                               raw_type               varchar(200) NULL,
+                                               remark                 varchar(500) NULL,
+                                               modedatacreater        int NULL,
+                                               modedatacreatedate     varchar(10) NULL,
+                                               modedatacreatetime     varchar(8) NULL,
+                                               modedatamodifier       int NULL,
+                                               modedatamodifydatetime varchar(100) NULL
+        );
+        CREATE UNIQUE INDEX UK_OAONES_ATT_LINK_KEY ON dbo.uf_oaones_att_link
+            (type, cfgid, dir, oa_user_id, sign_date, sign_time, sign_type, data_type);
+        CREATE INDEX IDX_OAONES_ATT_LINK_RECORD ON dbo.uf_oaones_att_link(type, cfgid, wx_record_id);
+        CREATE INDEX IDX_OAONES_ATT_LINK_SOURCE ON dbo.uf_oaones_att_link(type, cfgid, source, dir);
+        PRINT 'created uf_oaones_att_link';
+    END
+ELSE
+    PRINT 'uf_oaones_att_link already exists';
+;

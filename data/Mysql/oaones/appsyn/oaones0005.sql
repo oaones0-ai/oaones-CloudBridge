@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_att_cfg (
     KEY IDX_OAONES_ATT_CFG_TENANT (type, cfgid, row_type),
     KEY IDX_OAONES_ATT_CFG_ENABLE (enabled, type)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步设置（一行 = 平台 + 租户 + 方向）';
+
 CREATE TABLE IF NOT EXISTS uf_oaones_att_plan_item (
                                                        id                     int NOT NULL AUTO_INCREMENT,
                                                        cfg_id                 int NOT NULL,
@@ -58,6 +59,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_att_plan_item (
     PRIMARY KEY (id),
     KEY idx_oaones_att_plan_item_cfg (cfg_id, showorder)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步计划任务时间段明细（计划任务每条设置一份）';
+
 CREATE TABLE IF NOT EXISTS uf_oaones_att_log (
                                                  id                     int NOT NULL AUTO_INCREMENT,
                                                  type                   int NOT NULL DEFAULT 0,
@@ -95,6 +97,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_att_log (
     KEY IDX_OAONES_ATT_LOG_CFG (cfg_id),
     KEY IDX_OAONES_ATT_LOG_RESULT (result, modedatacreatedate)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步批次（一次执行一行）';
+
 CREATE TABLE IF NOT EXISTS uf_oaones_att_log_item (
                                                       id                     int NOT NULL AUTO_INCREMENT,
                                                       log_id                 int NULL,
@@ -132,6 +135,7 @@ CREATE TABLE IF NOT EXISTS uf_oaones_att_log_item (
     KEY IDX_OAONES_ATT_ITEM_TIME (modedatacreatedate, modedatacreatetime),
     KEY IDX_OAONES_ATT_ITEM_OP (op, type, cfgid)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAones 考勤同步打卡明细（一条打卡一次动作一行）';
+
 CREATE TABLE IF NOT EXISTS uf_oaones_att_link (
                                                  id                     int NOT NULL AUTO_INCREMENT,
                                                  type                   int NOT NULL DEFAULT 0,

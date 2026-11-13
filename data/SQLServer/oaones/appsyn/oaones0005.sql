@@ -46,7 +46,7 @@ IF OBJECT_ID('dbo.uf_oaones_att_cfg','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_cfg already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_att_plan_item','U') IS NULL
     BEGIN
@@ -70,7 +70,7 @@ IF OBJECT_ID('dbo.uf_oaones_att_plan_item','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_plan_item already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_att_log','U') IS NULL
     BEGIN
@@ -114,7 +114,7 @@ IF OBJECT_ID('dbo.uf_oaones_att_log','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_log already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_att_log_item','U') IS NULL
     BEGIN
@@ -158,32 +158,32 @@ IF OBJECT_ID('dbo.uf_oaones_att_log_item','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_log_item already exists';
-
+;
 
 IF OBJECT_ID('dbo.uf_oaones_att_link','U') IS NULL
     BEGIN
         CREATE TABLE dbo.uf_oaones_att_link (
-                                                id                     int IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                                                type                   int NOT NULL DEFAULT 0,
-                                                cfgid                  int NOT NULL,
-                                                dir                    int NOT NULL DEFAULT 0,
-                                                oa_user_id             int NOT NULL,
-                                                wx_user_id             varchar(128) NOT NULL DEFAULT '',
-                                                sign_date              varchar(10) NOT NULL DEFAULT '',
-                                                sign_time              varchar(8) NOT NULL DEFAULT '',
-                                                sign_type              int NOT NULL DEFAULT 1,
-                                                data_type              int NOT NULL DEFAULT 1,
-                                                wx_record_id           varchar(128) NOT NULL DEFAULT '',
-                                                oa_sign_id             varchar(64) NOT NULL DEFAULT '',
-                                                source                 int NOT NULL DEFAULT 0,
-                                                last_time              varchar(19) NULL,
-                                                raw_type               varchar(200) NULL,
-                                                remark                 varchar(500) NULL,
-                                                modedatacreater        int NULL,
-                                                modedatacreatedate     varchar(10) NULL,
-                                                modedatacreatetime     varchar(8) NULL,
-                                                modedatamodifier       int NULL,
-                                                modedatamodifydatetime varchar(100) NULL
+                                               id                     int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                                               type                   int NOT NULL DEFAULT 0,
+                                               cfgid                  int NOT NULL,
+                                               dir                    int NOT NULL DEFAULT 0,
+                                               oa_user_id             int NOT NULL,
+                                               wx_user_id             varchar(128) NOT NULL DEFAULT '',
+                                               sign_date              varchar(10) NOT NULL DEFAULT '',
+                                               sign_time              varchar(8) NOT NULL DEFAULT '',
+                                               sign_type              int NOT NULL DEFAULT 1,
+                                               data_type              int NOT NULL DEFAULT 1,
+                                               wx_record_id           varchar(128) NOT NULL DEFAULT '',
+                                               oa_sign_id             varchar(64) NOT NULL DEFAULT '',
+                                               source                 int NOT NULL DEFAULT 0,
+                                               last_time              varchar(19) NULL,
+                                               raw_type               varchar(200) NULL,
+                                               remark                 varchar(500) NULL,
+                                               modedatacreater        int NULL,
+                                               modedatacreatedate     varchar(10) NULL,
+                                               modedatacreatetime     varchar(8) NULL,
+                                               modedatamodifier       int NULL,
+                                               modedatamodifydatetime varchar(100) NULL
         );
         CREATE UNIQUE INDEX UK_OAONES_ATT_LINK_KEY ON dbo.uf_oaones_att_link
             (type, cfgid, dir, oa_user_id, sign_date, sign_time, sign_type, data_type);
@@ -193,4 +193,4 @@ IF OBJECT_ID('dbo.uf_oaones_att_link','U') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_att_link already exists';
-
+;

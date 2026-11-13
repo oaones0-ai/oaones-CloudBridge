@@ -1,8 +1,3 @@
--- OAones 表名适配 appsyn 子模块。
--- 本脚本为一次性迁移：逐表执行，不使用前缀扫描、游标或批量重命名。
--- 请先停止 E9，并按数据库实际对象状态执行；每张表必须单独确认源表存在且目标表不存在。
--- 不修改任何历史 SQL 文件中的建表语句。
-
 ALTER TABLE `uf_oaones_qywx_config` RENAME TO `uf_oaones_appsyn_qywx_config`;
 
 ALTER TABLE `uf_oaones_dept_bind` RENAME TO `uf_oaones_appsyn_dept_bind`;

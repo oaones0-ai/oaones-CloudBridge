@@ -7,4 +7,4 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','login_layout_mode') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.login_layout_mode already exists';
-
+;

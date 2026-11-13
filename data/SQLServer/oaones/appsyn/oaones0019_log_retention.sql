@@ -1,4 +1,3 @@
-/* OAones：日志保留设置。默认 0 = 永久保留，自动任务每天检查一次。 */
 IF OBJECT_ID('dbo.uf_oaones_log_retention','U') IS NULL
 BEGIN
     CREATE TABLE dbo.uf_oaones_log_retention (
@@ -16,7 +15,7 @@ BEGIN
 END
 ELSE
     PRINT 'uf_oaones_log_retention already exists';
-
+;
 
 IF NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_log_retention WHERE log_code = 'api_log')
     INSERT INTO dbo.uf_oaones_log_retention (log_code, keep_days) VALUES ('api_log', 0);
@@ -34,4 +33,4 @@ IF NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_log_retention WHERE log_code = 'sync_
     INSERT INTO dbo.uf_oaones_log_retention (log_code, keep_days) VALUES ('sync_log_item', 0);
 IF NOT EXISTS (SELECT 1 FROM dbo.uf_oaones_log_retention WHERE log_code = 'mtg_sync_log')
     INSERT INTO dbo.uf_oaones_log_retention (log_code, keep_days) VALUES ('mtg_sync_log', 0);
-
+;

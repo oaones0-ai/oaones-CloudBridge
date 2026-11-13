@@ -1,5 +1,6 @@
 ALTER TABLE uf_oaones_login_config ADD (email_enable NUMBER(10) DEFAULT 0);
 COMMENT ON COLUMN uf_oaones_login_config.email_enable IS '邮箱验证登录：0 关 / 1 开';
+
 ALTER TABLE uf_oaones_login_sms ADD (email VARCHAR2(128 CHAR));
 COMMENT ON COLUMN uf_oaones_login_sms.email IS '接收验证码的邮箱；手机号验证码的行留空';
 ALTER TABLE uf_oaones_login_sms MODIFY (mobile VARCHAR2(32 CHAR) NULL);

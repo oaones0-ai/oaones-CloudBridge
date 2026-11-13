@@ -5,4 +5,4 @@ IF COL_LENGTH('dbo.uf_oaones_login_config','brand_opacity') IS NULL
     END
 ELSE
     PRINT 'uf_oaones_login_config.brand_opacity already exists';
-
+;
